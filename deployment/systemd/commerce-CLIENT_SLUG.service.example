@@ -1,0 +1,78 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# EXAMPLE ONLY — this unit is not installed or active anywhere.
+#
+# One unit per client instance. Copy, replace every placeholder, review, then
+# install as:  /etc/systemd/system/commerce-CLIENT_SLUG.service
+#
+#   CLIENT_SLUG   short lowercase client identifier   e.g. northwind
+#   BACKEND_PORT  loopback port unique to this instance   e.g. 8001
+#   PROJECT_PATH  absolute path of this instance's checkout
+#
+# This file has never been run on a server. Verify it before trusting it.
+# ─────────────────────────────────────────────────────────────────────────────
+
+[Unit]
+Description=Commerce backend (CLIENT_SLUG)
+Documentation=file://PROJECT_PATH/docs/deployment-templates.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=commerce-CLIENT_SLUG
+Group=commerce-CLIENT_SLUG
+WorkingDirectory=PROJECT_PATH/backend
+
+# Credentials live in the environment file, never in this unit.
+# Keep it owned by the service user with mode 600.
+EnvironmentFile=PROJECT_PATH/backend/.env
+
+# Bind to loopback only. Nginx is the sole public entry point.
+ExecStart=PROJECT_PATH/backend/.venv/bin/uvicorn app.main:app \
+    --host 127.0.0.1 \
+    --port BACKEND_PORT \
+    --proxy-headers \
+    --forwarded-allow-ips 127.0.0.1
+
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=20s
+KillSignal=SIGINT
+
+# Hardening. Relax only what a specific failure proves you must.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+# The only paths the service may write to: uploaded media, and the SQLite
+# database if this instance still uses SQLite. Adjust to match the .env.
+ReadWritePaths=PROJECT_PATH/backend/data
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=commerce-CLIENT_SLUG
+
+[Install]
+WantedBy=multi-user.target
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Install (run as root, after replacing the placeholders):
+#
+#   cp commerce-CLIENT_SLUG.service /etc/systemd/system/
+#   systemctl daemon-reload
+#   systemctl enable --now commerce-CLIENT_SLUG
+#   systemctl status commerce-CLIENT_SLUG
+#   curl http://127.0.0.1:BACKEND_PORT/health
+#
+# Logs:  journalctl -u commerce-CLIENT_SLUG -f
+# ─────────────────────────────────────────────────────────────────────────────

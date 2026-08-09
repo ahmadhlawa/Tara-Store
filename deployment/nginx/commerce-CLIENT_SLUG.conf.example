@@ -1,0 +1,145 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# EXAMPLE ONLY — this server block is not installed or active anywhere.
+#
+# One site per client instance. Copy, replace every placeholder, review, then
+# install as:  /etc/nginx/sites-available/commerce-CLIENT_SLUG.conf
+#
+#   CLIENT_SLUG   short lowercase client identifier   e.g. northwind
+#   CLIENT_DOMAIN public domain for this instance     e.g. shop.example.com
+#   BACKEND_PORT  loopback port of this instance's service   e.g. 8001
+#   PROJECT_PATH  absolute path of this instance's checkout
+#
+# Serves three things:
+#   1. the built SPA from frontend/dist, with a fallback so deep links work
+#   2. /api  reverse-proxied to the FastAPI service on loopback
+#   3. /media  the uploaded files, served directly from disk
+#
+# This file has never been installed on a server. Run `nginx -t` before reloading.
+# ─────────────────────────────────────────────────────────────────────────────
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name CLIENT_DOMAIN;
+
+    # Serve the ACME challenge over plain HTTP, redirect everything else.
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name CLIENT_DOMAIN;
+
+    # TLS — issue a certificate for CLIENT_DOMAIN before enabling this site.
+    ssl_certificate     /etc/letsencrypt/live/CLIENT_DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/CLIENT_DOMAIN/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # The API rejects oversized uploads itself (MAX_UPLOAD_SIZE_BYTES); keep this
+    # at or slightly above that value so the error comes from the application.
+    client_max_body_size 8m;
+
+    access_log /var/log/nginx/commerce-CLIENT_SLUG.access.log;
+    error_log  /var/log/nginx/commerce-CLIENT_SLUG.error.log;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 1024;
+
+    # ── 1. The built single-page application ────────────────────────────────
+    root PROJECT_PATH/frontend/dist;
+    index index.html;
+
+    # Deep links such as /product/<slug>, /cart and /admin/orders are client-side
+    # routes. Without this fallback they would 404 on reload.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Vite emits content-hashed asset filenames, so they can be cached hard.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # index.html must never be cached, or clients pin an old asset manifest.
+    location = /index.html {
+        add_header Cache-Control "no-cache, must-revalidate";
+    }
+
+    # ── 2. The API ──────────────────────────────────────────────────────────
+    location /api/ {
+        proxy_pass http://127.0.0.1:BACKEND_PORT;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+
+        proxy_connect_timeout 10s;
+        proxy_send_timeout    60s;
+        proxy_read_timeout    60s;
+        proxy_buffering off;
+    }
+
+    # Health check, outside the API prefix.
+    location = /health {
+        proxy_pass http://127.0.0.1:BACKEND_PORT/health;
+        proxy_set_header Host $host;
+        access_log off;
+    }
+
+    # ── 3. Uploaded media ───────────────────────────────────────────────────
+    # Served straight from disk. Must match LOCAL_MEDIA_ROOT in the instance .env.
+    # Stored filenames are random hex, so they are safe to cache for a long time.
+    location /media/ {
+        alias PROJECT_PATH/backend/data/uploads/;
+        expires 30d;
+        add_header Cache-Control "public";
+        access_log off;
+        try_files $uri =404;
+
+        # Uploads are validated by magic bytes on the way in; never execute them.
+        location ~ \.(php|py|sh|cgi|pl)$ { deny all; }
+    }
+
+    location ~ /\.(?!well-known) {
+        deny all;
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Install (run as root, after replacing the placeholders):
+#
+#   cp commerce-CLIENT_SLUG.conf /etc/nginx/sites-available/
+#   ln -s /etc/nginx/sites-available/commerce-CLIENT_SLUG.conf \
+#         /etc/nginx/sites-enabled/commerce-CLIENT_SLUG.conf
+#   nginx -t && systemctl reload nginx
+#
+# Verify:
+#   curl -I https://CLIENT_DOMAIN/
+#   curl -I https://CLIENT_DOMAIN/product/some-slug     # 200, not 404
+#   curl    https://CLIENT_DOMAIN/api/v1/store/settings
+#   curl -I https://CLIENT_DOMAIN/media/<an-uploaded-file>
+#
+# Note: rate limiting for /api/v1/auth/login is NOT configured here and the
+# application does not implement it. Add limit_req before a public launch.
+# ─────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,365 @@
+/* Hero, promotional bands and the homepage section compositions. */
+
+/* ── hero ──────────────────────────────────────────────────────────────── */
+
+/* One advertising image across the full storefront width. Nothing sits beside
+   it and nothing frames it: no container, no gutter, no radius — the band runs
+   edge to edge from the nav band down to the first section, and `.vs-public`'s
+   own rail gutter is what stops it short of the category rail. */
+.vs-herorow {
+  padding: 0;
+}
+
+/* The ratio reserves the box before the image decodes, so the page never jumps.
+   It is a token, so a wide desktop banner, a squarer tablet crop and a portrait
+   mobile crop are all one decision (see tokens.css). The cap keeps a very wide
+   monitor from turning the same ratio into a wall of advertisement. */
+.vs-hero {
+  position: relative;
+  /* Explicit, because with `aspect-ratio` and an `auto` width Chrome derives the
+     width back from the capped height and the band stops filling the row. */
+  width: 100%;
+  aspect-ratio: var(--vs-ar-hero);
+  max-height: var(--vs-hero-max-h);
+  overflow: hidden;
+  background: var(--vs-surface-2);
+  isolation: isolate;
+  touch-action: pan-y;
+}
+
+.vs-hero__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--vs-t-hero) var(--vs-ease);
+  pointer-events: none;
+}
+
+.vs-hero__slide[data-active="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.vs-hero__media,
+.vs-hero__media img,
+.vs-hero__media > span {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Rendered only alongside admin-supplied copy, so artwork that carries its own
+   typography is never dimmed for the sake of text that is not there. */
+.vs-hero__veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to left,
+    rgba(16, 14, 22, 0.7) 0%,
+    rgba(16, 14, 22, 0.44) 46%,
+    rgba(16, 14, 22, 0.1) 100%
+  );
+}
+
+/* Anchored to the RTL start edge, not centred: the veil is heaviest there, so
+   that is where the copy stays legible over any photograph. */
+.vs-hero__body {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px calc(var(--vs-gutter) + 24px);
+  max-width: min(620px, 78%);
+  color: #fff;
+}
+
+.vs-hero__eyebrow {
+  font-size: var(--vs-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--vs-accent);
+}
+
+.vs-hero__title {
+  font-size: clamp(22px, 2.9vw, 38px);
+  font-weight: 800;
+  line-height: 1.32;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.3);
+}
+
+.vs-hero__desc {
+  font-size: var(--vs-fs-body);
+  line-height: 1.85;
+  color: rgba(255, 255, 255, 0.88);
+  max-width: 48ch;
+}
+
+.vs-hero__cta {
+  align-self: flex-start;
+  margin-block-start: 8px;
+}
+
+/* Aligned to the container gutter, so the controls sit on the same vertical as
+   the page content even though the band itself is full bleed. */
+.vs-hero__dots {
+  position: absolute;
+  inset-block-end: 18px;
+  inset-inline-start: calc(var(--vs-gutter) + 12px);
+  display: flex;
+  gap: 7px;
+  z-index: 3;
+}
+
+.vs-hero__dot {
+  width: 9px;
+  height: 9px;
+  border: 0;
+  border-radius: var(--vs-r-pill);
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 0;
+  transition: width var(--vs-t-card) var(--vs-ease), background var(--vs-t-card) var(--vs-ease);
+}
+
+.vs-hero__dot[aria-current="true"] {
+  width: 30px;
+  background: var(--vs-accent);
+}
+
+.vs-hero__arrows {
+  position: absolute;
+  inset-block-end: 14px;
+  inset-inline-end: calc(var(--vs-gutter) + 8px);
+  display: flex;
+  gap: 8px;
+  z-index: 3;
+}
+
+.vs-hero__arrow {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background var(--vs-t) var(--vs-ease);
+}
+
+.vs-hero__arrow:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 599px) {
+  /* A phone is narrower than any advertising banner, so covering would crop the
+     artwork sideways and take the promotional text with it. The box already
+     carries the artwork's landscape ratio (tokens.css), so containing costs no
+     letterbox on a normal banner and guarantees a differently proportioned one
+     is shown whole rather than sliced. */
+  .vs-hero__media img {
+    object-fit: contain;
+  }
+  .vs-hero__body {
+    padding: 18px calc(var(--vs-gutter) + 4px) 46px;
+    gap: 8px;
+    max-width: 100%;
+  }
+  .vs-hero__dots {
+    inset-inline-start: calc(var(--vs-gutter) + 4px);
+  }
+  .vs-hero__arrows {
+    display: none;
+  }
+}
+
+/* ── promo band call to action ─────────────────────────────────────────── */
+
+.vs-promo__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--vs-fs-sm);
+  font-weight: 700;
+  color: var(--vs-accent);
+}
+
+/* ── wide strip banner ─────────────────────────────────────────────────── */
+
+.vs-strip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 220px;
+  border-radius: var(--vs-r-xl);
+  overflow: hidden;
+  color: #fff;
+  isolation: isolate;
+}
+
+.vs-strip__media,
+.vs-strip__media img,
+.vs-strip__media > span {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vs-strip__veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to left, rgba(16, 14, 12, 0.76), rgba(16, 14, 12, 0.25));
+}
+
+.vs-strip__body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 32px;
+  max-width: 620px;
+}
+
+.vs-strip__title {
+  font-size: var(--vs-fs-h2);
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.vs-strip__desc {
+  font-size: var(--vs-fs-sm);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+/* ── split editorial block ─────────────────────────────────────────────── */
+
+.vs-split {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 1023px) {
+  .vs-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A white panel with one Vista-yellow rule, not a purple slab. The page's large
+   surfaces stay white and warm off-white; purple is spent on the button, which
+   is the only thing here that is actually an action. */
+.vs-split__panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 30px;
+  border-radius: var(--vs-r-lg);
+  background: var(--vs-surface);
+  border: 1px solid var(--vs-border);
+  color: var(--vs-ink);
+}
+
+.vs-split__panel::before {
+  content: "";
+  align-self: flex-start;
+  width: 44px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--vs-accent);
+}
+
+.vs-split__title {
+  font-size: var(--vs-fs-h2);
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--vs-ink);
+}
+
+.vs-split__desc {
+  font-size: var(--vs-fs-sm);
+  line-height: 1.9;
+  color: var(--vs-ink-3);
+}
+
+.vs-split__cta {
+  align-self: flex-start;
+  margin-block-start: 6px;
+  background: var(--vs-primary);
+  border-color: var(--vs-primary);
+  color: var(--vs-ink-invert);
+}
+
+.vs-split__cta:hover {
+  background: var(--vs-primary-dark);
+  border-color: var(--vs-primary-dark);
+}
+
+.vs-split__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--vs-grid-gap);
+}
+
+/* ── trust strip ───────────────────────────────────────────────────────── */
+
+.vs-trust {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.vs-trust__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--vs-surface);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-r-md);
+}
+
+.vs-trust__icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: var(--vs-r-md);
+  background: var(--vs-primary-soft);
+  color: var(--vs-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vs-trust__title {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.vs-trust__desc {
+  font-size: 12.5px;
+  color: var(--vs-ink-3);
+}
+
+/* ── hero skeleton ─────────────────────────────────────────────────────── */
+
+/* Reserves exactly the band the hero will occupy, radius and cap included, so
+   nothing on the page moves when the slides arrive. */
+.vs-hero--skel {
+  width: 100%;
+  aspect-ratio: var(--vs-ar-hero);
+  max-height: var(--vs-hero-max-h);
+  border-radius: 0;
+}

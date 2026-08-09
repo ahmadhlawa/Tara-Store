@@ -1,0 +1,124 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Instance profile — copy this file per client and edit it.
+#
+#   cp instance/client-profile.example.yaml instance/<client-slug>-profile.yaml
+#
+# This file is NON-SECRET by design. It is validated, may be committed, and may be
+# handed to a client. It must never contain a database password, DATABASE_URL, JWT
+# secret, storage credential, admin password or private key — validation rejects any
+# key whose name looks like a secret, and rejects unknown keys outright.
+#
+# Secrets live only in the instance's untracked environment file. See
+# docs/client-lifecycle.md.
+#
+# Apply it with:
+#   python -m scripts.instance_cli validate --profile ../instance/<file>.yaml
+#   python -m scripts.instance_cli plan     --profile ../instance/<file>.yaml
+#   python -m scripts.instance_cli apply    --profile ../instance/<file>.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Schema version of this document. Bumped only when the profile shape changes.
+profile_schema_version: 1
+
+# The commerce foundation release this profile was written for (see the VERSION file).
+template_version: "0.3.0-rc.1"
+
+# Stable identifier for the instance. Lowercase letters, digits and hyphens, 3-40
+# characters. Recorded in the database and refused if it ever changes.
+client_slug: "example-client"
+
+store:
+  name: "Example Store"
+  tagline: "What this store sells, in one line"
+  locale: "ar"                  # 'ar' or e.g. 'ar-PS'
+  timezone: "Asia/Hebron"       # IANA timezone
+  currency_code: "ILS"          # three uppercase letters
+  currency_symbol: "₪"
+  seo_title: "Example Store"
+  seo_description: "Default meta description for the storefront."
+
+domain:
+  primary: "shop.example.com"   # bare hostname, no scheme, no path
+  aliases: []
+
+# Seeded into store settings on first bootstrap. The owner can change all of it in
+# Admin afterwards, and a later bootstrap will not overwrite their edits.
+contact:
+  phone: "0000000000"
+  whatsapp: "0000000000"
+  email: "info@example.com"
+  address: "Set the address from the admin panel"
+  working_hours: "Sat–Thu · 09:00 – 19:00"
+  instagram_url: null
+  facebook_url: null
+
+theme:
+  primary_color: "#1F4E4A"
+  secondary_color: "#C9A24B"
+  accent_color: "#2E7D5B"
+
+# Fixed, explicit set — every one is already implemented. Unknown names are rejected.
+# Anything omitted defaults to enabled. Disabling a feature only affects what a fresh
+# instance starts with; it never deletes existing data.
+features:
+  packages: true
+  silicone_molds: true
+  articles: true
+  coupons: true
+
+# Home page structure created on first bootstrap. Sections that already exist are left
+# alone, so owner edits survive. A section with `requires_feature` is skipped when that
+# feature is disabled.
+home_sections:
+  - key: "hero"
+    type: "promo_banner"
+    title: "Featured"
+    sort_order: 0
+  - key: "categories"
+    type: "categories"
+    title: "Shop by category"
+    sort_order: 1
+  - key: "packages"
+    type: "packages"
+    title: "Starter packages"
+    sort_order: 2
+    requires_feature: "packages"
+  - key: "molds"
+    type: "silicone_molds"
+    title: "Silicone moulds"
+    sort_order: 3
+    requires_feature: "silicone_molds"
+  - key: "featured"
+    type: "featured_products"
+    title: "Selected products"
+    sort_order: 4
+  - key: "new"
+    type: "new_products"
+    title: "New arrivals"
+    sort_order: 5
+  - key: "bestsellers"
+    type: "bestsellers"
+    title: "Best sellers"
+    sort_order: 6
+
+# Created empty, for the owner to fill in through Admin. The storefront footer links to
+# about, privacy-policy, return-policy and terms, so leaving them out creates dead ends.
+static_pages:
+  - slug: "about"
+    title: "About us"
+    lead: "Tell customers who you are."
+  - slug: "privacy-policy"
+    title: "Privacy policy"
+    lead: "How customer data is handled."
+  - slug: "return-policy"
+    title: "Returns and exchanges"
+    lead: "Return window and conditions."
+  - slug: "terms"
+    title: "Terms and conditions"
+    lead: "Terms of using this store."
+  - slug: "shipping-policy"
+    title: "Shipping policy"
+    lead: "Delivery areas and timescales."
+  - slug: "contact"
+    title: "Contact us"
+    lead: "How to reach the store."

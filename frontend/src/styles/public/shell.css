@@ -1,0 +1,1024 @@
+/* Announcement strip, header, category navigation, mobile tab bar, footer. */
+
+/* ── announcement ──────────────────────────────────────────────────────── */
+
+.vs-announce {
+  background: var(--vs-primary);
+  color: #eaf1ef;
+  font-size: 12.5px;
+}
+
+.vs-announce__row {
+  position: relative;
+  min-height: var(--vs-strip-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  padding-block: 6px;
+}
+
+.vs-announce__close {
+  position: absolute;
+  inset-inline-start: var(--vs-gutter);
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: #9fbdb7;
+  cursor: pointer;
+  line-height: 1;
+  border-radius: var(--vs-r-sm);
+  transition: color var(--vs-t) var(--vs-ease);
+}
+
+.vs-announce__close:hover {
+  color: #fff;
+}
+
+/* ── header ────────────────────────────────────────────────────────────── */
+
+.vs-header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--vs-z-header);
+  background: var(--vs-surface);
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  transition: box-shadow var(--vs-t-card) var(--vs-ease);
+}
+
+.vs-header[data-scrolled="true"] {
+  box-shadow: var(--vs-shadow-header);
+}
+
+.vs-header__main {
+  height: var(--vs-header-h);
+  background: var(--vs-surface);
+  border-block-end: 1px solid var(--vs-border);
+}
+
+/* One horizontal axis for the whole identity row: logo, search, contact and the
+   cart all centre on it, so the band can be shortened without anything moving
+   sideways. */
+.vs-header__row {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* The identity row's controls are a step smaller than the page's, which is what
+   takes the band from 76px to 64px without crowding anything. Touch targets are
+   restored at ≤899px, where these same controls are the only ones on screen. */
+.vs-header__row .vs-iconbtn {
+  width: 38px;
+  height: 38px;
+}
+
+.vs-logo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* A fixed viewport the logo is clipped to, so the header's height is a decision
+   and not a consequence of whatever margin a client's file happens to carry. */
+.vs-logo__box {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  width: var(--vs-logo-w);
+  height: var(--vs-logo-h);
+  overflow: hidden;
+}
+
+/* `contain` is the floor: no client's logo is ever cropped or distorted by the
+   header. `useLogoFit` replaces these four values inline when it can see that
+   the file carries its own margin — it then scales the image up inside the
+   viewport, always on both axes at once, so the aspect ratio is untouched. */
+/* Qualified by the element so it outranks `.vs-public img`, whose `max-width`
+   would otherwise clamp the scaled image back to the viewport's width and undo
+   the fit. */
+img.vs-logo__img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: contain;
+  object-position: center;
+}
+
+.vs-logo__name {
+  font-family: "Marcellus", serif;
+  font-size: 25px;
+  line-height: 1.05;
+  letter-spacing: 0.13em;
+  color: var(--vs-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vs-logo__tag {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--vs-ink-4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* header search ---------------------------------------------------------- */
+
+/* Wide rather than tall: the field is the band's centrepiece, and letting it
+   take the slack is what keeps a store with no phone number from showing a
+   stretch of empty white between the search and the cart. */
+.vs-hsearch {
+  position: relative;
+  flex: 1 1 auto;
+  max-width: var(--vs-search-max);
+  min-width: 0;
+}
+
+.vs-hsearch__field {
+  width: 100%;
+  height: 42px;
+  border: 1px solid var(--vs-border-strong);
+  border-radius: var(--vs-r-pill);
+  background: var(--vs-page);
+  padding-inline: 44px 96px;
+  font-family: inherit;
+  font-size: var(--vs-fs-body);
+  color: var(--vs-ink);
+  transition: border-color var(--vs-t) var(--vs-ease), background var(--vs-t) var(--vs-ease);
+}
+
+.vs-hsearch__field:focus {
+  border-color: var(--vs-primary);
+  background: var(--vs-surface);
+  outline: none;
+}
+
+.vs-hsearch__icon {
+  position: absolute;
+  inset-inline-start: 16px;
+  inset-block-start: 11px;
+  color: var(--vs-ink-4);
+  pointer-events: none;
+}
+
+.vs-hsearch__submit {
+  position: absolute;
+  inset-inline-end: 4px;
+  inset-block-start: 4px;
+  height: 34px;
+  padding-inline: 19px;
+  border: 0;
+  border-radius: var(--vs-r-pill);
+  background: var(--vs-primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: var(--vs-fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--vs-t) var(--vs-ease);
+}
+
+.vs-hsearch__submit:hover {
+  background: var(--vs-primary-dark);
+}
+
+/* suggestion popover ----------------------------------------------------- */
+
+.vs-suggest {
+  position: absolute;
+  inset-block-start: 50px;
+  inset-inline: 0;
+  z-index: var(--vs-z-popover);
+  background: var(--vs-surface);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-r-lg);
+  box-shadow: var(--vs-shadow-3);
+  padding: 8px;
+  max-height: 66vh;
+  overflow-y: auto;
+  animation: vs-pop var(--vs-t) var(--vs-ease) both;
+}
+
+.vs-suggest__label {
+  padding: 8px 10px 4px;
+  font-size: var(--vs-fs-xs);
+  color: var(--vs-ink-4);
+  letter-spacing: 0.05em;
+}
+
+.vs-suggest__row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--vs-r-sm);
+  font-family: inherit;
+  font-size: var(--vs-fs-sm);
+  color: var(--vs-ink);
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--vs-t-fast) var(--vs-ease);
+}
+
+.vs-suggest__row:hover,
+.vs-suggest__row[data-active="true"] {
+  background: var(--vs-surface-2);
+}
+
+.vs-suggest__thumb {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: var(--vs-r-sm);
+  overflow: hidden;
+  background: var(--vs-surface-2);
+}
+
+.vs-suggest__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vs-suggest__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vs-suggest__price {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--vs-primary);
+}
+
+.vs-suggest__empty {
+  padding: 18px 12px;
+  font-size: var(--vs-fs-sm);
+  color: var(--vs-ink-3);
+}
+
+.vs-suggest__kind {
+  flex: 0 0 auto;
+  font-size: var(--vs-fs-xs);
+  color: var(--vs-ink-4);
+  background: var(--vs-surface-2);
+  border-radius: var(--vs-r-sm);
+  padding: 3px 8px;
+}
+
+/* header contact + actions ---------------------------------------------- */
+
+.vs-hcontact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.vs-hcontact__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--vs-r-md);
+  background: var(--vs-primary-soft);
+  color: var(--vs-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vs-hcontact__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.vs-hcontact__num {
+  font-size: 13px;
+  font-weight: 700;
+  direction: ltr;
+}
+
+.vs-hcontact__hours {
+  font-size: 11px;
+  color: var(--vs-ink-4);
+}
+
+.vs-hactions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+  flex: 0 0 auto;
+}
+
+.vs-cartbtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 38px;
+  padding-inline: 15px;
+  border: 1px solid var(--vs-primary);
+  border-radius: var(--vs-r-md);
+  background: var(--vs-primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: var(--vs-fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--vs-t) var(--vs-ease);
+}
+
+.vs-cartbtn:hover {
+  background: var(--vs-primary-dark);
+}
+
+.vs-cartbtn__badge {
+  position: absolute;
+  inset-block-start: -7px;
+  inset-inline-start: -7px;
+  min-width: 21px;
+  height: 21px;
+  padding-inline: 5px;
+  border-radius: var(--vs-r-pill);
+  background: var(--vs-accent);
+  color: var(--vs-ink);
+  font-size: 11.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes vs-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.32);
+  }
+}
+
+/* ── desktop nav band ──────────────────────────────────────────────────── */
+
+.vs-nav {
+  position: relative;
+  height: var(--vs-nav-h);
+  background: var(--vs-primary);
+  color: #fff;
+}
+
+.vs-nav__row {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vs-nav__cats {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 34px;
+  padding-inline: 17px;
+  margin-inline-end: 8px;
+  border: 0;
+  border-radius: var(--vs-r-pill);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-family: inherit;
+  font-size: var(--vs-fs-sm);
+  font-weight: 800;
+  cursor: pointer;
+  transition: background var(--vs-t) var(--vs-ease);
+}
+
+.vs-nav__cats:hover,
+.vs-nav__cats[aria-expanded="true"] {
+  background: var(--vs-surface);
+  color: var(--vs-primary);
+}
+
+.vs-nav__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--vs-nav-h);
+  padding-inline: 12px;
+  font-size: var(--vs-fs-sm);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.86);
+  transition: color var(--vs-t) var(--vs-ease);
+}
+
+.vs-nav__link:hover {
+  color: #fff;
+}
+
+.vs-nav__link[aria-current="page"] {
+  color: #fff;
+  font-weight: 800;
+}
+
+.vs-nav__link::after {
+  content: "";
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 12px;
+  height: 2px;
+  background: var(--vs-accent);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--vs-t-card) var(--vs-ease);
+}
+
+.vs-nav__link[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+.vs-nav__hours {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+}
+
+/* ── fixed category rail ───────────────────────────────────────────────── */
+
+/* Physical `right`, not `inset-inline-end`: the storefront is RTL, so the
+   logical end edge is the left one. The rail belongs at the far right of the
+   viewport, which is also the side `.vs-drawer--right` comes in from. */
+/* A light shelf, not a second navigation bar: white, one hairline, no shadow
+   worth noticing, and the only saturated thing on it is the trigger. */
+/* Top to bottom of the viewport, not "below the header": the header, the nav
+   band and the page all stop at the rail's left edge (`.vs-public` reserves
+   `--vs-rail-w` as padding), so a rail that started under them would leave an
+   empty corner and read as a detached strip. */
+.vs-catbar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: var(--vs-z-rail);
+  width: var(--vs-rail-w);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  background: var(--vs-surface);
+  border-inline-start: 1px solid var(--vs-border);
+  box-shadow: -2px 0 10px rgba(28, 27, 33, 0.035);
+}
+
+/* The one deliberately heavy element on the rail — it is the way into the whole
+   catalogue, so it takes the darkest Vista purple and everything else stays
+   neutral around it. */
+.vs-catbar__trigger {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: var(--vs-r-md);
+  background: var(--vs-primary-dark);
+  color: var(--vs-ink-invert);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--vs-t) var(--vs-ease);
+}
+
+.vs-catbar__trigger:hover,
+.vs-catbar__trigger[aria-expanded="true"] {
+  background: var(--vs-primary);
+}
+
+/* A hairline under the trigger so the rail reads as "menu, then categories"
+   rather than as one undifferentiated column. */
+.vs-catbar__rule {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 1px;
+  background: var(--vs-border);
+}
+
+/* The rail scrolls on its own once the categories outrun the viewport, so a
+   long list never pushes items off the bottom or onto the page. */
+.vs-catbar__list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.vs-catbar__list::-webkit-scrollbar {
+  display: none;
+}
+
+.vs-catbar__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--vs-r-sm);
+  overflow: hidden;
+  border: 1px solid var(--vs-border);
+  background: var(--vs-surface);
+  color: var(--vs-ink-3);
+  transition: border-color var(--vs-t) var(--vs-ease), background var(--vs-t) var(--vs-ease),
+    color var(--vs-t) var(--vs-ease);
+}
+
+.vs-catbar__item:hover,
+.vs-catbar__item:focus-visible {
+  border-color: var(--vs-primary);
+  color: var(--vs-primary);
+}
+
+/* Pale Vista yellow rather than another block of purple: the rail marks where
+   you are, it does not compete with the nav band for emphasis. */
+.vs-catbar__item[data-active="true"] {
+  border-color: var(--vs-accent-dark);
+  background: var(--vs-accent-soft);
+  color: var(--vs-primary-dark);
+}
+
+.vs-catbar__thumb,
+.vs-catbar__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The neutral stand-in for a category with no artwork — a line icon, never a
+   coloured square that would read as a picture the store does not have. */
+.vs-catbar__ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* A label on demand, never a permanent one: the collapsed rail stays icons. */
+.vs-catbar__tip {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 10px);
+  transform: translateY(-50%);
+  padding: 6px 10px;
+  border-radius: var(--vs-r-sm);
+  background: var(--vs-ink);
+  color: var(--vs-ink-invert);
+  font-size: var(--vs-fs-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--vs-t) var(--vs-ease);
+}
+
+.vs-catbar__item:hover .vs-catbar__tip,
+.vs-catbar__item:focus-visible .vs-catbar__tip {
+  opacity: 1;
+}
+
+/* While its drawer is open the rail keeps only its trigger, and the panel that
+   replaced it sits directly on top. Lifting it above the scrim keeps the join
+   clean during the slide; it stays below the drawer itself. */
+.vs-catbar[data-open="true"] {
+  z-index: calc(var(--vs-z-drawer) - 1);
+}
+
+/* ── category drawer ───────────────────────────────────────────────────── */
+
+/* Opens *over* the rail, not beside it: the panel is the rail's expanded state,
+   so it takes the same edge and simply reaches further left. Sitting it at
+   `--vs-rail-w` used to leave the icon column standing to its right, showing
+   every category thumbnail a second time. The page keeps reserving the gutter
+   either way, so nothing under the drawer moves. Doubled class so this beats
+   `.vs-drawer--right`, which is defined in a later stylesheet. */
+.vs-drawer.vs-drawer--cats {
+  width: var(--vs-drawer-cat-w);
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.vs-catdrawer__list,
+.vs-catdrawer__children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vs-catdrawer__item + .vs-catdrawer__item {
+  border-block-start: 1px solid var(--vs-border);
+}
+
+.vs-catdrawer__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vs-catdrawer__link {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border-radius: var(--vs-r-md);
+  transition: background var(--vs-t) var(--vs-ease);
+}
+
+.vs-catdrawer__link:hover {
+  background: var(--vs-primary-soft);
+}
+
+.vs-catdrawer__link[data-active="true"] .vs-catdrawer__name {
+  color: var(--vs-primary);
+}
+
+.vs-catdrawer__thumb {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-r-sm);
+  overflow: hidden;
+  background: var(--vs-surface);
+  color: var(--vs-ink-4);
+}
+
+.vs-catdrawer__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vs-catdrawer__text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vs-catdrawer__name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--vs-ink);
+  line-height: 1.45;
+}
+
+.vs-catdrawer__count {
+  font-size: 12px;
+  color: var(--vs-ink-4);
+}
+
+.vs-catdrawer__toggle[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+.vs-catdrawer__children {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 58px 10px 0;
+}
+
+.vs-catdrawer__child {
+  font-size: 13px;
+  color: var(--vs-ink-3);
+  padding-block: 6px;
+  transition: color var(--vs-t) var(--vs-ease);
+}
+
+.vs-catdrawer__child:hover,
+.vs-catdrawer__child[data-active="true"] {
+  color: var(--vs-primary);
+}
+
+.vs-catdrawer__empty {
+  padding: 20px 4px;
+  font-size: var(--vs-fs-sm);
+  color: var(--vs-ink-3);
+}
+
+/* ── mobile tab bar ────────────────────────────────────────────────────── */
+
+.vs-tabbar {
+  position: fixed;
+  inset-block-end: 0;
+  inset-inline: 0;
+  z-index: var(--vs-z-header);
+  display: none;
+  background: var(--vs-surface);
+  border-block-start: 1px solid var(--vs-border);
+  box-shadow: 0 -4px 18px rgba(30, 27, 24, 0.07);
+  padding-block-end: env(safe-area-inset-bottom);
+}
+
+.vs-tabbar__item {
+  position: relative;
+  flex: 1;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vs-ink-3);
+  cursor: pointer;
+  transition: color var(--vs-t) var(--vs-ease);
+}
+
+.vs-tabbar__item[aria-current="page"],
+.vs-tabbar__item[aria-expanded="true"] {
+  color: var(--vs-primary);
+}
+
+.vs-tabbar__badge {
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline-start: calc(50% + 4px);
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 4px;
+  border-radius: var(--vs-r-pill);
+  background: var(--vs-accent);
+  color: var(--vs-ink);
+  font-size: 10.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── responsive shell switches ─────────────────────────────────────────── */
+
+.vs-desk {
+  display: flex;
+}
+.vs-mob {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .vs-desk {
+    display: none !important;
+  }
+  .vs-mob {
+    display: flex;
+  }
+  .vs-nav {
+    display: none;
+  }
+  .vs-tabbar {
+    display: flex;
+  }
+  .vs-public {
+    padding-block-end: calc(var(--vs-tabbar-h) + env(safe-area-inset-bottom));
+  }
+  .vs-header__row {
+    gap: 10px;
+  }
+  /* Back to a full touch target: on a phone these are the only controls in the
+     header, and there is no pointer to aim with. */
+  .vs-header__row .vs-iconbtn {
+    width: 44px;
+    height: 44px;
+  }
+  .vs-cartbtn {
+    height: 44px;
+  }
+  .vs-logo {
+    flex: 1 1 auto;
+    align-items: center;
+    text-align: center;
+  }
+  .vs-logo__name {
+    font-size: 21px;
+  }
+}
+
+/* The rail is desktop-only; below 900 its trigger lives in the header instead,
+   and the gutter it reserved collapses to nothing (see tokens.css). */
+@media (max-width: 899px) {
+  .vs-catbar {
+    display: none;
+  }
+}
+
+/* Below 1180 the phone block would squeeze the search field. */
+@media (max-width: 1179px) {
+  .vs-hcontact {
+    display: none;
+  }
+}
+
+/* ── footer ────────────────────────────────────────────────────────────── */
+
+.vs-footer {
+  margin-block-start: var(--vs-section);
+  background: var(--vs-surface-dark);
+  color: #c9c3b9;
+}
+
+/* The contact column only exists when the owner has supplied contact details,
+   so the track list has to absorb a varying column count. */
+.vs-footer__top {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) repeat(auto-fit, minmax(158px, 1fr));
+  gap: 30px;
+  padding-block: 48px 32px;
+}
+
+.vs-footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vs-footer__name {
+  font-family: "Marcellus", serif;
+  font-size: 26px;
+  letter-spacing: 0.13em;
+  color: #fff;
+}
+
+/* Sizes the shared logo viewport; the clipping and scaling rules come with
+   `.vs-logo__box`, so header and footer can never drift apart. */
+.vs-footer__logo {
+  --vs-logo-w: 124px;
+  --vs-logo-h: 42px;
+  border-radius: var(--vs-r-sm);
+}
+
+.vs-footer__desc {
+  font-size: var(--vs-fs-sm);
+  line-height: 1.9;
+  max-width: 34ch;
+}
+
+.vs-footer__social {
+  display: flex;
+  gap: 9px;
+  margin-block-start: 4px;
+  flex-wrap: wrap;
+}
+
+.vs-footer__social a {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--vs-border-dark);
+  border-radius: var(--vs-r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c9c3b9;
+  transition: background var(--vs-t) var(--vs-ease), color var(--vs-t) var(--vs-ease),
+    border-color var(--vs-t) var(--vs-ease);
+}
+
+.vs-footer__social a:hover {
+  background: var(--vs-accent);
+  border-color: var(--vs-accent);
+  color: var(--vs-ink);
+}
+
+.vs-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  min-width: 0;
+}
+
+.vs-footer__title {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.vs-footer__col a,
+.vs-footer__col span {
+  font-size: var(--vs-fs-sm);
+  color: #a9a399;
+  transition: color var(--vs-t) var(--vs-ease);
+}
+
+.vs-footer__col a:hover {
+  color: var(--vs-accent);
+}
+
+.vs-footer__pay {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-block-start: 6px;
+}
+
+.vs-footer__pay span {
+  height: 30px;
+  padding-inline: 11px;
+  border: 1px solid var(--vs-border-dark);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  color: #8d877e;
+}
+
+.vs-footer__bottom {
+  border-block-start: 1px solid #2a2722;
+}
+
+.vs-footer__bottom-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 16px;
+  font-size: 12.5px;
+  color: #8d877e;
+}
+
+.vs-footer__credit {
+  border-block-start: 1px solid #2a2722;
+}
+
+.vs-footer__credit-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-block: 14px;
+  color: #8d877e;
+  direction: ltr;
+  font-size: 12px;
+}
+
+.vs-footer__credit img {
+  display: block;
+  width: auto;
+  height: 32px;
+}
+
+@media (max-width: 767px) {
+  .vs-footer__top {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 20px;
+  }
+  .vs-footer__brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 419px) {
+  .vs-footer__top {
+    grid-template-columns: 1fr;
+  }
+
+  .vs-footer__credit-row {
+    gap: 8px;
+    text-align: center;
+  }
+}

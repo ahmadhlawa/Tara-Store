@@ -1,0 +1,159 @@
+/* Application-wide base only.
+ *
+ * The public storefront's design system lives in src/styles/public/, scoped to
+ * `.vs-public`. What is left here is the document reset both areas need and the
+ * few layout variables the admin workspace reads. Storefront rules must not be
+ * added back to this file: /admin renders outside `.vs-public` and would
+ * inherit them. */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #fbf9f6;
+  /* `clip`, not `hidden`: `overflow-x: hidden` makes the body a scroll
+     container, which silently disables every `position: sticky` inside it —
+     the storefront header included. `clip` keeps the same safety net against a
+     stray horizontal overflow without creating that scroll container. */
+  overflow-x: clip;
+}
+
+/* The storefront header is sticky, so anchored navigation has to clear it. */
+html {
+  scroll-padding-top: 140px;
+}
+
+@media (max-width: 899px) {
+  html {
+    scroll-padding-top: 72px;
+  }
+}
+
+body {
+  font-family: "Cairo", system-ui, sans-serif;
+  color: #1e1b18;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: #1f4e4a;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #163a37;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid #1f4e4a;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: #c9a24b;
+  color: #fff;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #a39c90;
+}
+
+::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e1dace;
+  border-radius: 8px;
+}
+
+/* Admin workspace layout switches. */
+:root {
+  --pad: 28px;
+  --desk: flex;
+  --mob: none;
+  --adminG: 230px minmax(0, 1fr);
+  --adminNav: block;
+}
+
+@media (max-width: 1240px) {
+  :root {
+    --pad: 22px;
+  }
+}
+
+@media (max-width: 900px) {
+  :root {
+    --desk: none;
+    --mob: flex;
+    --pad: 16px;
+    --adminG: 1fr;
+    --adminNav: none;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --pad: 14px;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

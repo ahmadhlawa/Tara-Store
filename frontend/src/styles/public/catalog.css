@@ -1,0 +1,713 @@
+/* Product, package and category cards; catalogue page furniture.
+
+   All three cards share one model: the artwork is the card, and everything a
+   shopper reads or presses lives in a panel that is absolutely positioned over
+   the bottom of it. Because the panel is out of flow, revealing it can never
+   change a card's height or shift the row around it — the single most visible
+   defect the previous permanent-body cards had.
+
+   The reveal is driven by three selectors that always travel together:
+     :hover        a pointer
+     :focus-within a keyboard
+     [data-revealed="true"]  the first tap of a coarse pointer (useCardReveal)
+
+   Below 900px the whole mechanism is switched off and the panel is laid out
+   statically, always visible. A phone has no hover, and a card that small has no
+   room to overlay a panel without clipping it. */
+
+/* ── shared reveal ─────────────────────────────────────────────────────── */
+
+.vs-card,
+.vs-pkg {
+  position: relative;
+  min-width: 0;
+  border-radius: var(--vs-r-lg);
+  overflow: hidden;
+  background: var(--vs-surface);
+  border: 1px solid var(--vs-border);
+  box-shadow: var(--vs-shadow-1);
+  transition: border-color var(--vs-t-card) var(--vs-ease),
+    box-shadow var(--vs-t-card) var(--vs-ease);
+}
+
+.vs-card__media,
+.vs-pkg__media {
+  position: relative;
+  overflow: hidden;
+  background: var(--vs-surface-2);
+}
+
+.vs-card__link,
+.vs-pkg__link {
+  display: block;
+}
+
+.vs-card__img,
+.vs-pkg__img {
+  transition: transform var(--vs-t-hero) var(--vs-ease);
+}
+
+/* The second picture is stacked over the cover and cross-faded in. It is only
+   rendered when the product actually has one. */
+.vs-card__img2,
+.vs-pkg__img2 {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--vs-t-card) var(--vs-ease);
+}
+
+.vs-card__panel,
+.vs-pkg__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.vs-card__badges,
+.vs-pkg__badges {
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline-start: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.vs-card__veil {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.72);
+  z-index: 3;
+}
+
+.vs-card__veil span {
+  background: var(--vs-ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: var(--vs-r-sm);
+}
+
+@media (min-width: 900px) {
+  .vs-card__panel,
+  .vs-pkg__panel {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    z-index: 4;
+    padding: 14px;
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--vs-surface) 97%, transparent) 72%,
+      transparent
+    );
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    transform: translateY(100%);
+    pointer-events: none;
+    /* Clipped rather than allowed to grow: a long title shortens instead of
+       spilling out of the card. */
+    max-height: 100%;
+    overflow: hidden;
+    transition: opacity var(--vs-t-card) var(--vs-ease),
+      transform var(--vs-t-card) var(--vs-ease);
+  }
+
+  .vs-card:hover .vs-card__panel,
+  .vs-card:focus-within .vs-card__panel,
+  .vs-card[data-revealed="true"] .vs-card__panel,
+  .vs-pkg:hover .vs-pkg__panel,
+  .vs-pkg:focus-within .vs-pkg__panel,
+  .vs-pkg[data-revealed="true"] .vs-pkg__panel {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .vs-card:hover,
+  .vs-card:focus-within,
+  .vs-pkg:hover,
+  .vs-pkg:focus-within {
+    border-color: var(--vs-border-strong);
+    box-shadow: var(--vs-shadow-2);
+  }
+
+  .vs-card:hover .vs-card__img,
+  .vs-card:focus-within .vs-card__img,
+  .vs-card[data-revealed="true"] .vs-card__img,
+  .vs-pkg:hover .vs-pkg__img,
+  .vs-pkg:focus-within .vs-pkg__img,
+  .vs-pkg[data-revealed="true"] .vs-pkg__img {
+    transform: scale(1.045);
+  }
+
+  .vs-card:hover .vs-card__img2,
+  .vs-card:focus-within .vs-card__img2,
+  .vs-card[data-revealed="true"] .vs-card__img2,
+  .vs-pkg:hover .vs-pkg__img2,
+  .vs-pkg:focus-within .vs-pkg__img2,
+  .vs-pkg[data-revealed="true"] .vs-pkg__img2 {
+    opacity: 1;
+  }
+}
+
+/* Phones and small tablets: the panel is simply part of the card. Nothing is
+   hidden behind an interaction that a finger cannot perform. */
+@media (max-width: 899px) {
+  .vs-card__panel,
+  .vs-pkg__panel {
+    padding: 12px;
+    border-block-start: 1px solid var(--vs-border);
+  }
+}
+
+/* ── product card ──────────────────────────────────────────────────────── */
+
+.vs-card__title {
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--vs-ink);
+  transition: color var(--vs-t) var(--vs-ease);
+}
+
+@media (hover: hover) {
+  .vs-card__title:hover {
+    color: var(--vs-primary);
+  }
+}
+
+.vs-card__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.vs-card__stock {
+  font-size: var(--vs-fs-xs);
+  color: var(--vs-ink-3);
+}
+
+.vs-card__acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vs-card__cta {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 40px;
+}
+
+.vs-card__quick {
+  flex: 0 0 auto;
+}
+
+/* ── price block ───────────────────────────────────────────────────────── */
+
+.vs-price {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+/* Each amount is its own bidi run: without isolation the currency symbol of one
+   price can reorder next to the digits of the other. */
+.vs-price__now,
+.vs-price__was {
+  unicode-bidi: isolate;
+}
+
+.vs-price__now {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--vs-primary);
+  font-feature-settings: "tnum";
+}
+
+.vs-price__was {
+  font-size: 13px;
+  color: var(--vs-ink-4);
+  text-decoration: line-through;
+}
+
+.vs-price--lg .vs-price__now {
+  font-size: 27px;
+}
+
+.vs-price--lg .vs-price__was {
+  font-size: 15px;
+}
+
+/* ── package card ──────────────────────────────────────────────────────── */
+
+.vs-pkg__title {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.45;
+  color: var(--vs-ink);
+}
+
+.vs-pkg__contents {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--vs-ink-3);
+}
+
+.vs-pkg__contents svg {
+  flex: 0 0 auto;
+  margin-block-start: 3px;
+  color: var(--vs-accent-dark);
+}
+
+.vs-pkg__acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vs-pkg__cta {
+  flex: 1 1 150px;
+  height: 40px;
+}
+
+/* ── category card ─────────────────────────────────────────────────────── */
+
+.vs-cat {
+  position: relative;
+  display: block;
+  border-radius: var(--vs-r-lg);
+  overflow: hidden;
+  background: var(--vs-surface-2);
+  box-shadow: var(--vs-shadow-1);
+  transition: box-shadow var(--vs-t-card) var(--vs-ease);
+}
+
+.vs-cat__img {
+  transition: transform var(--vs-t-hero) var(--vs-ease);
+}
+
+/* A base wash so the centred name is readable at rest over any artwork; hover
+   and focus deepen it rather than introducing it. */
+.vs-cat__veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(18, 16, 26, 0.5) 0%,
+    rgba(18, 16, 26, 0.24) 55%,
+    rgba(18, 16, 26, 0.14) 100%
+  );
+  transition: background var(--vs-t-card) var(--vs-ease);
+}
+
+.vs-cat__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  text-align: center;
+}
+
+/* The plate is the "stronger translucent backdrop" the title gains on hover: it
+   is transparent at rest, so the tile reads as image-only. */
+.vs-cat__plate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 12px 18px;
+  border-radius: var(--vs-r-md);
+  background: rgba(18, 16, 26, 0);
+  transition: background var(--vs-t-card) var(--vs-ease);
+}
+
+.vs-cat__name {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.45;
+  color: #fff;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45);
+}
+
+.vs-cat__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--vs-fs-sm);
+  font-weight: 700;
+  color: var(--vs-accent);
+  opacity: 0;
+  transition: opacity var(--vs-t-card) var(--vs-ease);
+}
+
+.vs-cat:hover,
+.vs-cat:focus-visible {
+  box-shadow: var(--vs-shadow-2);
+}
+
+.vs-cat:hover .vs-cat__img,
+.vs-cat:focus-visible .vs-cat__img {
+  transform: scale(1.05);
+}
+
+.vs-cat:hover .vs-cat__veil,
+.vs-cat:focus-visible .vs-cat__veil {
+  background: linear-gradient(
+    to top,
+    rgba(18, 16, 26, 0.68) 0%,
+    rgba(18, 16, 26, 0.46) 55%,
+    rgba(18, 16, 26, 0.36) 100%
+  );
+}
+
+.vs-cat:hover .vs-cat__plate,
+.vs-cat:focus-visible .vs-cat__plate {
+  background: rgba(18, 16, 26, 0.42);
+}
+
+.vs-cat:hover .vs-cat__go,
+.vs-cat:focus-visible .vs-cat__go {
+  opacity: 1;
+}
+
+.vs-cat--compact .vs-cat__name {
+  font-size: 14px;
+}
+
+@media (max-width: 599px) {
+  .vs-cat__name {
+    font-size: 14.5px;
+  }
+  .vs-cat__plate {
+    padding: 8px 12px;
+  }
+}
+
+/* ── catalogue page ────────────────────────────────────────────────────── */
+
+.vs-cathead {
+  position: relative;
+  overflow: hidden;
+  background: var(--vs-surface-2);
+}
+
+.vs-cathead__media {
+  position: absolute;
+  inset: 0;
+}
+
+.vs-cathead__media img,
+.vs-cathead__media > span {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vs-cathead__veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to left,
+    rgba(20, 18, 16, 0.78) 0%,
+    rgba(20, 18, 16, 0.55) 55%,
+    rgba(20, 18, 16, 0.32) 100%
+  );
+}
+
+.vs-cathead__inner {
+  position: relative;
+  padding-block: 40px;
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  color: #fff;
+}
+
+.vs-cathead--plain {
+  background: var(--vs-surface);
+  border-block-end: 1px solid var(--vs-border);
+}
+
+.vs-cathead--plain .vs-cathead__inner {
+  color: var(--vs-ink);
+  min-height: 0;
+  padding-block: 26px 28px;
+}
+
+.vs-cathead__title {
+  font-size: var(--vs-fs-h1);
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.vs-cathead__desc {
+  font-size: var(--vs-fs-body);
+  max-width: 62ch;
+  opacity: 0.9;
+}
+
+.vs-cathead__subs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-block-start: 4px;
+}
+
+.vs-cathead--image .vs-crumbs,
+.vs-cathead--image .vs-crumbs a {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.vs-cathead--image .vs-crumbs__here {
+  color: #fff;
+}
+
+.vs-cathead--image .vs-chip {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+/* toolbar --------------------------------------------------------------- */
+
+.vs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--vs-surface);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-r-md);
+}
+
+.vs-toolbar__count {
+  font-size: var(--vs-fs-sm);
+  color: var(--vs-ink-3);
+}
+
+.vs-toolbar__spacer {
+  margin-inline-start: auto;
+}
+
+.vs-toolbar__density {
+  display: flex;
+  gap: 4px;
+}
+
+.vs-toolbar__density button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-r-sm);
+  background: var(--vs-surface);
+  color: var(--vs-ink-3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--vs-t) var(--vs-ease), border-color var(--vs-t) var(--vs-ease);
+}
+
+.vs-toolbar__density button[aria-pressed="true"] {
+  color: var(--vs-primary);
+  border-color: var(--vs-primary);
+}
+
+.vs-select {
+  height: 40px;
+  /* A select is sized by its widest option, so on a narrow toolbar it grew past
+     its row and printed over the label beside it. Letting it shrink is the fix;
+     the native control ellipsises its own text. */
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--vs-border-strong);
+  border-radius: var(--vs-r-sm);
+  background: var(--vs-page);
+  padding-inline: 12px 30px;
+  font-family: inherit;
+  font-size: var(--vs-fs-sm);
+  color: var(--vs-ink);
+  cursor: pointer;
+}
+
+.vs-sortlabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  /* Shrink-only: desktop keeps the control at its natural width. */
+  flex: 0 1 auto;
+  font-size: var(--vs-fs-sm);
+  color: var(--vs-ink-3);
+}
+
+.vs-sortlabel .vs-select {
+  flex: 0 1 auto;
+}
+
+/* catalogue body -------------------------------------------------------- */
+
+.vs-catalog {
+  display: grid;
+  grid-template-columns: 258px minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+
+.vs-catalog--full {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.vs-catalog__side {
+  position: sticky;
+  inset-block-start: var(--vs-sticky-top);
+  background: var(--vs-surface);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-r-lg);
+  padding: 18px;
+  max-height: calc(100vh - var(--vs-sticky-top) - 24px);
+  overflow-y: auto;
+}
+
+.vs-catalog__main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 1023px) {
+  .vs-catalog {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .vs-catalog__side {
+    display: none;
+  }
+}
+
+/* filters --------------------------------------------------------------- */
+
+.vs-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.vs-filters__group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vs-filters__group + .vs-filters__group {
+  border-block-start: 1px solid var(--vs-border);
+  padding-block-start: 16px;
+}
+
+.vs-filters__legend {
+  font-size: var(--vs-fs-sm);
+  font-weight: 800;
+  color: var(--vs-ink);
+}
+
+.vs-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--vs-fs-sm);
+  color: var(--vs-ink-2);
+  cursor: pointer;
+  min-height: 30px;
+}
+
+.vs-check input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--vs-primary);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.vs-check__count {
+  margin-inline-start: auto;
+  font-size: var(--vs-fs-xs);
+  color: var(--vs-ink-4);
+}
+
+.vs-range {
+  width: 100%;
+  accent-color: var(--vs-primary);
+  cursor: pointer;
+}
+
+.vs-activefilters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.vs-activefilters__clear {
+  color: var(--vs-danger);
+  font-weight: 700;
+  font-size: var(--vs-fs-sm);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* skeleton card --------------------------------------------------------- */
+
+.vs-cardskel {
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-r-lg);
+  background: var(--vs-surface);
+  overflow: hidden;
+}
+
+.vs-cardskel__media {
+  aspect-ratio: var(--vs-ar-product);
+}
+
+/* On desktop the real card is its image alone — the panel is an overlay — so the
+   skeleton must not reserve a body the card will never occupy. */
+.vs-cardskel__body {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .vs-cardskel__body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    border-block-start: 1px solid var(--vs-border);
+  }
+}

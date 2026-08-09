@@ -1,0 +1,301 @@
+/* Scrim, drawers, modals and the toast. One implementation, several sides. */
+
+.vs-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--vs-z-scrim);
+  background: rgba(26, 24, 21, 0.46);
+  backdrop-filter: blur(2px);
+  border: 0;
+  padding: 0;
+  width: 100%;
+  cursor: pointer;
+  animation: vs-fade var(--vs-t-card) var(--vs-ease) both;
+}
+
+@keyframes vs-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vs-slide-from-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes vs-slide-from-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes vs-slide-down {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes vs-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── drawer ────────────────────────────────────────────────────────────── */
+
+.vs-drawer {
+  position: fixed;
+  inset-block: 0;
+  z-index: var(--vs-z-drawer);
+  display: flex;
+  flex-direction: column;
+  background: var(--vs-page);
+  box-shadow: var(--vs-shadow-4);
+  max-width: 100vw;
+}
+
+/* Sides are physical on purpose. The storefront is RTL throughout, and the rule
+   the design depends on is visual: navigation comes in from the right, where the
+   menu and category triggers are, and the cart comes in from the left so the two
+   can never collide. Logical properties would invert exactly this. */
+.vs-drawer--left {
+  left: 0;
+  width: min(430px, 94vw);
+  animation: vs-slide-from-left var(--vs-t-drawer) var(--vs-ease) both;
+}
+
+.vs-drawer--right {
+  right: 0;
+  width: min(380px, 90vw);
+  animation: vs-slide-from-right var(--vs-t-drawer) var(--vs-ease) both;
+}
+
+.vs-drawer--wide {
+  width: min(560px, 96vw);
+}
+
+.vs-drawer--top {
+  inset-block: auto;
+  inset-block-start: 0;
+  inset-inline: 0;
+  width: 100%;
+  animation: vs-slide-down var(--vs-t-drawer) var(--vs-ease) both;
+}
+
+.vs-drawer__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--vs-surface);
+  border-block-end: 1px solid var(--vs-border);
+  flex: 0 0 auto;
+}
+
+.vs-drawer__title {
+  font-size: 16px;
+  font-weight: 800;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vs-drawer__close {
+  margin-inline-start: auto;
+}
+
+.vs-drawer__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vs-drawer__foot {
+  flex: 0 0 auto;
+  background: var(--vs-surface);
+  border-block-start: 1px solid var(--vs-border);
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── modal ─────────────────────────────────────────────────────────────── */
+
+.vs-modal-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: var(--vs-z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  pointer-events: none;
+}
+
+.vs-modal {
+  pointer-events: auto;
+  width: min(940px, 100%);
+  max-height: min(88vh, 900px);
+  display: flex;
+  flex-direction: column;
+  background: var(--vs-surface);
+  border-radius: var(--vs-r-xl);
+  box-shadow: 0 30px 70px rgba(26, 24, 21, 0.3);
+  overflow: hidden;
+  animation: vs-pop var(--vs-t-card) var(--vs-ease) both;
+}
+
+.vs-modal__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+}
+
+.vs-modal__close {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-end: 12px;
+  z-index: 2;
+}
+
+@media (max-width: 899px) {
+  .vs-modal-wrap {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .vs-modal {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: var(--vs-r-xl) var(--vs-r-xl) 0 0;
+    animation: vs-slide-up var(--vs-t-drawer) var(--vs-ease) both;
+  }
+  @keyframes vs-slide-up {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: none;
+    }
+  }
+}
+
+/* ── toast ─────────────────────────────────────────────────────────────── */
+
+.vs-toast {
+  position: fixed;
+  inset-block-end: 22px;
+  inset-inline-start: 22px;
+  z-index: var(--vs-z-toast);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(380px, calc(100vw - 32px));
+  padding: 13px 16px;
+  border-radius: var(--vs-r-md);
+  background: var(--vs-surface-dark);
+  color: #fff;
+  box-shadow: 0 16px 40px rgba(26, 24, 21, 0.32);
+  animation: vs-toast-in var(--vs-t-card) var(--vs-ease) both;
+}
+
+@keyframes vs-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.vs-toast__mark {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--vs-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.vs-toast__text {
+  font-size: var(--vs-fs-sm);
+  line-height: 1.6;
+}
+
+.vs-toast__action {
+  margin-inline-start: auto;
+  border: 0;
+  background: transparent;
+  color: var(--vs-accent);
+  font-family: inherit;
+  font-size: var(--vs-fs-sm);
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+@media (max-width: 899px) {
+  .vs-toast {
+    inset-block-end: calc(64px + env(safe-area-inset-bottom) + 12px);
+    inset-inline: 16px;
+    max-width: none;
+  }
+}
+
+/* ── floating whatsapp ─────────────────────────────────────────────────── */
+
+.vs-wa {
+  position: fixed;
+  inset-block-end: 22px;
+  inset-inline-end: 22px;
+  z-index: var(--vs-z-rail);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--vs-success);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 26px rgba(46, 125, 91, 0.34);
+  transition: transform var(--vs-t) var(--vs-ease);
+}
+
+@media (hover: hover) {
+  .vs-wa:hover {
+    transform: translateY(-3px);
+  }
+}
+
+@media (max-width: 899px) {
+  .vs-wa {
+    inset-block-end: calc(64px + env(safe-area-inset-bottom) + 12px);
+  }
+}

@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tara-store-backend"
+version = "0.1.0"
+description = "Tara Store commerce backend (FastAPI + SQLAlchemy + Alembic)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "sqlalchemy>=2.0.36",
+    "alembic>=1.14",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "email-validator>=2.2",
+    "python-multipart>=0.0.12",
+    "PyJWT>=2.9",
+    "pwdlib[argon2]>=0.2.1",
+    "PyMySQL>=1.1.1",
+    "python-dotenv>=1.0",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "httpx>=0.27",
+    "openpyxl>=3.1",
+]
+# Only needed by the catalog preparation CLI, which reads a client .xlsx workbook.
+# The API, the storefront and the importer never touch a spreadsheet.
+catalog-prep = ["openpyxl>=3.1"]
+# MySQL 8 defaults to caching_sha2_password, which PyMySQL can only complete with
+# the `rsa` extra. Needed by the CI gate and by any MySQL deployment; never by the
+# SQLite development runtime.
+mysql = ["PyMySQL[rsa]>=1.1.1"]
+# Only needed when STORAGE_PROVIDER=r2. Local media storage needs no S3 client, so a
+# default installation stays free of boto3 and its transitive dependencies.
+r2 = ["boto3>=1.35"]
+
+[project.scripts]
+commerce-admin = "app.initial_data:main"
+commerce-seed = "scripts.seed:main"
+commerce-instance = "scripts.instance_cli:main"
+commerce-mysql-check = "scripts.mysql_compat:main"
+tara-preview = "scripts.preview_cli:main"
+tara-catalog-prep = "scripts.catalog_prep_cli:main"
+tara-cutover = "scripts.client_cutover_cli:main"
+
+[tool.setuptools]
+packages = ["app", "scripts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["error::DeprecationWarning:app.*"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/initial_data.py"]

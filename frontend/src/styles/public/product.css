@@ -1,0 +1,653 @@
+/* Product detail, quick view, gallery, options and the sticky buy bar. */
+
+.vs-pdp-crumbs {
+  padding-block: 18px 0;
+}
+
+.vs-pdp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.04fr);
+  grid-template-rows: auto auto;
+  gap: 28px 32px;
+  align-items: start;
+  padding-block: 20px 0;
+}
+
+.vs-pdp > .vs-gallery {
+  grid-row: 1 / -1;
+}
+
+.vs-pdp__info,
+.vs-pdp__panels {
+  grid-column: 2;
+}
+
+@media (max-width: 899px) {
+  .vs-pdp {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    gap: 22px;
+  }
+  .vs-pdp > .vs-gallery,
+  .vs-pdp__info,
+  .vs-pdp__panels {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+/* gallery --------------------------------------------------------------- */
+
+.vs-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  inset-block-start: var(--vs-sticky-top);
+}
+
+@media (max-width: 899px) {
+  .vs-gallery {
+    position: static;
+  }
+}
+
+/* Capped so a square photograph cannot outrun the information column and leave
+   a column of empty page beside it on a product with little copy. */
+.vs-gallery__main {
+  border-radius: var(--vs-r-lg);
+  overflow: hidden;
+  background: var(--vs-surface-2);
+  max-height: 540px;
+}
+
+.vs-gallery__thumbs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-block-end: 4px;
+}
+
+.vs-thumb {
+  flex: 0 0 auto;
+  width: 76px;
+  padding: 0;
+  border: 2px solid var(--vs-border);
+  border-radius: var(--vs-r-md);
+  overflow: hidden;
+  background: var(--vs-surface-2);
+  cursor: pointer;
+  transition: border-color var(--vs-t) var(--vs-ease);
+}
+
+.vs-thumb[aria-pressed="true"] {
+  border-color: var(--vs-primary);
+}
+
+/* info column ----------------------------------------------------------- */
+
+.vs-pdp__info {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  min-width: 0;
+}
+
+.vs-pdp__badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.vs-pdp__badges:empty {
+  display: none;
+}
+
+.vs-pdp__title {
+  font-size: clamp(21px, 2.4vw, 30px);
+  font-weight: 800;
+  line-height: 1.42;
+}
+
+.vs-pdp__sku {
+  font-size: var(--vs-fs-sm);
+  color: var(--vs-ink-4);
+}
+
+.vs-pdp__stock {
+  font-size: var(--vs-fs-sm);
+  font-weight: 700;
+}
+
+.vs-pdp__stock[data-tone="ok"] {
+  color: var(--vs-success);
+}
+.vs-pdp__stock[data-tone="low"] {
+  color: #b8860b;
+}
+.vs-pdp__stock[data-tone="out"] {
+  color: var(--vs-danger);
+}
+
+.vs-pdp__short {
+  font-size: var(--vs-fs-body);
+  line-height: 1.9;
+  color: var(--vs-ink-2);
+}
+
+.vs-pdp__notice {
+  padding: 12px 14px;
+  border-radius: var(--vs-r-md);
+  background: var(--vs-accent-soft);
+  color: var(--vs-warn);
+  font-size: var(--vs-fs-sm);
+}
+
+.vs-pdp__buy {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-block-start: 4px;
+}
+
+.vs-pdp__cta {
+  flex: 1 1 220px;
+}
+
+.vs-pdp__assurance {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 14px 0 0;
+  border-block-start: 1px solid var(--vs-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vs-pdp__assurance li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: var(--vs-fs-sm);
+  color: var(--vs-ink-3);
+}
+
+.vs-pdp__panels {
+  min-width: 0;
+}
+
+/* package contents ------------------------------------------------------ */
+
+.vs-pkgbox {
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-r-md);
+  background: var(--vs-surface);
+  padding: 14px 16px;
+}
+
+.vs-pkgbox__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  font-weight: 800;
+  margin-block-end: 8px;
+}
+
+.vs-pkgbox ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vs-pkgbox li {
+  font-size: var(--vs-fs-sm);
+  color: var(--vs-ink-2);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.vs-pkgbox li::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 2px;
+  background: var(--vs-accent);
+  flex: 0 0 auto;
+}
+
+/* options --------------------------------------------------------------- */
+
+.vs-options {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.vs-options__legend {
+  font-size: var(--vs-fs-sm);
+  font-weight: 800;
+  padding: 0;
+}
+
+.vs-options__required {
+  color: var(--vs-danger);
+  margin-inline-start: 3px;
+}
+
+.vs-options__axis {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.vs-options__row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vs-option {
+  min-height: 44px;
+  padding-inline: 16px;
+  border: 1.5px solid var(--vs-border-strong);
+  border-radius: var(--vs-r-md);
+  background: var(--vs-surface);
+  font-family: inherit;
+  font-size: var(--vs-fs-sm);
+  font-weight: 600;
+  color: var(--vs-ink-2);
+  cursor: pointer;
+  transition: border-color var(--vs-t) var(--vs-ease), background var(--vs-t) var(--vs-ease),
+    color var(--vs-t) var(--vs-ease);
+}
+
+.vs-option[aria-pressed="true"] {
+  border-color: var(--vs-primary);
+  background: var(--vs-primary);
+  color: #fff;
+}
+
+.vs-option[data-out="true"] {
+  color: var(--vs-ink-4);
+  text-decoration: line-through;
+}
+
+.vs-option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.vs-options__error {
+  font-size: var(--vs-fs-sm);
+  color: var(--vs-danger);
+  font-weight: 600;
+}
+
+/* quantity stepper ------------------------------------------------------ */
+
+.vs-qty {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--vs-border-strong);
+  border-radius: var(--vs-r-md);
+  background: var(--vs-surface);
+  flex: 0 0 auto;
+}
+
+.vs-qty button {
+  width: 40px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--vs-ink-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--vs-r-md);
+}
+
+.vs-qty button:disabled {
+  color: var(--vs-ink-4);
+  cursor: not-allowed;
+}
+
+.vs-qty__value {
+  min-width: 34px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.vs-qty--sm button {
+  width: 32px;
+  height: 34px;
+}
+
+.vs-qty--sm .vs-qty__value {
+  min-width: 26px;
+  font-size: 13px;
+}
+
+.vs-qty--lg button {
+  width: 46px;
+  height: 52px;
+}
+
+/* tabs and accordion ---------------------------------------------------- */
+
+.vs-tabs__list {
+  display: flex;
+  gap: 4px;
+  border-block-end: 1px solid var(--vs-border);
+}
+
+.vs-tabs__tab {
+  height: 46px;
+  padding-inline: 18px;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--vs-fs-body);
+  font-weight: 600;
+  color: var(--vs-ink-3);
+  cursor: pointer;
+  position: relative;
+  transition: color var(--vs-t) var(--vs-ease);
+}
+
+.vs-tabs__tab[aria-selected="true"] {
+  color: var(--vs-primary);
+  font-weight: 800;
+}
+
+.vs-tabs__tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset-block-end: -1px;
+  inset-inline: 12px;
+  height: 2px;
+  background: var(--vs-primary);
+}
+
+.vs-tabs__panel {
+  padding-block: 20px;
+}
+
+.vs-accordion__item {
+  border-block-end: 1px solid var(--vs-border);
+}
+
+.vs-accordion__item h2 {
+  margin: 0;
+}
+
+.vs-accordion__trigger {
+  width: 100%;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--vs-fs-body);
+  font-weight: 700;
+  color: var(--vs-ink);
+  text-align: start;
+  cursor: pointer;
+}
+
+.vs-accordion__mark {
+  font-size: 20px;
+  color: var(--vs-ink-3);
+}
+
+.vs-accordion__body {
+  padding-block: 4px 18px;
+}
+
+.vs-prose {
+  font-size: var(--vs-fs-body);
+  line-height: 1.95;
+  color: var(--vs-ink-2);
+}
+
+.vs-prose + .vs-prose {
+  margin-block-start: 12px;
+}
+
+.vs-prose--muted {
+  color: var(--vs-ink-4);
+}
+
+.vs-specs {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.vs-specs__row {
+  display: flex;
+  gap: 16px;
+  padding-block: 10px;
+  border-block-end: 1px solid var(--vs-border);
+  font-size: var(--vs-fs-sm);
+}
+
+.vs-specs__row dt {
+  min-width: 140px;
+  color: var(--vs-ink-3);
+}
+
+.vs-specs__row dd {
+  margin: 0;
+  color: var(--vs-ink);
+  font-weight: 600;
+}
+
+.vs-bullets {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.vs-bullets li {
+  position: relative;
+  padding-inline-start: 18px;
+  font-size: var(--vs-fs-sm);
+  line-height: 1.85;
+  color: var(--vs-ink-2);
+}
+
+.vs-bullets li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--vs-accent);
+}
+
+.vs-bullets a {
+  color: var(--vs-primary);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* sticky mobile buy bar ------------------------------------------------- */
+
+.vs-buybar {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .vs-buybar {
+    position: fixed;
+    inset-block-end: calc(var(--vs-tabbar-h) + env(safe-area-inset-bottom));
+    inset-inline: 0;
+    z-index: var(--vs-z-rail);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--vs-surface);
+    border-block-start: 1px solid var(--vs-border);
+    box-shadow: 0 -6px 18px rgba(30, 27, 24, 0.08);
+  }
+  .vs-buybar__media {
+    width: 44px;
+    flex: 0 0 auto;
+    border-radius: var(--vs-r-sm);
+    overflow: hidden;
+  }
+  .vs-buybar__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+  }
+  .vs-buybar__name {
+    font-size: 12.5px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .vs-buybar__price {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--vs-primary);
+  }
+  .vs-buybar__cta {
+    flex: 0 0 auto;
+    height: 44px;
+  }
+  /* The shell only reserves the tab bar. A product page stacks the buy bar on
+     top of it, so the page owes that height too — otherwise the last band of
+     the footer sits underneath the bar and cannot be reached. */
+  .vs-public:has(.vs-buybar) {
+    padding-block-end: calc(var(--vs-tabbar-h) + 66px + env(safe-area-inset-bottom));
+  }
+}
+
+/* quick view ------------------------------------------------------------ */
+
+.vs-quick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 24px;
+  padding: 26px;
+}
+
+.vs-quick__media {
+  border-radius: var(--vs-r-lg);
+  overflow: hidden;
+}
+
+.vs-quick__thumbs {
+  display: flex;
+  gap: 8px;
+  margin-block-start: 10px;
+  overflow-x: auto;
+}
+
+.vs-quick__thumbs .vs-thumb {
+  width: 60px;
+}
+
+.vs-quick__info {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  min-width: 0;
+}
+
+.vs-quick__cat {
+  font-size: var(--vs-fs-xs);
+  color: var(--vs-ink-4);
+}
+
+.vs-quick__title {
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.vs-quick__stock {
+  font-size: var(--vs-fs-sm);
+  font-weight: 700;
+  color: var(--vs-success);
+}
+
+.vs-quick__stock[data-out="true"] {
+  color: var(--vs-danger);
+}
+
+.vs-quick__short {
+  font-size: var(--vs-fs-sm);
+  line-height: 1.9;
+  color: var(--vs-ink-2);
+}
+
+.vs-quick__notice {
+  font-size: var(--vs-fs-sm);
+  color: var(--vs-warn);
+}
+
+.vs-quick__contents {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--vs-ink-3);
+}
+
+.vs-quick__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-block-start: 6px;
+}
+
+.vs-quick__cta {
+  flex: 1 1 180px;
+}
+
+.vs-quick__full {
+  font-size: var(--vs-fs-sm);
+  font-weight: 700;
+  color: var(--vs-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vs-quick__state {
+  margin: 26px;
+}
+
+@media (max-width: 767px) {
+  .vs-quick {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 20px 16px 24px;
+  }
+}

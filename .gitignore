@@ -1,0 +1,84 @@
+# Dependencies
+node_modules/
+
+# Frontend builds
+dist/
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Browser acceptance artefacts: screenshots and traces are captured only on failure
+# and are evidence for one run, never source.
+frontend/e2e/.artifacts/
+frontend/playwright-report/
+frontend/test-results/
+
+# Test coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# Local databases. The .bak rules cover the timestamped copies taken before a
+# migration: they are whole SQLite files and carry the same admin credential
+# hashes and customer records as the database they were copied from.
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.bak
+*.dump
+# Timestamped copies taken before a migration, e.g.
+# vista_preview.db.20260805-212228.pre-0009.bak — covered by *.bak above, and
+# named here so the intent survives an edit to these rules.
+backend/data/*.bak
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.pid
+
+# Local uploads and backups.
+# The uploads directory is tracked only through its .gitkeep; a parent-level
+# `uploads/` rule would make that re-inclusion impossible, so it is not used.
+backend/data/uploads/*
+!backend/data/uploads/.gitkeep
+# Vista's runtime media root. Uploads made through Admin are instance data, never
+# source; the tracked seed/brand assets live in backend/data/brand instead.
+backend/data/tara-uploads/*
+!backend/data/tara-uploads/.gitkeep
+backups/
+
+# Release packages built by scripts/make_release_package.py
+release/
+
+# Catalog datasets generated from a client's workbook, and the workbooks themselves.
+# Both are client data: a real price list and a real product range, never source.
+instance/generated/
+*.xlsx
+*.xlsm
+# …except the empty template we hand to the client. It holds no client data.
+!docs/client-templates/tara-store-catalog-template.xlsx
+
+
+
+.env.mysql.local
+.env.mysql.app.local

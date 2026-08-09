@@ -1,0 +1,10 @@
+/* Public storefront stylesheet. Everything below is scoped under `.vs-public`
+   (or a class only the storefront renders), so /admin inherits none of it. */
+@import "./tokens.css";
+@import "./base.css";
+@import "./shell.css";
+@import "./overlays.css";
+@import "./home.css";
+@import "./catalog.css";
+@import "./product.css";
+@import "./pages.css";

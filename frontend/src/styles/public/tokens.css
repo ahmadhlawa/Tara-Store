@@ -1,0 +1,216 @@
+/* Vista public storefront design tokens.
+   Everything is scoped to `.vs-public`, the storefront shell root, so the admin
+   workspace under /admin never inherits a single storefront value. Brand colours
+   are overwritten at runtime by StoreProvider from StoreSettings. */
+
+.vs-public {
+  /* ── layout ──────────────────────────────────────────────────────────── */
+  --vs-container: 1400px;
+  --vs-container-narrow: 1080px;
+  --vs-gutter: 20px;
+  --vs-section: 56px;
+  --vs-section-tight: 34px;
+  --vs-grid-gap: 20px;
+  --vs-cols: 4;
+  --vs-cols-cat: 4;
+  --vs-cols-pkg: 3;
+
+  /* ── header ──────────────────────────────────────────────────────────── */
+  /* Two compact bands rather than two roomy ones: the identity row is sized by
+     its tallest control (the logo viewport) plus one 9px rhythm step, and the
+     nav band is just tall enough for a 34px trigger. Everything in the identity
+     row is centred on one axis, so shrinking the band moves nothing sideways. */
+  --vs-strip-h: 34px;
+  --vs-header-h: 64px;
+  --vs-nav-h: 46px;
+  --vs-rail-h: 0px;
+  /* A fixed-size viewport the logo is clipped to. The owner's file carries its
+     own whitespace, so `useLogoFit` measures where the mark actually sits and
+     scales the image inside this box until the mark fills it — the file is
+     never edited, never stretched, and a trimmed logo is left alone. */
+  --vs-logo-h: 46px;
+  --vs-logo-w: 132px;
+  /* How wide the header's search field is allowed to grow. Stated once: the
+     field and the slot it sits in are two elements and were two numbers. */
+  --vs-search-max: 820px;
+  /* The fixed category rail at the far right. It is a real gutter, not an
+     overlay: `--vs-rail-gutter` is what the page reserves for it, so the rail
+     can never sit on top of content. Both drop to 0 on mobile, where the rail
+     is replaced by a header trigger. */
+  --vs-rail-w: 64px;
+  --vs-rail-gutter: var(--vs-rail-w);
+  --vs-drawer-cat-w: 340px;
+  /* What a sticky element must clear. Kept as one token so page-level sticky
+     panels never re-derive it. */
+  --vs-sticky-top: calc(var(--vs-header-h) + var(--vs-nav-h) + 16px);
+
+  /* ── surfaces ────────────────────────────────────────────────────────── */
+  /* White and a warm off-white, with two pale supporting tints mixed from the
+     brand colours so the page stays Vista's even where no brand element shows. */
+  --vs-page: #fbfaf7;
+  --vs-surface: #ffffff;
+  --vs-surface-2: color-mix(in srgb, var(--vs-primary) 5%, #f7f6f2);
+  --vs-surface-3: color-mix(in srgb, var(--vs-accent) 12%, #f4f2ec);
+  --vs-surface-dark: color-mix(in srgb, var(--vs-primary) 22%, #14131c);
+  --vs-surface-dark-2: color-mix(in srgb, var(--vs-primary) 32%, #1a1826);
+
+  /* ── borders ─────────────────────────────────────────────────────────── */
+  --vs-border: color-mix(in srgb, var(--vs-primary) 10%, #e7e5e0);
+  --vs-border-strong: color-mix(in srgb, var(--vs-primary) 22%, #dcd9d2);
+  --vs-border-dark: color-mix(in srgb, var(--vs-primary) 30%, #2f2d38);
+
+  /* ── text ────────────────────────────────────────────────────────────── */
+  --vs-ink: #1c1b21;
+  --vs-ink-2: #47454f;
+  --vs-ink-3: #77747f;
+  --vs-ink-4: #9a97a2;
+  --vs-ink-invert: #ffffff;
+
+  /* ── brand ───────────────────────────────────────────────────────────── */
+  /* Sampled from the owner's Vista logo: a deep blue-purple and the sign
+     yellow. StoreProvider writes `--vs-brand-*` from StoreSettings, so a store
+     restyles itself from Admin; the sampled values are only the fallback. Every
+     other tone is mixed from these two, so a brand colour is stated once. */
+  --vs-primary: var(--vs-brand-primary, #484397);
+  --vs-primary-dark: color-mix(in srgb, var(--vs-primary) 78%, #000);
+  --vs-primary-mid: color-mix(in srgb, var(--vs-primary) 82%, #fff);
+  --vs-primary-soft: color-mix(in srgb, var(--vs-primary) 8%, #fff);
+  --vs-accent: var(--vs-brand-accent, #ffc50a);
+  --vs-accent-dark: color-mix(in srgb, var(--vs-accent) 82%, #6b4a00);
+  --vs-accent-soft: color-mix(in srgb, var(--vs-accent) 18%, #fff);
+  --vs-success: var(--vs-brand-success, #2e7d5b);
+  --vs-danger: #c0392b;
+  --vs-danger-soft: #fbf1ef;
+  --vs-warn: #8a6a1f;
+
+  /* ── radius ──────────────────────────────────────────────────────────── */
+  --vs-r-sm: 8px;
+  --vs-r-md: 12px;
+  --vs-r-lg: 16px;
+  --vs-r-xl: 22px;
+  --vs-r-pill: 999px;
+
+  /* ── shadow ──────────────────────────────────────────────────────────── */
+  --vs-shadow-1: 0 1px 2px rgba(30, 27, 24, 0.05);
+  --vs-shadow-2: 0 10px 26px rgba(30, 27, 24, 0.09);
+  --vs-shadow-3: 0 18px 44px rgba(30, 27, 24, 0.14);
+  --vs-shadow-4: 0 0 60px rgba(26, 24, 21, 0.28);
+  --vs-shadow-header: 0 4px 18px rgba(30, 27, 24, 0.07);
+
+  /* ── motion ──────────────────────────────────────────────────────────── */
+  --vs-t-fast: 140ms;
+  --vs-t: 200ms;
+  --vs-t-card: 260ms;
+  --vs-t-drawer: 300ms;
+  --vs-t-hero: 600ms;
+  --vs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── type ────────────────────────────────────────────────────────────── */
+  --vs-fs-h1: 34px;
+  --vs-fs-h2: 24px;
+  --vs-fs-h3: 18px;
+  --vs-fs-body: 14.5px;
+  --vs-fs-sm: 13px;
+  --vs-fs-xs: 11.5px;
+  --vs-lh: 1.75;
+
+  /* ── z layers ────────────────────────────────────────────────────────── */
+  --vs-z-rail: 40;
+  --vs-z-header: 60;
+  --vs-z-popover: 70;
+  --vs-z-scrim: 80;
+  --vs-z-drawer: 90;
+  --vs-z-modal: 95;
+  --vs-z-toast: 100;
+
+  /* ── aspect ratios ───────────────────────────────────────────────────── */
+  --vs-ar-product: 1 / 1;
+  --vs-ar-category: 4 / 5;
+  /* Square by default so a package sitting in a mixed catalogue grid lines up
+     with the products around it; the dedicated package grid widens it. */
+  --vs-ar-package: 1 / 1;
+  /* A wide advertising banner. The ratio — not a pixel height — is what the
+     hero reserves, so the box is correct before the image decodes. The cap
+     stops the same ratio from turning a 1852px-wide band into a 700px wall on
+     a large monitor; the artwork covers, so a shorter box only crops. */
+  --vs-ar-hero: 21 / 8;
+  --vs-hero-max-h: 520px;
+}
+
+@media (max-width: 1279px) {
+  .vs-public {
+    --vs-cols: 3;
+    --vs-cols-cat: 3;
+    --vs-cols-pkg: 3;
+    --vs-grid-gap: 18px;
+    --vs-fs-h1: 30px;
+    --vs-rail-w: 58px;
+    --vs-ar-hero: 2 / 1;
+    --vs-hero-max-h: 440px;
+  }
+}
+
+/* The shell switches to its mobile form at 900, but the catalogue keeps three
+   columns down to 700: a tablet has the room, and two columns there would leave
+   the cards oversized. */
+@media (max-width: 899px) {
+  .vs-public {
+    --vs-cols-cat: 3;
+    --vs-cols-pkg: 2;
+    --vs-gutter: 18px;
+    --vs-grid-gap: 14px;
+    --vs-section: 40px;
+    --vs-section-tight: 26px;
+    /* The nav band and the category rail leave the sticky header on mobile, so
+       only the 60px action row follows the scroll. */
+    --vs-header-h: 60px;
+    --vs-nav-h: 0px;
+    --vs-sticky-top: 76px;
+    --vs-logo-h: 34px;
+    --vs-logo-w: 100px;
+    --vs-tabbar-h: 64px;
+    --vs-fs-h1: 26px;
+    --vs-fs-h2: 20px;
+    /* A tablet still reads a landscape banner; the portrait crop is for phones
+       only, and starts at 600 (below). At 768 a 5/6 hero was 878px tall — most
+       of the screen for one advertisement. */
+    --vs-ar-hero: 16 / 9;
+    /* The fixed rail leaves the layout entirely below 900: its trigger moves
+       into the header, so no width is reserved and nothing is covered. */
+    --vs-rail-w: 0px;
+    --vs-rail-gutter: 0px;
+    --vs-drawer-cat-w: min(92vw, 400px);
+  }
+}
+
+@media (max-width: 699px) {
+  .vs-public {
+    --vs-cols: 2;
+  }
+}
+
+@media (max-width: 599px) {
+  .vs-public {
+    --vs-cols-cat: 2;
+    --vs-cols-pkg: 1;
+    --vs-gutter: 16px;
+    --vs-grid-gap: 12px;
+    --vs-fs-h1: 23px;
+    --vs-fs-h2: 18.5px;
+    /* A phone shows the whole advertisement, not a slice of it. Banner artwork
+       is landscape (the shipped hero is 1672×941), so a portrait phone box plus
+       `cover` threw away more than half the image width — the Arabic promo text
+       and the branding were cropped straight out of the viewport. The box keeps
+       the artwork's own landscape ratio and the media contains rather than
+       covers below 600 (see home.css), so nothing is cut sideways. */
+    --vs-ar-hero: 16 / 9;
+    --vs-hero-max-h: 360px;
+  }
+}
+
+@media (max-width: 359px) {
+  .vs-public {
+    --vs-cols: 1;
+    --vs-cols-cat: 2;
+  }
+}

@@ -1,0 +1,164 @@
+name: MySQL 8 compatibility
+
+# The only MySQL connection this project makes. It is an ephemeral service container
+# inside the GitHub Actions runner: created for the job, thrown away with it. It never
+# reaches a developer machine, a VPS or any production database, and the credentials
+# below exist only for the lifetime of this job.
+#
+# Local development stays on SQLite. Docker is not a local requirement — a service
+# container is a CI-only facility.
+
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - "backend/**"
+      - "instance/**"
+      - "VERSION"
+      - ".github/workflows/mysql-compatibility.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "instance/**"
+      - "VERSION"
+      - ".github/workflows/mysql-compatibility.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mysql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mysql:
+    name: Ephemeral MySQL 8 gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          # Test-only, defined here and nowhere else. Not a production credential.
+          MYSQL_ROOT_PASSWORD: ci-root-only
+          MYSQL_DATABASE: commerce_ci
+          MYSQL_USER: commerce_ci
+          MYSQL_PASSWORD: ci-only-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-only"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+          --health-start-period=30s
+
+    env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      MYSQL_USER: commerce_ci
+      MYSQL_PASSWORD: ci-only-password
+      DATABASE_URL: mysql+pymysql://commerce_ci:ci-only-password@127.0.0.1:3306/commerce_ci?charset=utf8mb4
+      MYSQL_LIFECYCLE_URL: mysql+pymysql://commerce_ci:ci-only-password@127.0.0.1:3306/commerce_ci_lifecycle?charset=utf8mb4
+      MYSQL_SEED_URL: mysql+pymysql://commerce_ci:ci-only-password@127.0.0.1:3306/commerce_ci_seed?charset=utf8mb4
+      # A database of its own, because the migration-order tests drop every table
+      # to start each case from an empty schema.
+      MYSQL_MIGRATION_URL: mysql+pymysql://commerce_ci:ci-only-password@127.0.0.1:3306/commerce_ci_migration?charset=utf8mb4
+      SECRET_KEY: ci-only-secret-not-used-anywhere-else
+      APP_ENV: ci
+      STORAGE_PROVIDER: local
+      LOCAL_MEDIA_ROOT: ./data/uploads
+      PYTHONIOENCODING: utf-8
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,mysql]"
+
+      - name: Wait for the MySQL service to become healthy
+        run: |
+          for attempt in $(seq 1 40); do
+            if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -pci-root-only --silent; then
+              echo "MySQL is up after ${attempt} attempt(s)"
+              mysql -h 127.0.0.1 -P 3306 -u root -pci-root-only -e "SELECT VERSION();"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "MySQL never became healthy"
+          exit 1
+
+      - name: Create the disposable databases
+        # log_bin_trust_function_creators is set because migration 0008 creates
+        # triggers. MySQL 8 enables binary logging by default and then refuses
+        # CREATE TRIGGER from an account without SUPER or SET_USER_ID:
+        #   ERROR 1419: You do not have the SUPER privilege and binary logging
+        #               is enabled
+        # Granting the CI account SUPER would make the gate weaker than the
+        # deployment it stands in for, so the server is relaxed instead and the
+        # account stays unprivileged. Any real MySQL deployment needs one of the
+        # three options recorded in docs/deployment/mysql-local-development.md.
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -pci-root-only -e "
+            SET GLOBAL log_bin_trust_function_creators = 1;
+            CREATE DATABASE IF NOT EXISTS commerce_ci_lifecycle
+              CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            CREATE DATABASE IF NOT EXISTS commerce_ci_seed
+              CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            CREATE DATABASE IF NOT EXISTS commerce_ci_migration
+              CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            ALTER DATABASE commerce_ci
+              CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            GRANT ALL PRIVILEGES ON commerce_ci_lifecycle.* TO 'commerce_ci'@'%';
+            GRANT ALL PRIVILEGES ON commerce_ci_seed.* TO 'commerce_ci'@'%';
+            GRANT ALL PRIVILEGES ON commerce_ci_migration.* TO 'commerce_ci'@'%';
+            FLUSH PRIVILEGES;"
+
+      - name: Offline portability check
+        run: python -m scripts.mysql_compat --verbose
+
+      - name: Alembic upgrades a new empty database to head
+        run: |
+          python -m alembic upgrade head
+          python -m alembic current
+
+      - name: MySQL integration suite
+        run: pytest tests_mysql -v
+
+      - name: The SQLite suite still passes unchanged
+        env:
+          DATABASE_URL: sqlite+pysqlite:///./data/ci_sqlite.db
+        run: pytest
+
+      - name: Confirm no runtime artefact was committed
+        working-directory: .
+        # The previous pattern anchored databases on `.db$` and environment files on
+        # `.env$`. Both were too narrow: four backups named `<name>.db.<stamp>.bak`
+        # and a `.env.mysql.local` would all have passed it. `.env.example` is the
+        # documented template and is the only member of that family allowed through.
+        #
+        # backend/tests/test_repository_hygiene.py asserts the same rules from the
+        # test suite, so a developer sees this locally before CI does.
+        run: |
+          if git ls-files \
+            | grep -Ev '(^|/)\.env\.example$' \
+            | grep -Ei '(^|/)\.env(\..+)?$|\.(db|sqlite|sqlite3|bak|dump)$|(^|/)(node_modules|dist|build|htmlcov)/'; then
+            echo "a runtime artefact is tracked"
+            exit 1
+          fi
+          echo "clean"

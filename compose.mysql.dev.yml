@@ -1,0 +1,65 @@
+# Isolated MySQL 8.0 for LOCAL DEVELOPMENT ONLY.
+#
+# What this is: one throwaway MySQL container on the developer's own machine, used to
+# prove that the application behaves identically on MySQL and on SQLite before anything
+# is ever deployed.
+#
+# What this is NOT, and must never become:
+#   * a production database,
+#   * the eventual cPanel database,
+#   * a shared or remote server.
+# It is bound to 127.0.0.1 only, so nothing outside this machine can reach it, and its
+# credentials come from an untracked env file that exists only here.
+#
+# Docker is NOT required for normal development. SQLite remains the default runtime;
+# nothing in the application, the tests or the documented setup path needs this file.
+#
+# ── Use ──────────────────────────────────────────────────────────────────────
+#   copy deployment/env/mysql.dev.env.example .env.mysql.dev
+#   (edit .env.mysql.dev and set your own local-only passwords)
+#
+#   docker compose --env-file .env.mysql.dev -f compose.mysql.dev.yml up -d
+#   docker compose --env-file .env.mysql.dev -f compose.mysql.dev.yml ps
+#   docker compose --env-file .env.mysql.dev -f compose.mysql.dev.yml down          # keeps data
+#   docker compose --env-file .env.mysql.dev -f compose.mysql.dev.yml down -v       # deletes data
+#
+# The full verification sequence is in docs/deployment/mysql-local-development.md.
+#
+# MySQL 8.0 is pinned to match the ephemeral service container in
+# .github/workflows/mysql-compatibility.yml. Local and CI must exercise the same major
+# version, or a green CI run says nothing about what a developer just tested.
+
+name: vista-mysql-dev
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: vista-mysql-dev
+    restart: "no" # a development database should not survive a reboot unasked
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env.mysql.dev}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-vista_dev}
+      MYSQL_USER: ${MYSQL_USER:-vista_dev}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env.mysql.dev}
+    ports:
+      # Loopback only. Never change this to "3307:3306" — that would publish a
+      # development database on every interface of the machine.
+      - "127.0.0.1:${MYSQL_HOST_PORT:-3307}:3306"
+    volumes:
+      - vista-mysql-dev-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  # Named, and prefixed with the project name above, so it cannot collide with another
+  # project's volume. It lives in Docker's own storage, never inside this repository,
+  # so it can never be picked up by the release packager or by Git.
+  vista-mysql-dev-data:
+    name: vista-mysql-dev-data
