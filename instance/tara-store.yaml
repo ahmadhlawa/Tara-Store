@@ -52,10 +52,16 @@ contact:
   instagram_url: null
   facebook_url: null
 
+# Sampled from the Tara logo: deep mauve, warm gold, muted sage. These are what a
+# fresh bootstrap writes into store settings, and they must stay in step with the
+# storefront's own fallbacks (frontend/src/styles/public/tokens.css) and the
+# shipped column defaults (app/models/store.py) — a mismatch shows up as the
+# storefront changing colour the moment settings load. The owner can restyle all
+# three in Admin afterwards.
 theme:
-  primary_color: "#1F4E4A"
-  secondary_color: "#C9A24B"
-  accent_color: "#2E7D5B"
+  primary_color: "#7D595B"
+  secondary_color: "#D19F57"
+  accent_color: "#4C7C63"
 
 # Fixed, explicit set — every one is already implemented. Unknown names are rejected.
 # Anything omitted defaults to enabled. Disabling a feature only affects what a fresh

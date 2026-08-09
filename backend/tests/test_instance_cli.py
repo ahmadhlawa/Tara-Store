@@ -11,11 +11,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.template_version import template_version
-from app.models import Coupon, InstanceMetadata, Order, Product
+from app.models import Coupon, InstanceMetadata, Order, Product, StoreSettings
 from scripts import instance_cli, mysql_compat
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEMO_PROFILE = REPO_ROOT / "instance" / "demo-profile.yaml"
+# The fork ships Tara's profile where the template shipped a demo one.
+TARA_PROFILE = REPO_ROOT / "instance" / "tara-store.yaml"
 
 
 @pytest.fixture()
@@ -122,12 +123,18 @@ def test_plan_reports_a_conflict_without_writing(cli_env, profile_path: Path, tm
     assert instance_cli.main(["plan", "--profile", str(other)]) == instance_cli.EXIT_CONFLICT
 
 
-def test_the_shipped_demo_profile_applies(cli_env, capsys) -> None:
-    assert instance_cli.main(["apply", "--profile", str(DEMO_PROFILE)]) == 0
+def test_the_shipped_tara_profile_applies(cli_env, capsys) -> None:
+    assert instance_cli.main(["apply", "--profile", str(TARA_PROFILE)]) == 0
     capsys.readouterr()
 
     with cli_env() as db:
-        assert db.execute(select(InstanceMetadata)).scalar_one().instance_slug == "demo-store"
+        assert db.execute(select(InstanceMetadata)).scalar_one().instance_slug == "tara-store"
+        # Through the CLI, which is how an instance is actually stood up: the
+        # branding a fresh Tara store comes online with is whatever this writes.
+        settings_row = db.execute(select(StoreSettings)).scalar_one()
+        assert settings_row.primary_color == "#7D595B"
+        assert settings_row.secondary_color == "#D19F57"
+        assert settings_row.accent_color == "#4C7C63"
         # Identity only — the catalogue is the separate demo seed.
         assert db.execute(select(Product)).scalars().all() == []
         assert db.execute(select(Order)).scalars().all() == []

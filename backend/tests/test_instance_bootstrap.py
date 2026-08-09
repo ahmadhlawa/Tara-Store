@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -13,7 +15,7 @@ from app.instance.bootstrap import (
     build_plan,
 )
 from app.instance.manifest import build_manifest
-from app.instance.profile import parse_profile
+from app.instance.profile import load_profile, parse_profile
 from app.models import (
     Coupon,
     HomeSection,
@@ -23,6 +25,9 @@ from app.models import (
     StaticPage,
     StoreSettings,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+TARA_PROFILE = REPO_ROOT / "instance" / "tara-store.yaml"
 
 PROFILE = {
     "profile_schema_version": 1,
@@ -260,3 +265,25 @@ def test_manifest_contains_no_secrets(db: Session, profile) -> None:
     # And no actual configured value leaks either.
     assert settings.SECRET_KEY.lower() not in document
     assert settings.DATABASE_URL.lower() not in document
+
+
+def test_a_fresh_instance_is_branded_Tara_without_a_manual_edit(db: Session) -> None:
+    """End to end over the real shipped profile, not the synthetic one above.
+
+    This is the gap the branding pass left: the frontend tokens, the column
+    defaults and the ThemeProfile defaults were all moved to Tara, but a fresh
+    bootstrap reads `instance/tara-store.yaml`, which still stated the source
+    project's teal outright — so the settings row it created came back from
+    `/store/settings`, StoreProvider wrote it over the stylesheet's fallback, and
+    the storefront rendered in the old brand. Nothing on the frontend could have
+    corrected that, and only a hand-edit of the row hid it.
+    """
+    apply_profile(db, load_profile(TARA_PROFILE))
+
+    row = db.execute(select(StoreSettings)).scalar_one()
+    assert (row.primary_color, row.secondary_color, row.accent_color) == (
+        "#7D595B",
+        "#D19F57",
+        "#4C7C63",
+    )
+    assert "#1F4E4A" not in (row.primary_color, row.secondary_color, row.accent_color)

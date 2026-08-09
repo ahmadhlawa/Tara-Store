@@ -18,10 +18,15 @@ from app.instance.profile import (
     load_profile,
     parse_profile,
 )
+from app.models.store import STORE_SETTINGS_DEFAULTS
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE_PROFILE = REPO_ROOT / "instance" / "client-profile.example.yaml"
-DEMO_PROFILE = REPO_ROOT / "instance" / "demo-profile.yaml"
+# This fork ships Tara's own profile in place of the template's demo one. It is the
+# document a fresh Tara instance is actually bootstrapped from, so it belongs in
+# every check below that the demo profile used to be in.
+TARA_PROFILE = REPO_ROOT / "instance" / "tara-store.yaml"
+SHIPPED_PROFILES = (EXAMPLE_PROFILE, TARA_PROFILE)
 
 
 def minimal(**overrides) -> dict:
@@ -37,10 +42,36 @@ def minimal(**overrides) -> dict:
 
 # ── shipped profiles ─────────────────────────────────────────────────────────
 def test_shipped_profiles_are_valid() -> None:
-    for path in (EXAMPLE_PROFILE, DEMO_PROFILE):
+    for path in SHIPPED_PROFILES:
         profile = load_profile(path)
         assert profile.client_slug
         assert profile.store.name
+
+
+def test_the_shipped_tara_profile_carries_the_tara_palette() -> None:
+    """The profile is what a fresh instance is branded from, so it is where the old
+    template teal survived the branding pass: the Python defaults in ThemeProfile
+    only apply when a profile omits `theme:`, and this one states it outright. A
+    fresh bootstrap wrote #1F4E4A into store settings and the storefront came up in
+    the source project's colours with nothing in the frontend able to stop it."""
+    profile = load_profile(TARA_PROFILE)
+    assert profile.theme.primary_color == "#7D595B"
+    assert profile.theme.secondary_color == "#D19F57"
+    assert profile.theme.accent_color == "#4C7C63"
+
+    text = TARA_PROFILE.read_text(encoding="utf-8").upper()
+    for retired in ("#1F4E4A", "#C9A24B", "#2E7D5B"):
+        assert retired not in text, f"{TARA_PROFILE.name} still carries {retired}"
+
+
+def test_the_shipped_theme_matches_the_shipped_column_defaults() -> None:
+    """Two sources write the same three colours — the profile on bootstrap and the
+    column defaults for a settings row created without one. They have to agree, or
+    which of them a store ends up with depends on how it was set up."""
+    profile = load_profile(TARA_PROFILE)
+    assert profile.theme.primary_color == STORE_SETTINGS_DEFAULTS["primary_color"]
+    assert profile.theme.secondary_color == STORE_SETTINGS_DEFAULTS["secondary_color"]
+    assert profile.theme.accent_color == STORE_SETTINGS_DEFAULTS["accent_color"]
 
 
 def test_a_valid_profile_parses_with_defaults() -> None:
@@ -179,7 +210,7 @@ def test_secret_like_keys_are_rejected_at_any_depth() -> None:
 
 def test_shipped_profiles_contain_no_secret_like_keys() -> None:
     """Belt and braces: the files we tell operators to copy must stay non-secret."""
-    for path in (EXAMPLE_PROFILE, DEMO_PROFILE):
+    for path in SHIPPED_PROFILES:
         text = path.read_text(encoding="utf-8").lower()
         for forbidden in ("password:", "secret:", "database_url:", "private_key:"):
             assert forbidden not in text, f"{path.name} contains {forbidden}"
@@ -228,6 +259,6 @@ def test_a_malformed_version_file_is_rejected(tmp_path: Path, monkeypatch) -> No
 
 def test_profiles_declare_a_template_version_matching_the_repository() -> None:
     current = template_version()
-    for path in (EXAMPLE_PROFILE, DEMO_PROFILE):
+    for path in SHIPPED_PROFILES:
         declared = yaml.safe_load(path.read_text(encoding="utf-8"))["template_version"]
         assert declared == current, f"{path.name} targets {declared}, repository is {current}"
