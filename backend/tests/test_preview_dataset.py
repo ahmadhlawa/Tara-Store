@@ -1,7 +1,11 @@
 """Preview dataset validation.
 
-The shipped Vista dataset is validated here too, so a typo in the YAML is a test
-failure rather than something discovered during a client demonstration.
+Any dataset shipped in instance/preview/ is validated here too, so a typo in the
+YAML is a test failure rather than something discovered during a client
+demonstration. Tara ships none today — the fork deliberately left the template's
+Vista demo catalogue behind — so that check is a standing guard rather than
+coverage of a particular file, and the loader itself is exercised against a
+fixture written per-test instead.
 """
 
 from __future__ import annotations
@@ -9,12 +13,28 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import yaml
 
 from app.preview.dataset import DatasetError, load_dataset, parse_dataset
 
-DATASET_PATH = (
-    Path(__file__).resolve().parents[2] / "instance" / "preview" / "vista-social-preview.yaml"
-)
+INSTANCE_DIR = Path(__file__).resolve().parents[2] / "instance"
+PREVIEW_DIR = INSTANCE_DIR / "preview"
+
+
+def shipped_datasets() -> list[Path]:
+    """Datasets committed to instance/preview/, of which there are currently none.
+
+    The directory itself is not in git — it is empty, and git cannot track an
+    empty directory — so a checkout may not have it at all. `glob` on a missing
+    directory is empty rather than an error, which is the behaviour wanted here.
+    """
+    return sorted(PREVIEW_DIR.glob("*.yaml")) + sorted(PREVIEW_DIR.glob("*.yml"))
+
+
+def write(tmp_path: Path, document: dict, name: str = "preview.yaml") -> Path:
+    path = tmp_path / name
+    path.write_text(yaml.safe_dump(document, allow_unicode=True), encoding="utf-8")
+    return path
 
 
 def minimal(**overrides) -> dict:
@@ -46,29 +66,64 @@ def minimal(**overrides) -> dict:
     return document
 
 
-def test_shipped_vista_dataset_is_valid() -> None:
-    dataset = load_dataset(DATASET_PATH)
-    assert dataset.batch_key == "vista-social-preview"
+# ── the file loader ──────────────────────────────────────────────────────────────────
+# These used to run against the template's shipped Vista catalogue, which is the
+# one thing this fork did not copy. Most of what they asserted was that
+# catalogue's own content — how many categories it had, that it advertised an
+# offer — which says nothing about a repository that ships no dataset. What was
+# worth keeping is the loader path itself: reading YAML off disk, which nothing
+# else here covered, and the price-honesty rule, which is now a rule about any
+# dataset rather than about that one.
+def test_a_dataset_round_trips_through_the_file_loader(tmp_path: Path) -> None:
+    path = write(tmp_path, minimal())
+    dataset = load_dataset(path)
+
+    assert dataset.batch_key == "test-preview"
     assert dataset.media_prefix.endswith("/")
-    counts = dataset.counts()
-    assert 5 <= counts["categories"] <= 8
-    # A demonstration catalogue, not a dump: wide enough to fill every storefront
-    # section, small enough to stay reviewable and removable in one batch.
-    assert 18 <= counts["products"] <= 60
-    assert counts["delivery_areas"] >= 1
-    assert counts["hero_slides"] >= 1
+    assert dataset.counts() == {
+        "media": 1,
+        "categories": 1,
+        "products": 1,
+        "delivery_areas": 0,
+        "hero_slides": 0,
+        "banners": 0,
+        "home_sections": 0,
+        "coupons": 0,
+    }
 
 
-def test_shipped_dataset_advertises_at_least_one_offer_and_one_package() -> None:
-    dataset = load_dataset(DATASET_PATH)
-    assert any(product.compare_at_price is not None for product in dataset.products)
-    assert any(product.package_items for product in dataset.products)
+def test_malformed_yaml_is_reported_clearly(tmp_path: Path) -> None:
+    path = tmp_path / "bad.yaml"
+    path.write_text("products: [unclosed\n", encoding="utf-8")
+    with pytest.raises(DatasetError, match="not valid YAML"):
+        load_dataset(path)
 
 
-def test_shipped_dataset_marks_every_price_as_unverified() -> None:
-    """No price on the Vista social pages was legible, so none may be `confirmed`."""
-    dataset = load_dataset(DATASET_PATH)
-    assert all(product.origin != "confirmed" for product in dataset.products)
+def test_an_empty_dataset_file_is_reported_clearly(tmp_path: Path) -> None:
+    path = tmp_path / "empty.yaml"
+    path.write_text("# nothing here\n", encoding="utf-8")
+    with pytest.raises(DatasetError, match="is empty"):
+        load_dataset(path)
+
+
+# ── whatever this repository actually ships ─────────────────────────────────────
+def test_every_shipped_preview_dataset_is_valid_and_price_honest() -> None:
+    """Shipping no dataset is a valid state, and is where Tara stands.
+
+    The rule matters the moment one is added: a preview catalogue is assembled
+    from whatever could be read off a client's public pages, so a price that was
+    guessed must not be dressed up as `confirmed` — that is the difference
+    between a demonstration and a misrepresentation.
+    """
+    # Anchored to a directory that *is* tracked, so this cannot quietly degrade
+    # into globbing the wrong root and passing forever.
+    assert INSTANCE_DIR.is_dir()
+
+    for path in shipped_datasets():
+        dataset = load_dataset(path)
+        assert dataset.media_prefix.endswith("/"), path.name
+        claimed = [p.slug for p in dataset.products if p.origin == "confirmed"]
+        assert not claimed, f"{path.name} marks guessed prices as confirmed: {claimed}"
 
 
 def test_dataset_hash_is_stable_and_content_sensitive() -> None:
