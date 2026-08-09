@@ -165,7 +165,7 @@ export default function SettingsPage() {
         <div key={group.title} style={{ ...card, ...sx`margin-bottom:16px` }}>
           <h2 style={sx`margin:0 0 ${group.note ? "8px" : "14px"};font-size:16px;font-weight:800`}>{group.title}</h2>
           {group.note && (
-            <p style={sx`margin:0 0 14px;font-size:12.5px;color:#7C766D;line-height:1.9`}>{group.note}</p>
+            <p style={sx`margin:0 0 14px;font-size:12.5px;color:#766669;line-height:1.9`}>{group.note}</p>
           )}
           <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px`}>
             {(group.fields || []).map(([key, title, kind]) =>
@@ -207,7 +207,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={!!form[key]}
                 onChange={(event) => update(key, event.target.checked)}
-                style={sx`width:18px;height:18px;accent-color:#1F4E4A`}
+                style={sx`width:18px;height:18px;accent-color:#7D595B`}
               />
               {title}
             </label>
@@ -221,11 +221,11 @@ export default function SettingsPage() {
             type="checkbox"
             checked={!!form.maintenance_mode}
             onChange={(event) => update("maintenance_mode", event.target.checked)}
-            style={sx`width:18px;height:18px;accent-color:#1F4E4A`}
+            style={sx`width:18px;height:18px;accent-color:#7D595B`}
           />
           وضع الصيانة
         </label>
-        <p style={sx`margin:8px 0 0;font-size:12.5px;color:#9C958A`}>يُعلن هذا الحقل عبر واجهة المتجر ليستخدمه المطوّر لاحقاً؛ لا يوقف المتجر تلقائياً في هذه النسخة.</p>
+        <p style={sx`margin:8px 0 0;font-size:12.5px;color:#8B7A7E`}>يُعلن هذا الحقل عبر واجهة المتجر ليستخدمه المطوّر لاحقاً؛ لا يوقف المتجر تلقائياً في هذه النسخة.</p>
       </div>
 
       <div style={sx`margin-bottom:30px`}>

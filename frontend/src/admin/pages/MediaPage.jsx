@@ -114,26 +114,26 @@ export default function MediaPage() {
               setPage(1);
             }}
             placeholder="بحث باسم الملف"
-            style={sx`width:100%;max-width:320px;padding:10px 12px;border:1px solid #D8D2C8;border-radius:9px;font:inherit`}
+            style={sx`width:100%;max-width:320px;padding:10px 12px;border:1px solid #DCCDBC;border-radius:9px;font:inherit`}
           />
         </div>
         {loading ? (
           <Spinner />
         ) : items.length === 0 ? (
-          <p style={sx`padding:36px;text-align:center;color:#7C766D;font-size:14px`}>
+          <p style={sx`padding:36px;text-align:center;color:#766669;font-size:14px`}>
             {query ? "لا توجد وسائط مطابقة." : "لم تُرفع أي ملفات بعد."}
           </p>
         ) : (
           <div style={sx`display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px`}>
             {items.map((asset) => (
-              <div key={asset.id} style={sx`border:1px solid #E4E0D9;border-radius:12px;overflow:hidden;display:flex;flex-direction:column`}>
-                <span style={sx`aspect-ratio:1 / 1;background:url("${asset.url}") center/cover no-repeat;background-color:#F2EFE9`}></span>
+              <div key={asset.id} style={sx`border:1px solid #E9DED0;border-radius:12px;overflow:hidden;display:flex;flex-direction:column`}>
+                <span style={sx`aspect-ratio:1 / 1;background:url("${asset.url}") center/cover no-repeat;background-color:#F5EDE3`}></span>
                 <div style={sx`padding:10px;display:flex;flex-direction:column;gap:8px`}>
-                  <span style={sx`font-size:12px;color:#7C766D;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`}>{asset.original_filename}</span>
-                  <span style={sx`font-size:11.5px;color:#9C958A`}>{Math.round(asset.size_bytes / 1024)} كيلوبايت</span>
+                  <span style={sx`font-size:12px;color:#766669;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`}>{asset.original_filename}</span>
+                  <span style={sx`font-size:11.5px;color:#8B7A7E`}>{Math.round(asset.size_bytes / 1024)} كيلوبايت</span>
                   {editing === asset.id ? (
                     <>
-                      <input aria-label="اسم الملف" value={filename} onChange={(event) => setFilename(event.target.value)} style={sx`width:100%;padding:8px;border:1px solid #D8D2C8;border-radius:8px;font:inherit;font-size:12px`} />
+                      <input aria-label="اسم الملف" value={filename} onChange={(event) => setFilename(event.target.value)} style={sx`width:100%;padding:8px;border:1px solid #DCCDBC;border-radius:8px;font:inherit;font-size:12px`} />
                       <div style={sx`display:flex;gap:8px`}>
                         <Button disabled={renaming} style={sx`min-height:34px;font-size:12.5px`} onClick={rename}>حفظ</Button>
                         <Button variant="ghost" disabled={renaming} style={sx`min-height:34px;font-size:12.5px`} onClick={() => setEditing(null)}>إلغاء</Button>

@@ -1,4 +1,4 @@
-// Vista's own line-icon set: one 24px grid, 1.9 stroke, rounded caps.
+// The storefront's own line-icon set: one 24px grid, 1.9 stroke, rounded caps.
 // Decorative by default — every icon-only control carries its own aria-label.
 const base = {
   viewBox: "0 0 24 24",

@@ -4,8 +4,11 @@
 
 .vs-announce {
   background: var(--vs-primary);
-  color: #eaf1ef;
+  color: color-mix(in srgb, var(--vs-page) 88%, var(--vs-primary));
   font-size: 12.5px;
+  /* The gold shows as one hairline under the strip rather than as a fill: the
+     first thing on the page is mauve with a jewellery line beneath it. */
+  border-block-end: 1px solid var(--vs-border-accent);
 }
 
 .vs-announce__row {
@@ -26,7 +29,7 @@
   height: 28px;
   border: 0;
   background: transparent;
-  color: #9fbdb7;
+  color: color-mix(in srgb, var(--vs-page) 62%, var(--vs-primary));
   cursor: pointer;
   line-height: 1;
   border-radius: var(--vs-r-sm);
@@ -34,16 +37,21 @@
 }
 
 .vs-announce__close:hover {
-  color: #fff;
+  color: var(--vs-ink-invert);
 }
 
 /* ── header ────────────────────────────────────────────────────────────── */
 
+/* Ivory, not white. The supplied logo carries its own ivory ground, and the one
+   thing that would give it away as a pasted-in rectangle is a whiter header
+   behind it — so the header takes the page's ivory and the mark sits on the
+   same paper the rest of the storefront is printed on. Cards keep the warmer
+   white, which is what separates them from the page now. */
 .vs-header {
   position: sticky;
   inset-block-start: 0;
   z-index: var(--vs-z-header);
-  background: var(--vs-surface);
+  background: var(--vs-page);
   box-shadow: 0 0 0 rgba(0, 0, 0, 0);
   transition: box-shadow var(--vs-t-card) var(--vs-ease);
 }
@@ -54,7 +62,7 @@
 
 .vs-header__main {
   height: var(--vs-header-h);
-  background: var(--vs-surface);
+  background: var(--vs-page);
   border-block-end: 1px solid var(--vs-border);
 }
 
@@ -76,12 +84,31 @@
   height: 38px;
 }
 
+/* Mark on one side, wordmark and strapline stacked on the other. A row, because
+   the mark is square: stacked under it the type would need ~60px of a 64px band
+   and leave the whole block crowded against both edges of it. */
 .vs-logo {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 11px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.vs-logo__text {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  flex: 0 1 auto;
   min-width: 0;
+}
+
+/* The gold hairline appears only when there is a mark to divide the type from —
+   `:not(:first-child)` is the whole of that condition, so no modifier class and
+   no second code path. */
+.vs-logo__text:not(:first-child) {
+  padding-inline-start: 11px;
+  border-inline-start: 1px solid var(--vs-border-accent);
 }
 
 /* A fixed viewport the logo is clipped to, so the header's height is a decision
@@ -113,21 +140,29 @@ img.vs-logo__img {
   object-position: center;
 }
 
+/* Marcellus first for a latin name, Cairo behind it for an Arabic one — the
+   serif has no Arabic glyphs, so "تارا" renders in Cairo either way. The
+   template's 0.13em tracking is a latin display trick that pulls Arabic letters
+   apart at their joins, so it is dialled back to something both scripts wear. */
 .vs-logo__name {
-  font-family: "Marcellus", serif;
+  font-family: "Marcellus", "Cairo", serif;
   font-size: 25px;
   line-height: 1.05;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.04em;
   color: var(--vs-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* The strapline is the one place a small serif is worth spending on: it is
+   latin, it is decorative, and it is the line that says handmade. */
 .vs-logo__tag {
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  color: var(--vs-ink-4);
+  font-family: "Marcellus", "Cairo", serif;
+  font-size: 11.5px;
+  line-height: 1.3;
+  letter-spacing: 0.07em;
+  color: var(--vs-primary-mid);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -150,17 +185,19 @@ img.vs-logo__img {
   height: 42px;
   border: 1px solid var(--vs-border-strong);
   border-radius: var(--vs-r-pill);
-  background: var(--vs-page);
+  /* Inverted against the template: the header is ivory now, so the field has to
+     be the lighter surface to read as a field at all. */
+  background: var(--vs-surface);
   padding-inline: 44px 96px;
   font-family: inherit;
   font-size: var(--vs-fs-body);
   color: var(--vs-ink);
-  transition: border-color var(--vs-t) var(--vs-ease), background var(--vs-t) var(--vs-ease);
+  transition: border-color var(--vs-t) var(--vs-ease), box-shadow var(--vs-t) var(--vs-ease);
 }
 
 .vs-hsearch__field:focus {
   border-color: var(--vs-primary);
-  background: var(--vs-surface);
+  box-shadow: 0 0 0 3px var(--vs-primary-soft);
   outline: none;
 }
 
@@ -181,7 +218,7 @@ img.vs-logo__img {
   border: 0;
   border-radius: var(--vs-r-pill);
   background: var(--vs-primary);
-  color: #fff;
+  color: var(--vs-ink-invert);
   font-family: inherit;
   font-size: var(--vs-fs-sm);
   font-weight: 700;
@@ -338,7 +375,7 @@ img.vs-logo__img {
   border: 1px solid var(--vs-primary);
   border-radius: var(--vs-r-md);
   background: var(--vs-primary);
-  color: #fff;
+  color: var(--vs-ink-invert);
   font-family: inherit;
   font-size: var(--vs-fs-sm);
   font-weight: 700;
@@ -379,11 +416,16 @@ img.vs-logo__img {
 
 /* ── desktop nav band ──────────────────────────────────────────────────── */
 
+/* The storefront's one substantial block of mauve, and the reason the rest of
+   the page can stay ivory: the navigation carries the brand colour so nothing
+   else has to. One gold hairline along its bottom edge is the whole of the gold
+   in the header. */
 .vs-nav {
   position: relative;
   height: var(--vs-nav-h);
   background: var(--vs-primary);
-  color: #fff;
+  color: var(--vs-ink-invert);
+  border-block-end: 1px solid var(--vs-border-accent);
 }
 
 .vs-nav__row {
@@ -402,8 +444,8 @@ img.vs-logo__img {
   margin-inline-end: 8px;
   border: 0;
   border-radius: var(--vs-r-pill);
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  background: rgba(255, 253, 250, 0.16);
+  color: var(--vs-ink-invert);
   font-family: inherit;
   font-size: var(--vs-fs-sm);
   font-weight: 800;
@@ -413,7 +455,7 @@ img.vs-logo__img {
 
 .vs-nav__cats:hover,
 .vs-nav__cats[aria-expanded="true"] {
-  background: var(--vs-surface);
+  background: var(--vs-page);
   color: var(--vs-primary);
 }
 
@@ -425,16 +467,16 @@ img.vs-logo__img {
   padding-inline: 12px;
   font-size: var(--vs-fs-sm);
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.86);
+  color: rgba(255, 253, 250, 0.84);
   transition: color var(--vs-t) var(--vs-ease);
 }
 
 .vs-nav__link:hover {
-  color: #fff;
+  color: var(--vs-ink-invert);
 }
 
 .vs-nav__link[aria-current="page"] {
-  color: #fff;
+  color: var(--vs-ink-invert);
   font-weight: 800;
 }
 
@@ -444,7 +486,7 @@ img.vs-logo__img {
   inset-block-end: 0;
   inset-inline: 12px;
   height: 2px;
-  background: var(--vs-accent);
+  background: var(--vs-accent-soft);
   transform: scaleX(0);
   transform-origin: right;
   transition: transform var(--vs-t-card) var(--vs-ease);
@@ -460,7 +502,7 @@ img.vs-logo__img {
   align-items: center;
   gap: 7px;
   font-size: 12.5px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 253, 250, 0.7);
   white-space: nowrap;
 }
 
@@ -487,14 +529,14 @@ img.vs-logo__img {
   align-items: center;
   gap: 8px;
   padding: 10px 0;
-  background: var(--vs-surface);
+  background: var(--vs-page);
   border-inline-start: 1px solid var(--vs-border);
-  box-shadow: -2px 0 10px rgba(28, 27, 33, 0.035);
+  box-shadow: -2px 0 10px rgba(93, 68, 70, 0.04);
 }
 
 /* The one deliberately heavy element on the rail — it is the way into the whole
-   catalogue, so it takes the darkest Vista purple and everything else stays
-   neutral around it. */
+   catalogue, so it takes the deepest mauve and everything else stays neutral
+   around it. */
 .vs-catbar__trigger {
   flex: 0 0 auto;
   width: 38px;
@@ -566,8 +608,9 @@ img.vs-logo__img {
   color: var(--vs-primary);
 }
 
-/* Pale Vista yellow rather than another block of purple: the rail marks where
-   you are, it does not compete with the nav band for emphasis. */
+/* Pale gold rather than another block of mauve: the rail marks where you are,
+   it does not compete with the nav band for emphasis. This is gold doing what
+   gold is for here — a small active-state detail, not a surface. */
 .vs-catbar__item[data-active="true"] {
   border-color: var(--vs-accent-dark);
   background: var(--vs-accent-soft);
@@ -745,9 +788,9 @@ img.vs-logo__img {
   inset-inline: 0;
   z-index: var(--vs-z-header);
   display: none;
-  background: var(--vs-surface);
+  background: var(--vs-page);
   border-block-start: 1px solid var(--vs-border);
-  box-shadow: 0 -4px 18px rgba(30, 27, 24, 0.07);
+  box-shadow: 0 -4px 18px rgba(93, 68, 70, 0.07);
   padding-block-end: env(safe-area-inset-bottom);
 }
 
@@ -829,13 +872,31 @@ img.vs-logo__img {
   .vs-cartbtn {
     height: 44px;
   }
+  /* `justify-content`, not `align-items`: the row runs horizontally now, and it
+     is the main axis that has to centre the mark between the two icon pairs. */
   .vs-logo {
     flex: 1 1 auto;
-    align-items: center;
+    justify-content: center;
     text-align: center;
   }
   .vs-logo__name {
-    font-size: 21px;
+    font-size: 19px;
+  }
+}
+
+/* A phone header is five 44px touch targets and whatever is left — about 70px at
+   360–390px. That is room for the mark or the wordmark, not both: shown
+   together the name was ellipsised down to "..e", which is worse than either
+   alone. The mark wins here because it cannot be truncated and it is the thing
+   that is actually recognisable at a glance; the name is still in the tab title,
+   the menu drawer and the footer. */
+@media (max-width: 599px) {
+  .vs-public {
+    --vs-logo-h: 40px;
+    --vs-logo-w: 44px;
+  }
+  .vs-logo__box + .vs-logo__text {
+    display: none;
   }
 }
 
@@ -847,19 +908,29 @@ img.vs-logo__img {
   }
 }
 
-/* Below 1180 the phone block would squeeze the search field. */
+/* Below 1180 the phone block would squeeze the search field — and so would the
+   strapline, which is decoration and the first thing that can go. */
 @media (max-width: 1179px) {
-  .vs-hcontact {
+  .vs-hcontact,
+  .vs-logo__tag {
     display: none;
   }
 }
 
 /* ── footer ────────────────────────────────────────────────────────────── */
 
+/* Warm cream and mauve, not a dark luxury slab. A handmade store's footer should
+   read as the bottom of the same sheet of paper the catalogue is printed on, so
+   the whole block sits one cream step below the page and is separated from it —
+   and internally divided — by gold hairlines rather than by a change of mode.
+   Type darkens instead of inverting, which is also what keeps it readable: the
+   template's #8d877e on near-black became unreadable the moment the ground went
+   light, and every one of those greys is now a warm ink token. */
 .vs-footer {
   margin-block-start: var(--vs-section);
-  background: var(--vs-surface-dark);
-  color: #c9c3b9;
+  background: var(--vs-surface-2);
+  color: var(--vs-ink-2);
+  border-block-start: 1px solid var(--vs-border-accent);
 }
 
 /* The contact column only exists when the owner has supplied contact details,
@@ -878,24 +949,38 @@ img.vs-logo__img {
 }
 
 .vs-footer__name {
-  font-family: "Marcellus", serif;
+  font-family: "Marcellus", "Cairo", serif;
   font-size: 26px;
-  letter-spacing: 0.13em;
-  color: #fff;
+  letter-spacing: 0.05em;
+  color: var(--vs-primary);
 }
 
 /* Sizes the shared logo viewport; the clipping and scaling rules come with
-   `.vs-logo__box`, so header and footer can never drift apart. */
+   `.vs-logo__box`, so header and footer can never drift apart. Bigger than the
+   header's, because there is room here and this is where the full lockup — the
+   wordmark, the strapline and the mark — can actually be read.
+
+   Given a plate rather than dropped straight onto the cream: the file carries
+   its own ivory ground, which against the footer's cream showed as a pale
+   rectangle with no edge — an artefact rather than a decision. Matching that
+   ground exactly and closing it with a gold hairline turns the same rectangle
+   into a framed mark. No padding: the box clips an absolutely positioned image,
+   so padding would not inset it — and the file already carries its own generous
+   margin, which is the breathing room the frame sits outside of. The header
+   needs none of this: it is already ivory. */
 .vs-footer__logo {
-  --vs-logo-w: 124px;
-  --vs-logo-h: 42px;
-  border-radius: var(--vs-r-sm);
+  --vs-logo-w: 148px;
+  --vs-logo-h: 148px;
+  background: var(--vs-page);
+  border: 1px solid var(--vs-border-accent);
+  border-radius: var(--vs-r-md);
 }
 
 .vs-footer__desc {
   font-size: var(--vs-fs-sm);
   line-height: 1.9;
   max-width: 34ch;
+  color: var(--vs-ink-3);
 }
 
 .vs-footer__social {
@@ -908,20 +993,22 @@ img.vs-logo__img {
 .vs-footer__social a {
   width: 42px;
   height: 42px;
-  border: 1px solid var(--vs-border-dark);
+  border: 1px solid var(--vs-border-strong);
   border-radius: var(--vs-r-md);
+  background: var(--vs-surface);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #c9c3b9;
+  color: var(--vs-ink-2);
+  font-weight: 700;
   transition: background var(--vs-t) var(--vs-ease), color var(--vs-t) var(--vs-ease),
     border-color var(--vs-t) var(--vs-ease);
 }
 
 .vs-footer__social a:hover {
-  background: var(--vs-accent);
-  border-color: var(--vs-accent);
-  color: var(--vs-ink);
+  background: var(--vs-primary);
+  border-color: var(--vs-primary);
+  color: var(--vs-ink-invert);
 }
 
 .vs-footer__col {
@@ -931,21 +1018,25 @@ img.vs-logo__img {
   min-width: 0;
 }
 
+/* Each column head is underlined by a short gold rule — the footer's one
+   decorative gesture, and small enough to stay jewellery. */
 .vs-footer__title {
   font-size: 14.5px;
   font-weight: 800;
-  color: #fff;
+  color: var(--vs-ink);
+  padding-block-end: 9px;
+  border-block-end: 1px solid var(--vs-border-accent);
 }
 
 .vs-footer__col a,
 .vs-footer__col span {
   font-size: var(--vs-fs-sm);
-  color: #a9a399;
+  color: var(--vs-ink-3);
   transition: color var(--vs-t) var(--vs-ease);
 }
 
 .vs-footer__col a:hover {
-  color: var(--vs-accent);
+  color: var(--vs-primary);
 }
 
 .vs-footer__pay {
@@ -958,16 +1049,17 @@ img.vs-logo__img {
 .vs-footer__pay span {
   height: 30px;
   padding-inline: 11px;
-  border: 1px solid var(--vs-border-dark);
+  border: 1px solid var(--vs-border-strong);
   border-radius: 7px;
+  background: var(--vs-surface);
   display: flex;
   align-items: center;
   font-size: 11px;
-  color: #8d877e;
+  color: var(--vs-ink-3);
 }
 
 .vs-footer__bottom {
-  border-block-start: 1px solid #2a2722;
+  border-block-start: 1px solid var(--vs-border);
 }
 
 .vs-footer__bottom-row {
@@ -978,11 +1070,11 @@ img.vs-logo__img {
   justify-content: space-between;
   padding-block: 16px;
   font-size: 12.5px;
-  color: #8d877e;
+  color: var(--vs-ink-3);
 }
 
 .vs-footer__credit {
-  border-block-start: 1px solid #2a2722;
+  border-block-start: 1px solid var(--vs-border);
 }
 
 .vs-footer__credit-row {
@@ -991,7 +1083,7 @@ img.vs-logo__img {
   justify-content: center;
   gap: 10px;
   padding-block: 14px;
-  color: #8d877e;
+  color: var(--vs-ink-4);
   direction: ltr;
   font-size: 12px;
 }

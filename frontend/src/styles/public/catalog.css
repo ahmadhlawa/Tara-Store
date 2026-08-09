@@ -87,13 +87,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.72);
+  background: color-mix(in srgb, var(--vs-page) 78%, transparent);
   z-index: 3;
 }
 
 .vs-card__veil span {
   background: var(--vs-ink);
-  color: #fff;
+  color: var(--vs-ink-invert);
   font-size: 12px;
   font-weight: 700;
   padding: 7px 14px;
@@ -136,11 +136,14 @@
     pointer-events: auto;
   }
 
+  /* The hover is a warmth shift, not a jump: the edge picks up the brand mauve
+     and the soft shadow deepens by one step. No lift, no scale on the card
+     itself — the artwork already scales inside it. */
   .vs-card:hover,
   .vs-card:focus-within,
   .vs-pkg:hover,
   .vs-pkg:focus-within {
-    border-color: var(--vs-border-strong);
+    border-color: var(--vs-primary-lite);
     box-shadow: var(--vs-shadow-2);
   }
 
@@ -314,9 +317,9 @@
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(18, 16, 26, 0.5) 0%,
-    rgba(18, 16, 26, 0.24) 55%,
-    rgba(18, 16, 26, 0.14) 100%
+    rgba(46, 33, 35, 0.5) 0%,
+    rgba(46, 33, 35, 0.24) 55%,
+    rgba(46, 33, 35, 0.14) 100%
   );
   transition: background var(--vs-t-card) var(--vs-ease);
 }
@@ -341,7 +344,7 @@
   max-width: 100%;
   padding: 12px 18px;
   border-radius: var(--vs-r-md);
-  background: rgba(18, 16, 26, 0);
+  background: rgba(46, 33, 35, 0);
   transition: background var(--vs-t-card) var(--vs-ease);
 }
 
@@ -349,8 +352,8 @@
   font-size: 17px;
   font-weight: 800;
   line-height: 1.45;
-  color: #fff;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45);
+  color: var(--vs-ink-invert);
+  text-shadow: 0 1px 10px rgba(46, 33, 35, 0.5);
 }
 
 .vs-cat__go {
@@ -378,15 +381,15 @@
 .vs-cat:focus-visible .vs-cat__veil {
   background: linear-gradient(
     to top,
-    rgba(18, 16, 26, 0.68) 0%,
-    rgba(18, 16, 26, 0.46) 55%,
-    rgba(18, 16, 26, 0.36) 100%
+    rgba(46, 33, 35, 0.68) 0%,
+    rgba(46, 33, 35, 0.46) 55%,
+    rgba(46, 33, 35, 0.36) 100%
   );
 }
 
 .vs-cat:hover .vs-cat__plate,
 .vs-cat:focus-visible .vs-cat__plate {
-  background: rgba(18, 16, 26, 0.42);
+  background: rgba(46, 33, 35, 0.42);
 }
 
 .vs-cat:hover .vs-cat__go,
@@ -432,9 +435,9 @@
   inset: 0;
   background: linear-gradient(
     to left,
-    rgba(20, 18, 16, 0.78) 0%,
-    rgba(20, 18, 16, 0.55) 55%,
-    rgba(20, 18, 16, 0.32) 100%
+    rgba(46, 33, 35, 0.78) 0%,
+    rgba(46, 33, 35, 0.55) 55%,
+    rgba(46, 33, 35, 0.32) 100%
   );
 }
 
@@ -446,7 +449,7 @@
   flex-direction: column;
   justify-content: center;
   gap: 10px;
-  color: #fff;
+  color: var(--vs-ink-invert);
 }
 
 .vs-cathead--plain {
@@ -481,17 +484,17 @@
 
 .vs-cathead--image .vs-crumbs,
 .vs-cathead--image .vs-crumbs a {
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 253, 250, 0.78);
 }
 
 .vs-cathead--image .vs-crumbs__here {
-  color: #fff;
+  color: var(--vs-ink-invert);
 }
 
 .vs-cathead--image .vs-chip {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.28);
-  color: #fff;
+  background: rgba(255, 253, 250, 0.16);
+  border-color: rgba(255, 253, 250, 0.28);
+  color: var(--vs-ink-invert);
 }
 
 /* toolbar --------------------------------------------------------------- */

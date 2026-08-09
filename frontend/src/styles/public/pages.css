@@ -8,7 +8,7 @@
   inset-inline-start: 12px;
   z-index: var(--vs-z-toast);
   background: var(--vs-primary);
-  color: #fff;
+  color: var(--vs-ink-invert);
   padding: 10px 16px;
   border-radius: var(--vs-r-sm);
   font-weight: 700;
@@ -20,9 +20,9 @@
 }
 
 .vs-inline-alert {
-  border: 1px solid #e7cfc9;
+  border: 1px solid color-mix(in srgb, var(--vs-danger) 28%, #fff);
   background: var(--vs-danger-soft);
-  color: #8c2f22;
+  color: color-mix(in srgb, var(--vs-danger) 82%, #000);
   border-radius: var(--vs-r-md);
   padding: 14px 18px;
   font-size: var(--vs-fs-sm);
@@ -33,7 +33,7 @@
   position: fixed;
   inset: 0;
   z-index: 55;
-  background: rgba(26, 24, 21, 0.42);
+  background: rgba(46, 33, 35, 0.42);
   animation: vs-fade var(--vs-t-card) var(--vs-ease) both;
 }
 
@@ -166,7 +166,7 @@
 .vs-menu__wa {
   background: var(--vs-success);
   border-color: var(--vs-success);
-  color: #fff;
+  color: var(--vs-ink-invert);
 }
 
 .vs-searchsheet {
@@ -362,7 +362,7 @@
 
 .vs-cartrow__remove:hover {
   color: var(--vs-danger);
-  border-color: #e3c4be;
+  border-color: color-mix(in srgb, var(--vs-danger) 34%, #fff);
 }
 
 .vs-cartpage__back {
@@ -626,8 +626,8 @@
 .vs-spinner {
   width: 17px;
   height: 17px;
-  border: 2.5px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #fff;
+  border: 2.5px solid rgba(255, 253, 250, 0.35);
+  border-top-color: var(--vs-ink-invert);
   border-radius: 50%;
   animation: vs-spin 0.7s linear infinite;
 }
@@ -656,7 +656,7 @@
   width: 74px;
   height: 74px;
   border-radius: 50%;
-  background: #e8f3ee;
+  background: color-mix(in srgb, var(--vs-success) 14%, #fff);
   color: var(--vs-success);
   display: flex;
   align-items: center;
@@ -908,12 +908,12 @@
 
 .vs-steps__item[data-state="done"] .vs-steps__dot {
   background: var(--vs-success);
-  color: #fff;
+  color: var(--vs-ink-invert);
 }
 
 .vs-steps__item[data-state="cancelled"] .vs-steps__dot {
   background: var(--vs-danger);
-  color: #fff;
+  color: var(--vs-ink-invert);
 }
 
 /* ── not found ─────────────────────────────────────────────────────────── */
@@ -943,5 +943,5 @@
 .vs-atc.is-added:hover {
   background: var(--vs-success) !important;
   border-color: var(--vs-success) !important;
-  color: #fff !important;
+  color: var(--vs-ink-invert) !important;
 }

@@ -1,17 +1,25 @@
 // Store identity, homepage composition and editorial content.
+import { LOGO_URL, STORE_NAME_AR, STORE_NAME_LATIN, STORE_TAGLINE } from "../brand.js";
 import { publicApi } from "../api/publicApi.js";
 import { backgroundFor } from "../utils/placeholder.js";
 import { formatDate, readingTime } from "../utils/format.js";
 
-// Vista's own colours, sampled from the owner's logo, so the storefront is on
-// brand from the first paint. The API's StoreSettings still wins the moment it
-// arrives — these only cover the gap before it does, and a failed bootstrap.
+// Tara's own identity and colours, sampled from the owner's logo, so the
+// storefront is on brand from the first paint. The API's StoreSettings still
+// wins the moment it arrives — these only cover the gap before it does, a fresh
+// database that has not been filled in yet, and a failed bootstrap. Everything
+// here stays editable from Admin.
+// Only what a store genuinely has no other source for. Identity — the names,
+// the strapline, the logo — is deliberately *not* here: `raw` is handed on to
+// callers as the store's saved record, and seeding it with Tara's defaults would
+// report values the owner never saved. Those fall back one level down instead,
+// where they can be applied without being claimed.
 export const FALLBACK_SETTINGS = {
-  store_name: "Tara Store",
+  store_name: STORE_NAME_LATIN,
   currency_symbol: "₪",
-  primary_color: "#484397",
-  secondary_color: "#FFC50A",
-  accent_color: "#2E7D5B",
+  primary_color: "#7D595B",
+  secondary_color: "#D19F57",
+  accent_color: "#4C7C63",
   maintenance_mode: false,
 };
 
@@ -21,10 +29,15 @@ export function normalizeSettings(raw) {
     raw: settings,
     // The storefront is Arabic and RTL, so the Arabic name wins wherever the owner has
     // set one; the latin name stays the fallback.
-    storeName: settings.store_name_ar || settings.store_name,
-    storeNameLatin: settings.store_name,
-    tagline: settings.store_tagline || "",
-    logoUrl: settings.logo_url || null,
+    // Tara's own identity sits at the *end* of each chain, never in the merge
+    // above: a fresh database answers with explicit nulls that the spread would
+    // copy straight over a default, and a store that has filled in only its
+    // latin name must keep it rather than be renamed تارا. Every one of these
+    // stays editable from Admin; clearing a field only restores Tara's value.
+    storeName: settings.store_name_ar || settings.store_name || STORE_NAME_AR,
+    storeNameLatin: settings.store_name || STORE_NAME_LATIN,
+    tagline: settings.store_tagline || STORE_TAGLINE,
+    logoUrl: settings.logo_url || LOGO_URL,
     faviconUrl: settings.favicon_url || null,
     phone: settings.phone || "",
     whatsapp: settings.whatsapp || "",
@@ -42,7 +55,7 @@ export function normalizeSettings(raw) {
     primaryColor: settings.primary_color,
     secondaryColor: settings.secondary_color,
     accentColor: settings.accent_color,
-    seoTitle: settings.seo_title || settings.store_name,
+    seoTitle: settings.seo_title || settings.store_name || STORE_NAME_LATIN,
     seoDescription: settings.seo_description || "",
     maintenanceMode: !!settings.maintenance_mode,
     // Blank until the owner supplies real account details. The checkout shows nothing
@@ -51,18 +64,20 @@ export function normalizeSettings(raw) {
   };
 }
 
-// Artwork-less records fall back to a Vista tone gradient rather than a blank
+// Artwork-less records fall back to a Tara tone gradient rather than a blank
 // panel; the components render a real <img> whenever a URL exists so the
-// browser can lazy-load and size it.
+// browser can lazy-load and size it. Mauve into cream with a touch of gold —
+// considered enough to stand in for artwork, never mistakable for the real
+// promotional banners still to come.
 const HERO_FALLBACKS = [
-  "linear-gradient(115deg,#1f4e4a 0%,#2f6f68 55%,#c9a24b 150%)",
-  "linear-gradient(115deg,#3a2a22 0%,#7a5233 60%,#e8d8bd 155%)",
-  "linear-gradient(115deg,#2b2f3a 0%,#4c5468 55%,#d3cfe2 155%)",
+  "linear-gradient(115deg,#7d595b 0%,#ab8a91 52%,#f7ebdf 145%)",
+  "linear-gradient(115deg,#967474 0%,#c9b4ba 55%,#eecc94 150%)",
+  "linear-gradient(115deg,#6d5152 0%,#a58a86 55%,#eddbc7 150%)",
 ];
 
 const BANNER_FALLBACKS = [
-  "linear-gradient(150deg,#1f4e4a,#3d7d75)",
-  "linear-gradient(150deg,#4a3527,#8a6237)",
+  "linear-gradient(150deg,#7d595b,#ab8a91)",
+  "linear-gradient(150deg,#8a6329,#d19f57)",
 ];
 
 export function normalizeHeroSlide(raw, index) {

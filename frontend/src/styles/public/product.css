@@ -124,7 +124,7 @@
   color: var(--vs-success);
 }
 .vs-pdp__stock[data-tone="low"] {
-  color: #b8860b;
+  color: var(--vs-accent-dark);
 }
 .vs-pdp__stock[data-tone="out"] {
   color: var(--vs-danger);
@@ -273,7 +273,7 @@
 .vs-option[aria-pressed="true"] {
   border-color: var(--vs-primary);
   background: var(--vs-primary);
-  color: #fff;
+  color: var(--vs-ink-invert);
 }
 
 .vs-option[data-out="true"] {
@@ -508,7 +508,7 @@
     padding: 10px 14px;
     background: var(--vs-surface);
     border-block-start: 1px solid var(--vs-border);
-    box-shadow: 0 -6px 18px rgba(30, 27, 24, 0.08);
+    box-shadow: 0 -6px 18px rgba(93, 68, 70, 0.09);
   }
   .vs-buybar__media {
     width: 44px;

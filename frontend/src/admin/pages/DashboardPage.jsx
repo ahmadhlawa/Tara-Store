@@ -19,9 +19,9 @@ const STATUS_TONE = {
 function Stat({ title, value, hint }) {
   return (
     <div style={{ ...card, ...sx`display:flex;flex-direction:column;gap:6px` }}>
-      <span style={sx`font-size:12.5px;color:#7C766D`}>{title}</span>
-      <strong style={sx`font-size:26px;color:#1F4E4A`}>{value}</strong>
-      {hint && <span style={sx`font-size:12px;color:#9C958A`}>{hint}</span>}
+      <span style={sx`font-size:12.5px;color:#766669`}>{title}</span>
+      <strong style={sx`font-size:26px;color:#7D595B`}>{value}</strong>
+      {hint && <span style={sx`font-size:12px;color:#8B7A7E`}>{hint}</span>}
     </div>
   );
 }

@@ -13,19 +13,29 @@ function StoreMark({ settings }) {
   const { boxRef, style } = useLogoFit(settings.logoUrl);
   return (
     <Link to="/" className="vs-logo" aria-label={`${settings.storeName} — الصفحة الرئيسية`}>
-      {settings.logoUrl ? (
+      {settings.logoUrl && (
         <span className="vs-logo__box" ref={boxRef}>
           <img
             className="vs-logo__img"
             src={settings.logoUrl}
-            alt={settings.storeName}
+            // Decorative here now that the name is written beside it: without
+            // this the mark and the wordmark announce the store twice.
+            alt=""
+            aria-hidden="true"
             style={style}
           />
         </span>
-      ) : (
-        <span className="vs-logo__name">{settings.storeName}</span>
       )}
-      {settings.tagline && <span className="vs-logo__tag">{settings.tagline}</span>}
+      {/* The name is set beside the mark rather than replaced by it. Tara's
+          supplied logo is a square lockup, and at the ~46px a navigation bar can
+          give it the wordmark inside the file is about eight pixels tall — so
+          the header would carry a brand mark and no legible store name at all.
+          A store that later supplies a wide wordmark logo can drop the text; the
+          markup is one span. */}
+      <span className="vs-logo__text">
+        <span className="vs-logo__name">{settings.storeName}</span>
+        {settings.tagline && <span className="vs-logo__tag">{settings.tagline}</span>}
+      </span>
     </Link>
   );
 }

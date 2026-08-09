@@ -168,14 +168,14 @@ const STATUS_LABEL = {
 };
 
 const STATUS_COLOR = {
-  waiting: "#7C766D",
-  uploading: "#1F4E4A",
-  success: "#2E7D5B",
-  failed: "#B3261E",
+  waiting: "#766669",
+  uploading: "#7D595B",
+  success: "#4C7C63",
+  failed: "#A33F37",
 };
 
 const dropzone = (active) =>
-  sx`display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:22px 14px;border:2px dashed ${active ? "#1F4E4A" : "#DDD7CC"};border-radius:14px;background:${active ? "#F1F6F4" : "#FBF9F6"}`;
+  sx`display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:22px 14px;border:2px dashed ${active ? "#7D595B" : "#E2D5C6"};border-radius:14px;background:${active ? "#F5EDEE" : "#FDF8F2"}`;
 
 /**
  * Drop zone + queue. The parent hears about finished uploads through `onUploaded`
@@ -218,17 +218,17 @@ export function MediaUploader({ onUploaded }) {
           onChange={pick}
           style={sx`display:none`}
         />
-        <span style={sx`font-size:13.5px;color:#4A453E`}>اسحب الصور إلى هنا، أو</span>
+        <span style={sx`font-size:13.5px;color:#5C4D4F`}>اسحب الصور إلى هنا، أو</span>
         <Button variant="secondary" onClick={() => fileRef.current?.click()}>
           اختيار صور
         </Button>
-        <span style={sx`font-size:11.5px;color:#9C958A;max-width:100%`}>{UPLOAD_HINT}</span>
+        <span style={sx`font-size:11.5px;color:#8B7A7E;max-width:100%`}>{UPLOAD_HINT}</span>
       </div>
 
       {queue.items.length > 0 && (
         <div style={sx`display:flex;flex-direction:column;gap:10px`}>
           <div style={sx`display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between`}>
-            <span data-testid="upload-summary" style={sx`font-size:13px;color:#4A453E`}>
+            <span data-testid="upload-summary" style={sx`font-size:13px;color:#5C4D4F`}>
               {queue.running
                 ? `جارٍ الرفع… (${queue.succeeded} تم رفعه، ${queue.failed} فشل)`
                 : `${queue.succeeded} تم رفعه، ${queue.failed} فشل`}
@@ -264,11 +264,11 @@ export function MediaUploader({ onUploaded }) {
               <li
                 key={item.id}
                 data-testid="upload-item"
-                style={sx`display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid #E4E0D9;border-radius:10px;padding:8px 10px;background:#fff`}
+                style={sx`display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid #E9DED0;border-radius:10px;padding:8px 10px;background:#fff`}
               >
                 <span
                   title={item.name}
-                  style={sx`flex:1 1 140px;min-width:0;font-size:12.5px;color:#3B3730;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`}
+                  style={sx`flex:1 1 140px;min-width:0;font-size:12.5px;color:#4B3F41;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`}
                 >
                   {item.name}
                 </span>
@@ -276,7 +276,7 @@ export function MediaUploader({ onUploaded }) {
                   {STATUS_LABEL[item.status]}
                 </span>
                 {item.error && (
-                  <span style={sx`flex:1 1 100%;font-size:11.5px;color:#B3261E;overflow-wrap:anywhere`}>
+                  <span style={sx`flex:1 1 100%;font-size:11.5px;color:#A33F37;overflow-wrap:anywhere`}>
                     {item.error}
                   </span>
                 )}

@@ -247,7 +247,7 @@ export default function ProductEditorPage() {
             ["is_bestseller", "الأكثر مبيعاً"],
           ].map(([key, title]) => (
             <label key={key} style={sx`display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer`}>
-              <input type="checkbox" checked={!!form[key]} onChange={(e) => update({ [key]: e.target.checked })} style={sx`width:18px;height:18px;accent-color:#1F4E4A`} />
+              <input type="checkbox" checked={!!form[key]} onChange={(e) => update({ [key]: e.target.checked })} style={sx`width:18px;height:18px;accent-color:#7D595B`} />
               {title}
             </label>
           ))}
@@ -260,7 +260,7 @@ export default function ProductEditorPage() {
       </Section>
 
       {isNew ? (
-        <div style={{ ...card, ...sx`font-size:13.5px;color:#7C766D` }}>
+        <div style={{ ...card, ...sx`font-size:13.5px;color:#766669` }}>
           احفظ المنتج أولاً لتتمكن من إضافة الصور والمواصفات والخيارات ومحتويات البكج.
         </div>
       ) : (
@@ -332,7 +332,7 @@ export default function ProductEditorPage() {
             title="الخيارات"
             actions={<Button variant="secondary" onClick={() => setOptions((rows) => [...rows, { name: "", values: "" }])}>إضافة خيار</Button>}
           >
-            <p style={sx`margin:0;font-size:12.5px;color:#9C958A`}>حفظ الخيارات يبقي النسخ (variants) المتوافقة كما هي، ويحذف فقط غير المتوافقة بعد تأكيدك.</p>
+            <p style={sx`margin:0;font-size:12.5px;color:#8B7A7E`}>حفظ الخيارات يبقي النسخ (variants) المتوافقة كما هي، ويحذف فقط غير المتوافقة بعد تأكيدك.</p>
             {options.map((option, index) => (
               <div key={index} style={sx`display:flex;gap:10px;flex-wrap:wrap`}>
                 <input value={option.name} onChange={(e) => setOptions((rows) => rows.map((row, i) => (i === index ? { ...row, name: e.target.value } : row)))} placeholder="اسم الخيار — مثال: الحجم" style={{ ...input, ...sx`flex:1;min-width:150px` }} />
@@ -391,14 +391,14 @@ export default function ProductEditorPage() {
               </div>
               <div style={sx`display:flex;flex-direction:column;gap:8px`}>
                 {(product?.package_items || []).map((item) => (
-                  <div key={item.id} style={sx`display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #EFEBE4;border-radius:10px;padding:10px 12px`}>
+                  <div key={item.id} style={sx`display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #F3EBE0;border-radius:10px;padding:10px 12px`}>
                     <strong style={sx`font-size:14px`}>{item.included_product_name}</strong>
-                    <span style={sx`font-size:13px;color:#7C766D`}>×{item.quantity}</span>
-                    {item.display_note && <span style={sx`font-size:13px;color:#9C958A`}>{item.display_note}</span>}
+                    <span style={sx`font-size:13px;color:#766669`}>×{item.quantity}</span>
+                    {item.display_note && <span style={sx`font-size:13px;color:#8B7A7E`}>{item.display_note}</span>}
                     <Button variant="danger" style={sx`margin-inline-start:auto;min-height:34px;font-size:12.5px`} onClick={() => run(() => adminApi.deletePackageItem(productId, item.id), "تم الحذف.")}>حذف</Button>
                   </div>
                 ))}
-                {!product?.package_items?.length && <span style={sx`font-size:13px;color:#9C958A`}>لم تُضف منتجات إلى هذا البكج بعد.</span>}
+                {!product?.package_items?.length && <span style={sx`font-size:13px;color:#8B7A7E`}>لم تُضف منتجات إلى هذا البكج بعد.</span>}
               </div>
             </Section>
           )}

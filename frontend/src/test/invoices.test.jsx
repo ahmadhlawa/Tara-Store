@@ -485,7 +485,7 @@ describe("storefront payment surface", () => {
       ...storefrontRoutes,
       "/api/v1/store/settings": {
         ...storefrontRoutes["/api/v1/store/settings"],
-        store_name: "Vista Store",
+        store_name: "Tara Store",
         store_name_ar: "متجر فيستا",
       },
     });

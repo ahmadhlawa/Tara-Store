@@ -116,7 +116,7 @@ export function AuditLogPage() {
                 key: "meta",
                 title: "تفاصيل",
                 render: (row) => (
-                  <span style={sx`font-size:12px;color:#7C766D`}>
+                  <span style={sx`font-size:12px;color:#766669`}>
                     {Object.entries(row.meta || {})
                       .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
                       .join(" · ") || "—"}

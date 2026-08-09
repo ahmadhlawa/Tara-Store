@@ -112,7 +112,7 @@ export default function ProductsPage() {
                 title: "المنتج",
                 render: (row) => (
                   <div style={sx`display:flex;align-items:center;gap:10px`}>
-                    <span style={sx`width:40px;height:40px;border-radius:8px;background:${row.primary_image_url ? `url("${row.primary_image_url}") center/cover no-repeat` : "#F2EFE9"};flex:0 0 auto`}></span>
+                    <span style={sx`width:40px;height:40px;border-radius:8px;background:${row.primary_image_url ? `url("${row.primary_image_url}") center/cover no-repeat` : "#F5EDE3"};flex:0 0 auto`}></span>
                     <Link to={`/admin/products/${row.id}`} style={sx`font-weight:700`}>{row.name}</Link>
                   </div>
                 ),

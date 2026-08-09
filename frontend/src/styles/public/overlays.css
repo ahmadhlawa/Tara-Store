@@ -4,7 +4,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--vs-z-scrim);
-  background: rgba(26, 24, 21, 0.46);
+  background: rgba(46, 33, 35, 0.46);
   backdrop-filter: blur(2px);
   border: 0;
   padding: 0;
@@ -163,7 +163,7 @@
   flex-direction: column;
   background: var(--vs-surface);
   border-radius: var(--vs-r-xl);
-  box-shadow: 0 30px 70px rgba(26, 24, 21, 0.3);
+  box-shadow: 0 30px 70px rgba(46, 33, 35, 0.3);
   overflow: hidden;
   animation: vs-pop var(--vs-t-card) var(--vs-ease) both;
 }
@@ -216,8 +216,8 @@
   padding: 13px 16px;
   border-radius: var(--vs-r-md);
   background: var(--vs-surface-dark);
-  color: #fff;
-  box-shadow: 0 16px 40px rgba(26, 24, 21, 0.32);
+  color: var(--vs-ink-invert);
+  box-shadow: 0 16px 40px rgba(93, 68, 70, 0.32);
   animation: vs-toast-in var(--vs-t-card) var(--vs-ease) both;
 }
 
@@ -280,11 +280,11 @@
   height: 52px;
   border-radius: 50%;
   background: var(--vs-success);
-  color: #fff;
+  color: var(--vs-ink-invert);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 26px rgba(46, 125, 91, 0.34);
+  box-shadow: 0 10px 26px rgba(76, 124, 99, 0.34);
   transition: transform var(--vs-t) var(--vs-ease);
 }
 

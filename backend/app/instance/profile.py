@@ -79,9 +79,9 @@ class ContactProfile(_Strict):
 
 
 class ThemeProfile(_Strict):
-    primary_color: str = "#1F4E4A"
-    secondary_color: str = "#C9A24B"
-    accent_color: str = "#2E7D5B"
+    primary_color: str = "#7D595B"
+    secondary_color: str = "#D19F57"
+    accent_color: str = "#4C7C63"
 
     @field_validator("primary_color", "secondary_color", "accent_color")
     @classmethod

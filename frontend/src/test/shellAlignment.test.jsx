@@ -380,20 +380,43 @@ describe("store logo", () => {
     await waitFor(() => expect(document.querySelector(".vs-header .vs-logo__img")).not.toBeNull());
     const logo = document.querySelector(".vs-header .vs-logo__img");
     expect(logo.closest(".vs-logo__box")).not.toBeNull();
-    expect(logo).toHaveAttribute("alt", "متجر الاختبار");
     expect(logo).toHaveAttribute("src", "/brand/store-logo.png");
+    // The mark is decorative: the wordmark beside it already names the store, so
+    // announcing it twice is what a screen reader would otherwise get.
+    expect(logo).toHaveAttribute("alt", "");
+    expect(logo).toHaveAttribute("aria-hidden", "true");
     // Nothing measurable here — no canvas in jsdom — so the fit must not have
     // written any geometry of its own: the stylesheet's `contain` still rules.
     expect(logo.getAttribute("style")).toBeNull();
   });
 
-  it("still shows the store name when no logo is configured", async () => {
+  it("writes the store name beside the mark rather than behind it", async () => {
+    stubApi(branded);
+    renderApp("/");
+
+    await waitFor(() => expect(document.querySelector(".vs-logo__name")).not.toBeNull());
+    // Tara's supplied logo is a square lockup whose own wordmark is illegible at
+    // header size, so the name is set in type next to it — a logo never removes
+    // the store's name from the header.
+    expect(document.querySelector(".vs-logo__name")).toHaveTextContent("متجر الاختبار");
+    expect(document.querySelector(".vs-header .vs-logo__box")).not.toBeNull();
+  });
+
+  it("falls back to Tara's shipped logo when the store has configured none", async () => {
     stubApi(storefrontRoutes);
     renderApp("/");
 
     await waitFor(() => expect(document.querySelector(".vs-logo")).not.toBeNull());
-    expect(document.querySelector(".vs-logo__box")).toBeNull();
+    // A fresh database carries no logo of its own, so the instance's shipped
+    // branding stands in rather than the header going bare.
+    expect(document.querySelector(".vs-header .vs-logo__img")).toHaveAttribute(
+      "src",
+      "/branding/tara-logo.jpeg",
+    );
+    // What the store *has* set still wins over the shipped defaults — the
+    // fallback fills gaps, it does not overwrite the owner's identity.
     expect(document.querySelector(".vs-logo__name")).toHaveTextContent("متجر الاختبار");
+    expect(document.querySelector(".vs-logo__tag")).toHaveTextContent("مستلزمات حرفية");
   });
 });
 

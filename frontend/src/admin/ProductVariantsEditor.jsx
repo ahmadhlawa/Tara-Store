@@ -97,8 +97,8 @@ export function variantsRemovedByOptions(variants, payload) {
 
 const num = (value) => (value === "" || value === null || value === undefined ? null : Number(value));
 
-const row = sx`display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #EFEBE4;border-radius:10px;padding:10px 12px`;
-const meta = sx`font-size:13px;color:#7C766D`;
+const row = sx`display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #F3EBE0;border-radius:10px;padding:10px 12px`;
+const meta = sx`font-size:13px;color:#766669`;
 
 export default function ProductVariantsEditor({
   options = [],
@@ -220,7 +220,7 @@ export default function ProductVariantsEditor({
         )}
       </div>
       {!!options.length && (
-        <p style={sx`margin:0;font-size:12.5px;color:#9C958A`}>
+        <p style={sx`margin:0;font-size:12.5px;color:#8B7A7E`}>
           التوليد ينشئ التركيبات الناقصة فقط بسعر المنتج ومخزون صفر، ولا يغيّر النسخ الموجودة.
         </p>
       )}
@@ -265,7 +265,7 @@ export default function ProductVariantsEditor({
                   type="checkbox"
                   checked={editing.is_active}
                   onChange={(event) => setEditing({ ...editing, is_active: event.target.checked })}
-                  style={sx`width:18px;height:18px;accent-color:#1F4E4A`}
+                  style={sx`width:18px;height:18px;accent-color:#7D595B`}
                 />
                 فعّالة
               </label>
@@ -313,7 +313,7 @@ export default function ProductVariantsEditor({
           ),
         )}
         {!variants.length && (
-          <span style={sx`font-size:13px;color:#9C958A`}>
+          <span style={sx`font-size:13px;color:#8B7A7E`}>
             {options.length
               ? "لا توجد نسخ — المنتج له خيارات ولن يمكن شراؤه حتى تُولَّد النسخ."
               : "لا توجد نسخ — سيُباع المنتج بسعر ومخزون واحد."}

@@ -1,4 +1,6 @@
-/* Storefront base: page frame, layout primitives, buttons, states. */
+/* Tara storefront base: page frame, layout primitives, buttons, states.
+   Nothing here states a colour; every value is a token from tokens.css, which is
+   what keeps the brand centralised. */
 
 .vs-public {
   direction: rtl;
@@ -96,11 +98,27 @@
   margin-block-end: 24px;
 }
 
+/* A short gold rule above every section heading. It is the storefront's most
+   repeated brand detail, so it is also the one that has to stay smallest:
+   34×2px, above the type, never around it. */
 .vs-sec-head__text {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  padding-block-start: 14px;
+}
+
+.vs-sec-head__text::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: 34px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--vs-accent);
 }
 
 .vs-sec-head__eyebrow {
@@ -225,10 +243,12 @@
   color: var(--vs-ink-invert);
 }
 
+/* Secondary is a warm neutral card with a mauve label, not a second filled
+   button: only one thing in a group should look like the action. */
 .vs-btn--ghost {
   background: var(--vs-surface);
   border-color: var(--vs-border-strong);
-  color: var(--vs-ink);
+  color: var(--vs-primary);
 }
 
 .vs-btn--outline {
@@ -260,8 +280,8 @@
     border-color: var(--vs-primary-dark);
   }
   .vs-btn--ghost:not(:disabled):hover {
-    background: var(--vs-surface-2);
-    border-color: var(--vs-border-strong);
+    background: var(--vs-primary-soft);
+    border-color: var(--vs-primary-lite);
   }
   .vs-btn--outline:not(:disabled):hover {
     background: var(--vs-primary);
@@ -295,8 +315,9 @@
 
 @media (hover: hover) {
   .vs-iconbtn:hover {
-    background: var(--vs-surface-2);
-    border-color: var(--vs-border-strong);
+    background: var(--vs-primary-soft);
+    border-color: var(--vs-primary-lite);
+    color: var(--vs-primary);
   }
 }
 
@@ -353,27 +374,28 @@
 
 .vs-badge--sale {
   background: var(--vs-danger);
-  color: #fff;
+  color: var(--vs-ink-invert);
 }
 .vs-badge--new {
   background: var(--vs-primary);
-  color: #fff;
+  color: var(--vs-ink-invert);
 }
+/* The one badge that is allowed to be gold, and it is gold as an outline on a
+   light card rather than as a fill — a bronze label inside a thin gold border. */
 .vs-badge--featured {
   background: var(--vs-surface);
-  color: var(--vs-warn);
-  border: 1px solid #e3d3aa;
+  color: var(--vs-accent-dark);
+  border: 1px solid var(--vs-border-accent);
 }
 .vs-badge--best {
-  background: var(--vs-accent);
-  color: var(--vs-ink);
+  background: var(--vs-accent-soft);
+  color: var(--vs-accent-dark);
+  border: 1px solid var(--vs-border-accent);
 }
-/* Tied to the brand token like every other badge — this one still carried the
-   template's original teal, so a Vista package was labelled in a colour the
-   store does not use. */
+/* Tied to the brand token like every other badge. */
 .vs-badge--package {
   background: color-mix(in srgb, var(--vs-primary) 92%, transparent);
-  color: #fff;
+  color: var(--vs-ink-invert);
 }
 
 /* ── breadcrumb ────────────────────────────────────────────────────────── */
@@ -438,16 +460,19 @@
   border-radius: var(--vs-r-lg);
 }
 
+/* Empty states are what a freshly-set-up store shows most of, so this well gets
+   the same restrained gold ring the premium details elsewhere get. */
 .vs-state__icon {
   width: 64px;
   height: 64px;
   border-radius: 50%;
   background: var(--vs-surface-2);
+  border: 1px solid var(--vs-border-accent);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 26px;
-  color: var(--vs-ink-4);
+  color: var(--vs-primary-lite);
 }
 
 .vs-state__title {
@@ -463,8 +488,8 @@
 
 .vs-state--error {
   background: var(--vs-danger-soft);
-  border-color: #e7cfc9;
-  color: #8c2f22;
+  border-color: color-mix(in srgb, var(--vs-danger) 28%, #fff);
+  color: color-mix(in srgb, var(--vs-danger) 82%, #000);
 }
 
 /* ── shared helpers ────────────────────────────────────────────────────── */

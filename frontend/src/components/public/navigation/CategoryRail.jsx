@@ -12,7 +12,7 @@ import { useCategoryHover } from "./CategoryHover.jsx";
  * leaves the layout entirely and its trigger moves into the header — nothing here
  * is the only way to reach a category, and nothing depends on hover.
  *
- * Content is whatever the categories API returns; there is no Vista list in this
+ * Content is whatever the categories API returns; there is no hard-coded list in this
  * file, and it shares `OVERLAY.CATEGORIES` with the header trigger so the two can
  * never disagree about whether the drawer is open.
  */

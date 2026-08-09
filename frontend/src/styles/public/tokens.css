@@ -1,7 +1,16 @@
-/* Vista public storefront design tokens.
+/* Tara public storefront design tokens.
    Everything is scoped to `.vs-public`, the storefront shell root, so the admin
    workspace under /admin never inherits a single storefront value. Brand colours
-   are overwritten at runtime by StoreProvider from StoreSettings. */
+   are overwritten at runtime by StoreProvider from StoreSettings.
+
+   The palette is sampled from the Tara logo (public/branding/tara-logo.jpeg) and
+   is the one place it is stated: every surface, border, ink and accent below is
+   either a sampled value or mixed from one, so restyling Tara is editing this
+   file rather than hunting hexes through the components. The balance the design
+   asks for — roughly 70% ivory/cream, 20% mauve, 10% or less gold — is a
+   property of *where* these tokens are spent, and the rule that keeps it true is
+   simple: gold is a border, a rule or a small mark, never a body colour and
+   never a large fill. */
 
 .vs-public {
   /* ── layout ──────────────────────────────────────────────────────────── */
@@ -28,8 +37,15 @@
      own whitespace, so `useLogoFit` measures where the mark actually sits and
      scales the image inside this box until the mark fills it — the file is
      never edited, never stretched, and a trimmed logo is left alone. */
+  /* Near-square, because Tara's supplied mark is a square lockup: in the wide
+     viewport this box used to be, `contain` centred a 46px mark inside 132px and
+     the surplus 86px pushed the logo visibly out of line with the "كل الأقسام"
+     trigger sitting directly beneath it. Sized to the mark, the artwork's own
+     ivory meets the header's ivory and there is no seam to see. A little wider
+     than tall so a landscape logo uploaded later is still shown at a usable
+     size — `contain` means either shape is scaled, never cropped or stretched. */
   --vs-logo-h: 46px;
-  --vs-logo-w: 132px;
+  --vs-logo-w: 54px;
   /* How wide the header's search field is allowed to grow. Stated once: the
      field and the slot it sits in are two elements and were two numbers. */
   --vs-search-max: 820px;
@@ -45,43 +61,69 @@
   --vs-sticky-top: calc(var(--vs-header-h) + var(--vs-nav-h) + 16px);
 
   /* ── surfaces ────────────────────────────────────────────────────────── */
-  /* White and a warm off-white, with two pale supporting tints mixed from the
-     brand colours so the page stays Vista's even where no brand element shows. */
-  --vs-page: #fbfaf7;
-  --vs-surface: #ffffff;
-  --vs-surface-2: color-mix(in srgb, var(--vs-primary) 5%, #f7f6f2);
-  --vs-surface-3: color-mix(in srgb, var(--vs-accent) 12%, #f4f2ec);
-  --vs-surface-dark: color-mix(in srgb, var(--vs-primary) 22%, #14131c);
-  --vs-surface-dark-2: color-mix(in srgb, var(--vs-primary) 32%, #1a1826);
+  /* Ivory is the page and a barely-warm white is the card, so a card lifts off
+     the background by warmth rather than by a shadow. The two cream tints below
+     are the logo's own paper tones and carry the tinted sections; `surface-deep`
+     is the single dark tone the storefront owns — a deep mauve, not a black —
+     and only the toast and the footer's own tinting reach for it. */
+  --vs-page: #fdf8f2;
+  --vs-surface: #fffdfa;
+  --vs-surface-2: #f7ebdf;
+  --vs-surface-3: #eddbc7;
+  --vs-surface-deep: color-mix(in srgb, var(--vs-primary) 62%, #33262a);
+  /* Kept under their old names so nothing that still reads them breaks; both
+     now resolve to the mauve tone above rather than the template's near-black. */
+  --vs-surface-dark: var(--vs-surface-deep);
+  --vs-surface-dark-2: color-mix(in srgb, var(--vs-primary) 48%, #3d2e32);
 
   /* ── borders ─────────────────────────────────────────────────────────── */
-  --vs-border: color-mix(in srgb, var(--vs-primary) 10%, #e7e5e0);
-  --vs-border-strong: color-mix(in srgb, var(--vs-primary) 22%, #dcd9d2);
-  --vs-border-dark: color-mix(in srgb, var(--vs-primary) 30%, #2f2d38);
+  /* Warm hairlines mixed from the brand, never grey. `border-accent` is the
+     jewellery: a pale gold rule reserved for dividers and premium detail, and
+     deliberately too light to be mistaken for a structural border. */
+  --vs-border: color-mix(in srgb, var(--vs-primary) 9%, #efe3d5);
+  --vs-border-strong: color-mix(in srgb, var(--vs-primary) 20%, #e2d2c1);
+  --vs-border-accent: color-mix(in srgb, var(--vs-accent) 52%, #fff);
+  --vs-border-dark: color-mix(in srgb, var(--vs-primary) 34%, #4a383c);
 
   /* ── text ────────────────────────────────────────────────────────────── */
-  --vs-ink: #1c1b21;
-  --vs-ink-2: #47454f;
-  --vs-ink-3: #77747f;
-  --vs-ink-4: #9a97a2;
-  --vs-ink-invert: #ffffff;
+  /* Warm dark rather than black. Every step is checked against ivory: ink 9.2:1,
+     ink-2 7.3:1, ink-3 4.9:1 and ink-4 3.6:1 — so the muted step is still safe
+     for the small meta text it is used for, which the template's cool grey was
+     not once the page went cream. */
+  --vs-ink: #4b3f41;
+  --vs-ink-2: #5c4d4f;
+  --vs-ink-3: #766669;
+  --vs-ink-4: #8b7a7e;
+  --vs-ink-invert: #fffdfa;
 
   /* ── brand ───────────────────────────────────────────────────────────── */
-  /* Sampled from the owner's Vista logo: a deep blue-purple and the sign
-     yellow. StoreProvider writes `--vs-brand-*` from StoreSettings, so a store
-     restyles itself from Admin; the sampled values are only the fallback. Every
-     other tone is mixed from these two, so a brand colour is stated once. */
-  --vs-primary: var(--vs-brand-primary, #484397);
+  /* Sampled from the Tara logo: the deep mauve of the wordmark and the warm gold
+     of its frame. StoreProvider writes `--vs-brand-*` from StoreSettings, so the
+     owner restyles the store from Admin; the sampled values are only the
+     fallback. Every other tone is mixed from these two, so a brand colour is
+     stated once.
+
+     Deep mauve rather than the logo's lighter dusty mauve is what carries
+     `--vs-primary`, because this token is asked to do both jobs at once: it is a
+     button fill under light text *and* a link colour on cream. At #7d595b it
+     clears 6:1 both ways; the dusty #ab8a91 of the wordmark manages 3.1:1 and
+     could do neither, so it lives on as `--vs-primary-lite`, for decoration
+     only. */
+  --vs-primary: var(--vs-brand-primary, #7d595b);
   --vs-primary-dark: color-mix(in srgb, var(--vs-primary) 78%, #000);
   --vs-primary-mid: color-mix(in srgb, var(--vs-primary) 82%, #fff);
-  --vs-primary-soft: color-mix(in srgb, var(--vs-primary) 8%, #fff);
-  --vs-accent: var(--vs-brand-accent, #ffc50a);
-  --vs-accent-dark: color-mix(in srgb, var(--vs-accent) 82%, #6b4a00);
-  --vs-accent-soft: color-mix(in srgb, var(--vs-accent) 18%, #fff);
-  --vs-success: var(--vs-brand-success, #2e7d5b);
-  --vs-danger: #c0392b;
-  --vs-danger-soft: #fbf1ef;
-  --vs-warn: #8a6a1f;
+  --vs-primary-lite: color-mix(in srgb, var(--vs-primary) 46%, #fff);
+  --vs-primary-soft: color-mix(in srgb, var(--vs-primary) 9%, var(--vs-page));
+  --vs-accent: var(--vs-brand-accent, #d19f57);
+  /* Gold dark enough to be read as text on cream (4.9:1). The template mixed its
+     accent towards brown and landed at 2.6:1 here, which the section eyebrows
+     and the package glyphs both use — so this one is stated outright. */
+  --vs-accent-dark: #8a6329;
+  --vs-accent-soft: color-mix(in srgb, var(--vs-accent) 22%, #fff);
+  --vs-success: var(--vs-brand-success, #4c7c63);
+  --vs-danger: #b4534a;
+  --vs-danger-soft: #fbefec;
+  --vs-warn: #8a6329;
 
   /* ── radius ──────────────────────────────────────────────────────────── */
   --vs-r-sm: 8px;
@@ -91,11 +133,14 @@
   --vs-r-pill: 999px;
 
   /* ── shadow ──────────────────────────────────────────────────────────── */
-  --vs-shadow-1: 0 1px 2px rgba(30, 27, 24, 0.05);
-  --vs-shadow-2: 0 10px 26px rgba(30, 27, 24, 0.09);
-  --vs-shadow-3: 0 18px 44px rgba(30, 27, 24, 0.14);
-  --vs-shadow-4: 0 0 60px rgba(26, 24, 21, 0.28);
-  --vs-shadow-header: 0 4px 18px rgba(30, 27, 24, 0.07);
+  /* Tinted with the brand mauve rather than neutral black, and a step softer
+     than the template's: on a cream page a grey shadow reads as dirt, and a
+     boutique card should look lifted, not dropped. */
+  --vs-shadow-1: 0 1px 2px rgba(93, 68, 70, 0.05);
+  --vs-shadow-2: 0 8px 24px rgba(93, 68, 70, 0.09);
+  --vs-shadow-3: 0 16px 40px rgba(93, 68, 70, 0.13);
+  --vs-shadow-4: 0 0 60px rgba(75, 63, 65, 0.24);
+  --vs-shadow-header: 0 4px 18px rgba(93, 68, 70, 0.07);
 
   /* ── motion ──────────────────────────────────────────────────────────── */
   --vs-t-fast: 140ms;
@@ -166,8 +211,8 @@
     --vs-header-h: 60px;
     --vs-nav-h: 0px;
     --vs-sticky-top: 76px;
-    --vs-logo-h: 34px;
-    --vs-logo-w: 100px;
+    --vs-logo-h: 36px;
+    --vs-logo-w: 42px;
     --vs-tabbar-h: 64px;
     --vs-fs-h1: 26px;
     --vs-fs-h2: 20px;

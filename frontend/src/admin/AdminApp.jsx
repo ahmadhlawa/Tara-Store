@@ -29,7 +29,7 @@ function RequireAdmin({ children }) {
 
   if (restoring) {
     return (
-      <div style={sx`direction:rtl;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F4F0`}>
+      <div style={sx`direction:rtl;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#FAF3EA`}>
         <Spinner label="جارٍ استعادة الجلسة…" />
       </div>
     );

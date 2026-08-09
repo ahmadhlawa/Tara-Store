@@ -14,9 +14,13 @@ STORE_SETTINGS_DEFAULTS: dict[str, object] = {
     "store_name": "Store",
     "currency_code": "ILS",
     "currency_symbol": "₪",
-    "primary_color": "#1F4E4A",
-    "secondary_color": "#C9A24B",
-    "accent_color": "#2E7D5B",
+    # Tara's palette, sampled from the owner's logo: deep mauve, warm gold and a
+    # muted sage for success states. The storefront's stylesheet carries the same
+    # three as its own fallback, so an instance is on brand whether or not this
+    # row has been written yet — and the owner can still restyle from Admin.
+    "primary_color": "#7D595B",
+    "secondary_color": "#D19F57",
+    "accent_color": "#4C7C63",
     "maintenance_mode": False,
     "invoice_prefix": DEFAULT_INVOICE_PREFIX,
     "tax_enabled": False,
@@ -53,9 +57,9 @@ class StoreSettings(TimestampMixin, Base):
     currency_code: Mapped[str] = mapped_column(String(8), default="ILS", nullable=False)
     currency_symbol: Mapped[str] = mapped_column(String(8), default="₪", nullable=False)
 
-    primary_color: Mapped[str] = mapped_column(String(16), default="#1F4E4A", nullable=False)
-    secondary_color: Mapped[str] = mapped_column(String(16), default="#C9A24B", nullable=False)
-    accent_color: Mapped[str] = mapped_column(String(16), default="#2E7D5B", nullable=False)
+    primary_color: Mapped[str] = mapped_column(String(16), default="#7D595B", nullable=False)
+    secondary_color: Mapped[str] = mapped_column(String(16), default="#D19F57", nullable=False)
+    accent_color: Mapped[str] = mapped_column(String(16), default="#4C7C63", nullable=False)
 
     seo_title: Mapped[str | None] = mapped_column(String(200), nullable=True)
     seo_description: Mapped[str | None] = mapped_column(Text, nullable=True)

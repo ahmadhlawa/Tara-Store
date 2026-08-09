@@ -1,4 +1,6 @@
-/* Hero, promotional bands and the homepage section compositions. */
+/* Hero, promotional bands and the homepage section compositions.
+   Only the hero's framing, controls and typography are themed here — its sizing
+   and responsive behaviour are deliberately left exactly as they were. */
 
 /* ── hero ──────────────────────────────────────────────────────────────── */
 
@@ -22,6 +24,8 @@
   aspect-ratio: var(--vs-ar-hero);
   max-height: var(--vs-hero-max-h);
   overflow: hidden;
+  /* What shows before artwork exists, and behind a `contain`ed banner on a
+     phone: cream, so an empty hero reads as paper rather than as a hole. */
   background: var(--vs-surface-2);
   isolation: isolate;
   touch-action: pan-y;
@@ -58,9 +62,9 @@
   inset: 0;
   background: linear-gradient(
     to left,
-    rgba(16, 14, 22, 0.7) 0%,
-    rgba(16, 14, 22, 0.44) 46%,
-    rgba(16, 14, 22, 0.1) 100%
+    rgba(46, 33, 35, 0.7) 0%,
+    rgba(46, 33, 35, 0.44) 46%,
+    rgba(46, 33, 35, 0.1) 100%
   );
 }
 
@@ -76,7 +80,7 @@
   gap: 12px;
   padding: 40px calc(var(--vs-gutter) + 24px);
   max-width: min(620px, 78%);
-  color: #fff;
+  color: var(--vs-ink-invert);
 }
 
 .vs-hero__eyebrow {
@@ -90,13 +94,13 @@
   font-size: clamp(22px, 2.9vw, 38px);
   font-weight: 800;
   line-height: 1.32;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 14px rgba(46, 33, 35, 0.34);
 }
 
 .vs-hero__desc {
   font-size: var(--vs-fs-body);
   line-height: 1.85;
-  color: rgba(255, 255, 255, 0.88);
+  color: rgba(255, 253, 250, 0.88);
   max-width: 48ch;
 }
 
@@ -121,7 +125,7 @@
   height: 9px;
   border: 0;
   border-radius: var(--vs-r-pill);
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 253, 250, 0.55);
   cursor: pointer;
   padding: 0;
   transition: width var(--vs-t-card) var(--vs-ease), background var(--vs-t-card) var(--vs-ease);
@@ -145,9 +149,9 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  border: 1px solid rgba(255, 253, 250, 0.42);
+  background: rgba(255, 253, 250, 0.16);
+  color: var(--vs-ink-invert);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -157,7 +161,7 @@
 }
 
 .vs-hero__arrow:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 253, 250, 0.32);
 }
 
 @media (max-width: 599px) {
@@ -202,7 +206,7 @@
   min-height: 220px;
   border-radius: var(--vs-r-xl);
   overflow: hidden;
-  color: #fff;
+  color: var(--vs-ink-invert);
   isolation: isolate;
 }
 
@@ -219,7 +223,7 @@
 .vs-strip__veil {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to left, rgba(16, 14, 12, 0.76), rgba(16, 14, 12, 0.25));
+  background: linear-gradient(to left, rgba(46, 33, 35, 0.76), rgba(46, 33, 35, 0.25));
 }
 
 .vs-strip__body {
@@ -239,7 +243,7 @@
 
 .vs-strip__desc {
   font-size: var(--vs-fs-sm);
-  color: rgba(255, 255, 255, 0.86);
+  color: rgba(255, 253, 250, 0.86);
 }
 
 /* ── split editorial block ─────────────────────────────────────────────── */
@@ -257,9 +261,9 @@
   }
 }
 
-/* A white panel with one Vista-yellow rule, not a purple slab. The page's large
-   surfaces stay white and warm off-white; purple is spent on the button, which
-   is the only thing here that is actually an action. */
+/* A warm panel with one gold rule, not a mauve slab. The page's large surfaces
+   stay ivory and cream; mauve is spent on the button, which is the only thing
+   here that is actually an action. */
 .vs-split__panel {
   display: flex;
   flex-direction: column;
@@ -337,6 +341,7 @@
   flex: 0 0 auto;
   border-radius: var(--vs-r-md);
   background: var(--vs-primary-soft);
+  border: 1px solid var(--vs-border-accent);
   color: var(--vs-primary);
   display: flex;
   align-items: center;

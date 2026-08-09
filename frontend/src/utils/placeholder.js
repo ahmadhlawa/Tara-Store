@@ -2,17 +2,23 @@
 // storefront's own tone gradients, so the design looks finished before any media
 // has been uploaded. Once an image URL exists it takes over.
 
+// Ten warm tones, all inside Tara's own range: ivory and cream through blush
+// and mauve to the palest gold. A catalogue with no photography yet is the
+// state this store actually launches in, so these gradients are most of what a
+// visitor sees — the template's teal, steel and mint made that page read as a
+// different brand's placeholder grid. Every pair stays light enough for the
+// card's own dark title to sit over it.
 const TONES = {
-  teal: ["#e8f0ef", "#c9dcd8"],
-  sand: ["#f1ece5", "#ddd2c2"],
-  rose: ["#f3e9ea", "#e2cdd0"],
-  cream: ["#f6efe4", "#e8d8bd"],
-  lilac: ["#eceaf2", "#d3cfe2"],
-  steel: ["#eaeced", "#cfd5d8"],
-  olive: ["#eef1e9", "#d5ddca"],
-  clay: ["#f2e8e2", "#dfc9bb"],
-  mint: ["#e9f2ec", "#c8ddd0"],
-  stone: ["#eeece8", "#d6d1c7"],
+  ivory: ["#fdf8f2", "#eddbc7"],
+  cream: ["#f8f0e5", "#e6d3bb"],
+  blush: ["#f7ecea", "#e6d0cf"],
+  mauve: ["#f2eaec", "#d7c3c8"],
+  dusty: ["#efe6e8", "#c9b4ba"],
+  rose: ["#f6ebeb", "#e0c8ca"],
+  linen: ["#f6f1e9", "#ded0bd"],
+  clay: ["#f4ebe4", "#dfc9bb"],
+  gold: ["#faf1e2", "#eecc94"],
+  stone: ["#f2eeea", "#dbd0c6"],
 };
 
 const TONE_NAMES = Object.keys(TONES);
