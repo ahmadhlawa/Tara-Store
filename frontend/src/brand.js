@@ -13,7 +13,7 @@
 /** The owner's logo, served from public/branding/. Used unedited: never cropped,
  *  recoloured or regenerated. It is a square lockup carrying its own ivory
  *  ground, which is why the storefront header is ivory too. */
-export const LOGO_URL = "/branding/tara-logo.jpeg";
+export const LOGO_URL = "/branding/tara-logo2.jpeg";
 
 /** Arabic is the storefront's own language, so it is the name shown; the latin
  *  form stays the fallback and the document title. */

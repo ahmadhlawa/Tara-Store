@@ -75,6 +75,14 @@ const HERO_FALLBACKS = [
   "linear-gradient(115deg,#6d5152 0%,#a58a86 55%,#eddbc7 150%)",
 ];
 
+const SHIPPED_HERO_SLIDES = [
+  {
+    id: "tara-hero1",
+    title: "Tara",
+    image_url: "/branding/HERO1.png",
+  },
+];
+
 const BANNER_FALLBACKS = [
   "linear-gradient(150deg,#7d595b,#ab8a91)",
   "linear-gradient(150deg,#8a6329,#d19f57)",
@@ -180,7 +188,7 @@ export const storefrontService = {
   },
   async heroSlides() {
     const rows = await publicApi.heroSlides();
-    return rows.map(normalizeHeroSlide);
+    return (rows.length ? rows : SHIPPED_HERO_SLIDES).map(normalizeHeroSlide);
   },
   async banners(placement) {
     const rows = await publicApi.banners(placement);

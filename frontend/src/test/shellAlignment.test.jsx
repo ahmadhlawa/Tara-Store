@@ -194,6 +194,17 @@ describe("homepage hero", () => {
     expect(screen.queryByText("بانر جانبي")).not.toBeInTheDocument();
   });
 
+  it("uses Tara's shipped hero artwork when the fresh database has no slides", async () => {
+    stubApi({ ...heroRoutes, "/api/v1/hero-slides": [] });
+    renderApp("/");
+
+    await waitFor(() => expect(document.querySelector(".vs-hero__slide img")).not.toBeNull());
+    expect(document.querySelector(".vs-hero__slide img")).toHaveAttribute(
+      "src",
+      "/branding/HERO1.png",
+    );
+  });
+
   it("moves between slides from its own controls", async () => {
     stubApi(heroRoutes);
     renderApp("/");
@@ -411,7 +422,7 @@ describe("store logo", () => {
     // branding stands in rather than the header going bare.
     expect(document.querySelector(".vs-header .vs-logo__img")).toHaveAttribute(
       "src",
-      "/branding/tara-logo.jpeg",
+      "/branding/tara-logo2.jpeg",
     );
     // What the store *has* set still wins over the shipped defaults — the
     // fallback fills gaps, it does not overwrite the owner's identity.
