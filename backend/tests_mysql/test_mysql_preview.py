@@ -16,7 +16,6 @@ from __future__ import annotations
 import uuid
 from collections.abc import Iterator
 from decimal import Decimal
-from pathlib import Path
 
 import pytest
 from sqlalchemy import select
@@ -24,7 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import Category, DeliveryArea, ImportBatch, ImportBatchRecord, Product
-from app.preview.dataset import load_dataset, parse_dataset
+from app.preview.dataset import parse_dataset
 from app.preview.importer import (
     MODEL_FOR_TYPE,
     PreviewImporter,
@@ -32,10 +31,6 @@ from app.preview.importer import (
     row_fingerprint,
 )
 from app.storage.local import LocalStorageProvider
-
-VISTA_DATASET = (
-    Path(__file__).resolve().parents[2] / "instance" / "preview" / "vista-social-preview.yaml"
-)
 
 
 def document(batch_key: str) -> dict:
@@ -107,24 +102,6 @@ def importer(db: Session, tmp_path: Path) -> Iterator[PreviewImporter]:
     made = PreviewImporter(db, parse_dataset(document(key)), storage=storage)
     yield made
     made.purge(apply=True, force=True)
-
-
-def test_the_shipped_vista_dataset_seeds_and_purges_on_mysql(db: Session, tmp_path: Path) -> None:
-    dataset = load_dataset(VISTA_DATASET)
-    storage = LocalStorageProvider(tmp_path / "media", "/media")
-    made = PreviewImporter(db, dataset, storage=storage)
-    try:
-        made.seed()
-        status = made.status()
-        assert status["records"]["product"] == len(dataset.products)
-        assert status["owner_edited"] == []
-
-        # Idempotent on MySQL too: a second run must change no content row.
-        second = made.seed()
-        assert second.counts().get("create") is None
-    finally:
-        made.purge(apply=True, force=True)
-    assert made.status()["exists"] is False
 
 
 def test_decimal_money_keeps_its_scale(importer: PreviewImporter, db: Session) -> None:

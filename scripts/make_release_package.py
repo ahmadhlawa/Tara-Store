@@ -1,4 +1,4 @@
-"""Build a deployment package for Vista Store.
+"""Build a deployment package for Tara Store.
 
     python scripts/make_release_package.py [--output release] [--skip-build]
 
@@ -69,7 +69,7 @@ EXCLUDED_NAMES = {
     "tests",
     "tests_mysql",
     "uploads",
-    "vista-uploads",
+    "tara-uploads",
     "htmlcov",
 }
 
@@ -148,10 +148,9 @@ def _requirements_from_pyproject() -> str:
 
 
 def _instructions() -> str:
-    return f"""# Vista Store — deployment package
+    return f"""# Tara Store — deployment package
 
-Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} from branch
-`feat/vista-store-initial-release`.
+Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} from the current Tara source tree.
 
 ## Read this before uploading anything
 
@@ -169,7 +168,7 @@ backend/alembic/      migrations — the schema of record
 backend/scripts/      instance CLI, MySQL portability check
 backend/requirements.txt
 frontend/dist/        built storefront and admin, ready to serve as static files
-instance/             the Vista Store profile (non-secret)
+instance/             the Tara Store profile (non-secret)
 deployment/cpanel/    the example environment file
 docs/                 handoff, capability checklist, template origin
 ```
@@ -189,7 +188,7 @@ virtual environment, no Git history, no tests and no caches.
 5. Copy `deployment/cpanel/backend.env.example` to the app root as `.env` and fill it in
    **on the server**. Generate a fresh `SECRET_KEY` there.
 6. `alembic upgrade head` — **take a backup first; this is the first irreversible step.**
-7. `python -m scripts.instance_cli apply --profile instance/vista-store.yaml`
+7. `python -m scripts.instance_cli apply --profile instance/tara-store.yaml`
 8. `python -m app.initial_data --email <owner> --password <strong>`
 9. Publish `frontend/dist/` to the document root.
 10. Route `/api`, `/media` and `/health` to the backend process.
@@ -227,7 +226,7 @@ def main() -> int:
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
     output_root = (REPO_ROOT / args.output).resolve()
-    package_name = f"vista-store-e-commerce-{stamp}"
+    package_name = f"tara-store-e-commerce-{stamp}"
     staging = output_root / package_name
     if staging.exists():
         shutil.rmtree(staging)

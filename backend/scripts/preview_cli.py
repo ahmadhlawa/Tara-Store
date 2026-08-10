@@ -2,17 +2,16 @@
 
 Argparse, matching `scripts.instance_cli`. Run from `backend/`:
 
-    python -m scripts.preview_cli validate --dataset ../instance/preview/vista-social-preview.yaml
-    python -m scripts.preview_cli plan     --dataset ../instance/preview/vista-social-preview.yaml
-    python -m scripts.preview_cli seed     --dataset ../instance/preview/vista-social-preview.yaml
-    python -m scripts.preview_cli status   --dataset ../instance/preview/vista-social-preview.yaml
-    python -m scripts.preview_cli purge    --dataset ../instance/preview/vista-social-preview.yaml
+    python -m scripts.preview_cli validate --dataset path/to/preview.yaml
+    python -m scripts.preview_cli plan     --dataset path/to/preview.yaml
+    python -m scripts.preview_cli seed     --dataset path/to/preview.yaml
+    python -m scripts.preview_cli status   --dataset path/to/preview.yaml
+    python -m scripts.preview_cli purge    --dataset path/to/preview.yaml
     python -m scripts.preview_cli purge    --dataset ... --confirm
 
 `validate` and `plan` write nothing. `purge` is a dry run unless `--confirm` is given.
 
-Installed as `vista-preview`, so the documented commands are `vista-preview validate`,
-`vista-preview plan`, `vista-preview seed`, `vista-preview status`, `vista-preview purge`.
+Installed as `tara-preview`; Tara intentionally ships no default preview dataset.
 """
 
 from __future__ import annotations
@@ -20,7 +19,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from pathlib import Path
 
 from app.preview.dataset import DatasetError, PreviewDataset, load_dataset
 from app.preview.importer import PreviewImporter, PreviewPlan
@@ -28,10 +26,6 @@ from app.preview.importer import PreviewImporter, PreviewPlan
 EXIT_OK = 0
 EXIT_INVALID = 2
 EXIT_BLOCKED = 3
-
-DEFAULT_DATASET = Path(__file__).resolve().parents[2] / "instance" / "preview" / (
-    "vista-social-preview.yaml"
-)
 
 
 def _session():
@@ -142,7 +136,7 @@ def cmd_purge(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="vista-preview",
+        prog="tara-preview",
         description="Validate, plan, seed, inspect and remove a preview content batch.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
@@ -151,8 +145,9 @@ def build_parser() -> argparse.ArgumentParser:
         sub_parser = sub.add_parser(name, help=help_text, description=help_text)
         sub_parser.add_argument(
             "--dataset",
-            default=str(DEFAULT_DATASET),
-            help="Path to the preview dataset YAML file.",
+            required=True,
+            metavar="PATH",
+            help="Preview dataset YAML path (required; Tara ships no default dataset).",
         )
         return sub_parser
 

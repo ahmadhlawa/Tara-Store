@@ -29,20 +29,20 @@
 # .github/workflows/mysql-compatibility.yml. Local and CI must exercise the same major
 # version, or a green CI run says nothing about what a developer just tested.
 
-name: vista-mysql-dev
+name: tara-mysql-dev
 
 services:
   mysql:
     image: mysql:8.0
-    container_name: vista-mysql-dev
+    container_name: tara-mysql-dev
     restart: "no" # a development database should not survive a reboot unasked
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env.mysql.dev}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-vista_dev}
-      MYSQL_USER: ${MYSQL_USER:-vista_dev}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-tara_dev}
+      MYSQL_USER: ${MYSQL_USER:-tara_dev}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env.mysql.dev}
     ports:
       # Loopback only. Never change this to "3307:3306" — that would publish a
@@ -61,5 +61,5 @@ volumes:
   # Named, and prefixed with the project name above, so it cannot collide with another
   # project's volume. It lives in Docker's own storage, never inside this repository,
   # so it can never be picked up by the release packager or by Git.
-  vista-mysql-dev-data:
-    name: vista-mysql-dev-data
+  tara-mysql-dev-data:
+    name: tara-mysql-dev-data

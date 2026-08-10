@@ -15,7 +15,7 @@ Importing is a separate command, deliberately:
     python -m scripts.preview_cli plan --dataset ../instance/generated/client-catalog.yaml
     python -m scripts.preview_cli seed --dataset ../instance/generated/client-catalog.yaml
 
-Installed as `vista-catalog-prep`.
+Installed as `tara-catalog-prep`.
 """
 
 from __future__ import annotations
@@ -95,7 +95,7 @@ def cmd_prepare(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="vista-catalog-prep",
+        prog="tara-catalog-prep",
         description=(
             "Validate a client catalog workbook and generate the canonical dataset the "
             "existing importer consumes. Never writes to the database."
@@ -131,7 +131,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     prepare.add_argument(
         "--media-prefix",
-        default="vista-store/client/",
+        default="tara-store/client/",
         help=(
             "Storage prefix recorded on the batch. A prepared catalog uploads nothing, so "
             "this only bounds what a later purge is ever allowed to delete."

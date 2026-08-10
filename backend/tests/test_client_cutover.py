@@ -39,7 +39,13 @@ from app.preview.cutover import (
 from app.preview.dataset import parse_dataset
 from app.preview.importer import PreviewImporter
 from app.storage.local import LocalStorageProvider
-from scripts.client_cutover_cli import _preserve_selectors
+from scripts.client_cutover_cli import _preserve_selectors, build_parser
+
+def test_cutover_plan_requires_an_explicit_dataset() -> None:
+    with pytest.raises(SystemExit) as exc:
+        build_parser().parse_args(["plan"])
+    assert exc.value.code == 2
+
 
 DOCUMENT = {
     "preview_schema_version": 1,

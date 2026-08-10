@@ -2,7 +2,7 @@
 
 Argparse, matching `scripts.preview_cli`. Run from `backend/`:
 
-    python -m scripts.client_cutover_cli plan     --dataset ../instance/preview/vista-social-preview.yaml
+    python -m scripts.client_cutover_cli plan     --dataset path/to/preview.yaml
     python -m scripts.client_cutover_cli preserve --dataset ... --target hero_slide:"عنوان" --confirm
     python -m scripts.client_cutover_cli preserve --dataset ... --entity-type hero_slide --entity-id 12 --confirm
     python -m scripts.client_cutover_cli verify
@@ -17,7 +17,7 @@ actions, so no single command can both wipe and reload a store:
     python -m scripts.preview_cli purge --dataset ... --confirm  # the deletion
     python -m scripts.preview_cli seed  --dataset ...            # the new import
 
-Installed as `vista-cutover`.
+Installed as `tara-cutover`.
 """
 
 from __future__ import annotations
@@ -25,7 +25,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from pathlib import Path
 
 from app.preview.cutover import (
     CutoverError,
@@ -40,10 +39,6 @@ from app.preview.importer import PreviewImporter
 EXIT_OK = 0
 EXIT_INVALID = 2
 EXIT_ATTENTION = 3
-
-DEFAULT_DATASET = Path(__file__).resolve().parents[2] / "instance" / "preview" / (
-    "vista-social-preview.yaml"
-)
 
 # Enough rows to act on without turning a summary into a database dump.
 MAX_SHOWN = 25
@@ -195,7 +190,7 @@ def cmd_verify(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="vista-cutover",
+        prog="tara-cutover",
         description=(
             "Prepare a preview instance for real client data: inspect what a purge would "
             "remove, promote the records that turned out to be real, and check the result. "
@@ -208,8 +203,9 @@ def build_parser() -> argparse.ArgumentParser:
         sub_parser = sub.add_parser(name, help=help_text, description=help_text)
         sub_parser.add_argument(
             "--dataset",
-            default=str(DEFAULT_DATASET),
-            help="Path to the preview dataset YAML file.",
+            required=True,
+            metavar="PATH",
+            help="Preview dataset YAML path (required; Tara ships no default dataset).",
         )
         return sub_parser
 

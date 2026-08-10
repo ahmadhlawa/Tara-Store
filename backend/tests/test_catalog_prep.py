@@ -28,7 +28,7 @@ from app.storage.local import LocalStorageProvider
 PREPARE_KWARGS: dict[str, Any] = {
     "batch_key": "client-catalog",
     "source_label": "Client workbook",
-    "media_prefix": "vista-store/client/",
+    "media_prefix": "tara-store/client/",
 }
 
 CATEGORY_HEADERS = [
@@ -75,10 +75,10 @@ def media(db: Session, *filenames: str, duplicate: str | None = None) -> None:
         db.add(
             MediaAsset(
                 original_filename=filename,
-                stored_key=f"vista-store/media/{position}-{filename}",
+                stored_key=f"tara-store/media/{position}-{filename}",
                 content_type="image/jpeg",
                 size_bytes=1024,
-                url=f"/media/vista-store/media/{position}-{filename}",
+                url=f"/media/tara-store/media/{position}-{filename}",
                 storage_provider="local",
             )
         )

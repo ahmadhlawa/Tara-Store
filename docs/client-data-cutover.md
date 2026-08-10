@@ -5,8 +5,8 @@ How a preview instance becomes the client's real store.
 ```
    inspect            decide              delete             load
       │                  │                  │                  │
-vista-cutover      vista-cutover      vista-preview      vista-catalog-prep
-    plan             preserve         purge --confirm     →  vista-preview seed
+tara-cutover       tara-cutover       tara-preview       tara-catalog-prep
+    plan             preserve         purge --confirm     →  tara-preview seed
       │                  │                  │                  │
  read-only        explicit, targeted   destructive,        the existing
                                        confirmed           importer
@@ -18,12 +18,15 @@ before the next one is run.
 
 The whole procedure runs against **one instance database**. Nothing here touches a server.
 
+Tara currently has no preview batch. For normal client onboarding, skip the preview-purge
+steps and start with media upload; every preview command requires an explicit `--dataset PATH`.
+
 ---
 
 ## The problem this solves
 
 The preview batch owns the rows it created — the demo catalog, the placeholder hero
-slides, the banners, their pictures. `vista-preview purge --confirm` deletes exactly those
+slides, the banners, their pictures. `tara-preview purge --confirm` deletes exactly those
 rows and nothing else, which is what makes the demo safe to load.
 
 But over the life of a preview, something genuinely the client's can arrive *through* the
@@ -55,7 +58,7 @@ Read-only. It writes nothing and opens no transaction you have to think about.
 
 ```bash
 cd backend
-python -m scripts.client_cutover_cli plan --dataset ../instance/preview/vista-social-preview.yaml
+python -m scripts.client_cutover_cli plan --dataset path/to/preview.yaml
 ```
 
 It reports:
@@ -90,7 +93,7 @@ Name each record exactly as `plan` printed it. Dry run first:
 
 ```bash
 python -m scripts.client_cutover_cli preserve \
-    --dataset ../instance/preview/vista-social-preview.yaml \
+    --dataset path/to/preview.yaml \
     --target "hero_slide:عنوان الشريحة" \
     --target "banner:لافتة العميل"
 ```
@@ -99,7 +102,7 @@ Then apply:
 
 ```bash
 python -m scripts.client_cutover_cli preserve \
-    --dataset ../instance/preview/vista-social-preview.yaml \
+    --dataset path/to/preview.yaml \
     --target "hero_slide:عنوان الشريحة" \
     --target "banner:لافتة العميل" \
     --confirm
@@ -114,7 +117,7 @@ and the row id printed beside it is the stable handle. Select by id instead:
 
 ```bash
 python -m scripts.client_cutover_cli preserve \
-    --dataset ../instance/preview/vista-social-preview.yaml \
+    --dataset path/to/preview.yaml \
     --entity-type hero_slide \
     --entity-id 12 \
     --confirm
@@ -143,7 +146,7 @@ The default mode of the existing purge. Same eligibility computation as the real
 zero writes:
 
 ```bash
-python -m scripts.preview_cli purge --dataset ../instance/preview/vista-social-preview.yaml
+python -m scripts.preview_cli purge --dataset path/to/preview.yaml
 ```
 
 Read the `blocked` section. A picture still shown by surviving content is refused here,
@@ -156,14 +159,14 @@ The destructive step. It deletes preview-owned rows and the storage objects the 
 uploaded, and nothing else.
 
 ```bash
-python -m scripts.preview_cli purge --dataset ../instance/preview/vista-social-preview.yaml --confirm
+python -m scripts.preview_cli purge --dataset path/to/preview.yaml --confirm
 ```
 
 ## 7. Verify the clean state
 
 ```bash
 python -m scripts.client_cutover_cli verify
-python -m scripts.client_cutover_cli plan --dataset ../instance/preview/vista-social-preview.yaml
+python -m scripts.client_cutover_cli plan --dataset path/to/preview.yaml
 ```
 
 `verify` checks that instance metadata, store settings, static pages and home sections are
@@ -217,7 +220,7 @@ python -m scripts.preview_cli seed --dataset ../instance/generated/client-catalo
 
 The client catalog becomes its own import batch, with the same ownership and fingerprint
 semantics: re-running is idempotent, an owner edit in Admin is never overwritten, and the
-batch can be inspected with `vista-preview status`.
+batch can be inspected with `tara-preview status`.
 
 ## 12. Verify the result
 

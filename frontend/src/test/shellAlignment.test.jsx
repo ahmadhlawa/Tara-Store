@@ -194,15 +194,14 @@ describe("homepage hero", () => {
     expect(screen.queryByText("بانر جانبي")).not.toBeInTheDocument();
   });
 
-  it("uses Tara's shipped hero artwork when the fresh database has no slides", async () => {
+  it("leaves the hero empty when the database has no slides", async () => {
     stubApi({ ...heroRoutes, "/api/v1/hero-slides": [] });
     renderApp("/");
 
-    await waitFor(() => expect(document.querySelector(".vs-hero__slide img")).not.toBeNull());
-    expect(document.querySelector(".vs-hero__slide img")).toHaveAttribute(
-      "src",
-      "/branding/HERO1.png",
+    await waitFor(() =>
+      expect(document.querySelector(".vs-header .vs-logo__name")).toHaveTextContent("متجر الاختبار"),
     );
+    expect(document.querySelector(".vs-hero__slide")).toBeNull();
   });
 
   it("moves between slides from its own controls", async () => {
