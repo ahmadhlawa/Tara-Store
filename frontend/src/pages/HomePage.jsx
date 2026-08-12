@@ -253,6 +253,19 @@ export default function HomePage() {
     })
     .filter(Boolean);
 
+  // Before the catalog arrives there is no hero and every section drops out, which
+  // would leave the header sitting straight on top of the trust strip. Say so
+  // instead: the store is real and reachable, it just has nothing to show yet.
+  const stillLoading =
+    hero.status === "loading" ||
+    sections.status === "loading" ||
+    needed.some(([source]) => (lists[source]?.status ?? "loading") === "loading");
+  // Categories are checked too: a store that has a catalog but no configured home
+  // sections is not "being prepared", it is merely unarranged, and telling its
+  // customers otherwise would be the misleading version of this message.
+  const nothingToShow =
+    !stillLoading && !hero.slides.length && !rendered.length && !categories.length;
+
   return (
     <>
       {/* Deliberately outside `.vs-container`: the advertising band runs the full
@@ -273,6 +286,21 @@ export default function HomePage() {
       )}
 
       {rendered}
+
+      {nothingToShow && (
+        <section className="vs-container vs-section">
+          <div className="vs-state">
+            <h2 className="vs-state__title">المتجر قيد التجهيز</h2>
+            <p className="vs-state__body">
+              نعمل على إضافة المنتجات، وسيظهر المعروض هنا فور توفره. يسعدنا تواصلكم معنا في
+              أي وقت.
+            </p>
+            <Link to="/contact" className="vs-btn vs-btn--primary vs-btn--lg">
+              تواصل معنا
+            </Link>
+          </div>
+        </section>
+      )}
 
       <section className="vs-container vs-section--tight">
         <TrustStrip />

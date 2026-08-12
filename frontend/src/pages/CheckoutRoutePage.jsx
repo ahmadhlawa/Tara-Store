@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../app/StoreProvider.jsx";
 import { useCartLines } from "../components/public/cart/useCartLines.js";
+import FreeDeliveryNotice from "../components/public/cart/FreeDeliveryNotice.jsx";
 import Media from "../components/public/shell/Media.jsx";
 import { buildOrderWhatsAppMessage, checkoutService } from "../services/checkout.js";
 import { orderTokenStorage } from "../storage/authStorage.js";
@@ -127,6 +128,14 @@ export default function CheckoutRoutePage() {
   };
 
   const totals = priced || { subtotal: 0, discount: 0, shipping: 0, total: 0, areaName: "" };
+
+  // Manual transfer is only a real option once the owner has published account
+  // details to send with it; until then the store takes cash on delivery, and
+  // offering a method whose instructions are blank promises the customer
+  // something the confirmation screen cannot deliver.
+  const offeredPaymentMethods = paymentMethods.filter(
+    (method) => method.key !== "bank_transfer" || !!store.settings.manualPaymentInstructions,
+  );
 
   if (!cart.length) {
     return (
@@ -257,7 +266,7 @@ export default function CheckoutRoutePage() {
 
           <fieldset className="vs-panel">
             <legend className="vs-panel__title">طريقة الدفع</legend>
-            {paymentMethods.map((method) => (
+            {offeredPaymentMethods.map((method) => (
               <label
                 key={method.key}
                 className="vs-payopt"
@@ -350,6 +359,10 @@ export default function CheckoutRoutePage() {
             <span>التوصيل {totals.areaName ? `(${totals.areaName})` : ""}</span>
             <strong>{totals.shipping ? money(totals.shipping) : "—"}</strong>
           </div>
+
+          {/* Priced by the server above; this only explains the rule behind that
+              number, and narrows to the chosen area once there is one. */}
+          <FreeDeliveryNotice subtotal={totals.subtotal} areaId={form.areaId} />
           <div className="vs-summary__total">
             <span>الإجمالي</span>
             <strong>{money(totals.total)}</strong>

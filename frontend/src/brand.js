@@ -18,8 +18,10 @@
  *  source file. */
 export const LOGO_URL = "/branding/tara-logo2.png";
 
-/** Arabic is the storefront's own language, so it is the name shown; the latin
- *  form stays the fallback and the document title. */
+/** The brand name is latin and is shown as such: the storefront's language is
+ *  Arabic, but "Tara" is what the logo says and what the store is called. The
+ *  Arabic form is kept only as the last resort for an instance that has set an
+ *  Arabic name and nothing else — it is not the name this store displays. */
 export const STORE_NAME_AR = "تارا";
-export const STORE_NAME_LATIN = "Tara Store";
+export const STORE_NAME_LATIN = "Tara";
 export const STORE_TAGLINE = "Handmade by Yumna";

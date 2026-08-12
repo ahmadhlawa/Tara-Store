@@ -7,9 +7,11 @@ What this does **not** do: create products, orders, coupons or admin accounts. D
 content is the separate `scripts.seed` workflow, and admin creation is the separate
 `app.initial_data` command.
 
-The central safety rule is that bootstrap never overwrites owner-edited content. Content
-rows are created when missing and skipped when present; settings fields are filled only
-when empty or still at their shipped default.
+The central safety rule is that bootstrap never overwrites owner-edited content. Rows are
+created when missing and skipped when present; settings fields are filled only when empty
+or still at their shipped default, and a static page is refreshed only while its body is
+still blank — the state a bootstrap-created placeholder is in, and the only one where
+there is no owner text to lose.
 """
 
 from __future__ import annotations
@@ -22,8 +24,8 @@ from sqlalchemy.orm import Session
 
 from app.core.template_version import template_version
 from app.db.base import utcnow
-from app.instance.profile import InstanceProfile
-from app.models import HomeSection, InstanceMetadata, StaticPage, StoreSettings
+from app.instance.profile import InstanceProfile, StaticPageProfile
+from app.models import DeliveryArea, HomeSection, InstanceMetadata, StaticPage, StoreSettings
 from app.models.store import STORE_SETTINGS_DEFAULTS
 from app.services import store_settings as settings_service
 
@@ -107,6 +109,30 @@ def _settings_updates(row: StoreSettings, profile: InstanceProfile) -> dict[str,
     }
 
 
+def _page_updates(row: StaticPage, page: StaticPageProfile) -> dict[str, object]:
+    """The page fields bootstrap would fill on a page that already exists.
+
+    A page is only ever refreshed while its body is still blank — that is what a
+    bootstrap-created placeholder looks like, and it is the one state in which no
+    owner text can be lost. The moment a body exists, whoever wrote it owns the
+    page and bootstrap skips it entirely.
+    """
+    if (row.content or "").strip():
+        return {}
+    desired: dict[str, object | None] = {
+        "title": page.title,
+        "lead": page.lead,
+        "content": page.content,
+        "seo_title": page.title,
+        "seo_description": (page.lead or "")[:150] or None,
+    }
+    return {
+        attribute: value
+        for attribute, value in desired.items()
+        if value not in (None, "") and getattr(row, attribute, None) != value
+    }
+
+
 def _wanted_sections(profile: InstanceProfile) -> list:
     enabled = set(profile.enabled_features())
     return [
@@ -167,13 +193,28 @@ def build_plan(db: Session, profile: InstanceProfile) -> Plan:
         else:
             plan.actions.append(PlannedAction("create", target, section.type))
 
-    existing_pages = {slug for (slug,) in db.execute(select(StaticPage.slug)).all()}
+    existing_pages = {row.slug: row for row in db.execute(select(StaticPage)).scalars()}
     for page in sorted(profile.static_pages, key=lambda p: p.slug):
         target = f"static_page:{page.slug}"
-        if page.slug in existing_pages:
-            plan.actions.append(PlannedAction("skip", target, "exists; owner content preserved"))
-        else:
+        existing = existing_pages.get(page.slug)
+        if existing is None:
             plan.actions.append(PlannedAction("create", target, page.title))
+            continue
+        updates = _page_updates(existing, page)
+        if updates:
+            plan.actions.append(
+                PlannedAction("update", target, f"fill {', '.join(sorted(updates))}")
+            )
+        else:
+            plan.actions.append(PlannedAction("skip", target, "exists; owner content preserved"))
+
+    existing_areas = {name for (name,) in db.execute(select(DeliveryArea.name)).all()}
+    for area in profile.delivery_areas:
+        target = f"delivery_area:{area.name}"
+        if area.name in existing_areas:
+            plan.actions.append(PlannedAction("skip", target, "exists; owner values preserved"))
+        else:
+            plan.actions.append(PlannedAction("create", target, f"fee={area.delivery_fee}"))
 
     return plan
 
@@ -210,19 +251,38 @@ def apply_profile(db: Session, profile: InstanceProfile) -> Plan:
             )
         )
 
-    existing_pages = {slug for (slug,) in db.execute(select(StaticPage.slug)).all()}
+    existing_pages = {row.slug: row for row in db.execute(select(StaticPage)).scalars()}
     for page in sorted(profile.static_pages, key=lambda p: p.slug):
-        if page.slug in existing_pages:
+        existing = existing_pages.get(page.slug)
+        if existing is not None:
+            for attribute, value in _page_updates(existing, page).items():
+                setattr(existing, attribute, value)
             continue
         db.add(
             StaticPage(
                 slug=page.slug,
                 title=page.title,
                 lead=page.lead,
-                content="",
+                content=page.content or "",
                 is_published=page.is_published,
                 seo_title=page.title,
                 seo_description=(page.lead or "")[:150] or None,
+            )
+        )
+
+    existing_areas = {name for (name,) in db.execute(select(DeliveryArea.name)).all()}
+    for area in profile.delivery_areas:
+        if area.name in existing_areas:
+            continue
+        db.add(
+            DeliveryArea(
+                name=area.name,
+                delivery_fee=area.delivery_fee,
+                min_order_amount=area.min_order_amount,
+                free_delivery_threshold=area.free_delivery_threshold,
+                estimated_days=area.estimated_days,
+                is_active=area.is_active,
+                sort_order=area.sort_order,
             )
         )
 

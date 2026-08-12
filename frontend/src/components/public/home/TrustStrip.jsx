@@ -8,7 +8,14 @@ import { ShieldIcon, TruckIcon, WalletIcon } from "../shell/icons.jsx";
  * that really exists. Nothing here is invented copy.
  */
 export default function TrustStrip() {
-  const { deliveryAreas } = useStore();
+  const { deliveryAreas, settings } = useStore();
+
+  // Checkout offers manual transfer only once the owner has published account
+  // details for it, so this line has to follow the same rule or it advertises a
+  // method the customer will not find.
+  const paymentText = settings.manualPaymentInstructions
+    ? "أو تحويل بنكي يدوي — بدون بطاقات"
+    : "ادفع نقداً للمندوب عند التسليم — بدون بطاقات";
 
   const areasText = !deliveryAreas.length
     ? null
@@ -25,7 +32,7 @@ export default function TrustStrip() {
         <span>
           <span className="vs-trust__title">الدفع عند الاستلام</span>
           <br />
-          <span className="vs-trust__desc">أو تحويل بنكي يدوي — بدون بطاقات</span>
+          <span className="vs-trust__desc">{paymentText}</span>
         </span>
       </div>
 

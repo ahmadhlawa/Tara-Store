@@ -101,12 +101,19 @@ home_sections:
     title: "Best sellers"
     sort_order: 6
 
-# Created empty, for the owner to fill in through Admin. The storefront footer links to
-# about, privacy-policy, return-policy and terms, so leaving them out creates dead ends.
+# Created for the owner to fill in through Admin, or given the client's approved copy
+# here with an optional `content:` block (blank lines separate paragraphs). A page is
+# only written while its body is still blank — once it has been edited, bootstrap leaves
+# it alone. The storefront footer links to about, privacy-policy, return-policy and
+# terms, so leaving them out creates dead ends.
 static_pages:
   - slug: "about"
     title: "About us"
     lead: "Tell customers who you are."
+    # content: |
+    #   First paragraph.
+    #
+    #   Second paragraph.
   - slug: "privacy-policy"
     title: "Privacy policy"
     lead: "How customer data is handled."
@@ -122,3 +129,20 @@ static_pages:
   - slug: "contact"
     title: "Contact us"
     lead: "How to reach the store."
+
+# The store's delivery table. A store cannot take an order without at least one area, so
+# these are configuration rather than demo content. An area is created when no area of
+# that name exists and never updated afterwards — the owner's Admin edits always win.
+#
+# Leave `min_order_amount` and `free_delivery_threshold` out (or null) when the client
+# has no minimum and no free-delivery offer: a null is "no rule", a zero is a rule that
+# is always met. `free_delivery_threshold` is charged against by the pricing service —
+# an order at or above it pays no delivery fee.
+delivery_areas: []
+#  - name: "City"
+#    delivery_fee: 20
+#    min_order_amount: null
+#    free_delivery_threshold: 200
+#    estimated_days: "2-3 business days"
+#    is_active: true
+#    sort_order: 1

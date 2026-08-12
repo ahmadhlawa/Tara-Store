@@ -421,9 +421,29 @@ describe("storefront payment surface", () => {
     },
   };
 
-  it("offers only cash on delivery and manual transfer, with no card fields", async () => {
+  const withTransferInstructions = () => ({
+    ...cartRoutes,
+    "/api/v1/store/settings": {
+      ...storefrontRoutes["/api/v1/store/settings"],
+      manual_payment_instructions: "بنك فلسطين — حساب رقم 12345",
+    },
+  });
+
+  it("offers only cash on delivery while the owner has published no transfer details", async () => {
     withCart();
     stubApi(cartRoutes);
+    renderApp("/checkout");
+
+    const heading = await screen.findByText("طريقة الدفع");
+    const panel = within(heading.parentElement);
+    expect(panel.getByText("الدفع عند الاستلام")).toBeInTheDocument();
+    expect(panel.queryByText("تحويل بنكي / يدوي")).not.toBeInTheDocument();
+    expect(document.querySelectorAll('input[name="pay"]').length).toBe(1);
+  });
+
+  it("offers cash on delivery and manual transfer once details exist, with no card fields", async () => {
+    withCart();
+    stubApi(withTransferInstructions());
     renderApp("/checkout");
 
     const heading = await screen.findByText("طريقة الدفع");
@@ -450,28 +470,18 @@ describe("storefront payment surface", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows no transfer instructions while the owner has supplied none", async () => {
+  it("never promises transfer details the owner has not published", async () => {
     withCart();
     stubApi(cartRoutes);
     renderApp("/checkout");
 
-    // The footer also names the accepted methods, so the option is selected
-    // inside the payment fieldset rather than anywhere the words appear.
-    const panel = (await screen.findByText("طريقة الدفع")).parentElement;
-    await userEvent.click(within(panel).getByText("تحويل بنكي / يدوي"));
-
+    await screen.findByText("طريقة الدفع");
     expect(screen.queryByText(/حساب رقم/)).not.toBeInTheDocument();
   });
 
   it("shows the owner's transfer instructions once they exist", async () => {
     withCart();
-    stubApi({
-      ...cartRoutes,
-      "/api/v1/store/settings": {
-        ...storefrontRoutes["/api/v1/store/settings"],
-        manual_payment_instructions: "بنك فلسطين — حساب رقم 12345",
-      },
-    });
+    stubApi(withTransferInstructions());
     renderApp("/checkout");
 
     const panel = (await screen.findByText("طريقة الدفع")).parentElement;

@@ -19,7 +19,7 @@ They are deliberately separate. Confusing them is the main way to damage a clien
 | --- | --- | --- |
 | Command | `python -m scripts.seed` | `python -m scripts.instance_cli apply` |
 | Purpose | Development and demonstration | Real client instances |
-| Creates | Sample categories, products, variants, packages, coupons, articles, a demo order | Store settings, home page sections, static pages |
+| Creates | Sample categories, products, variants, packages, coupons, articles, a demo order | Store settings, home page sections, static pages, delivery areas |
 | Commercial data | Yes, all fabricated | **None** |
 | Admin account | Only if credentials are passed | **Never** |
 | On re-run | Rewrites its own seeded content, including resetting seeded stock | Creates only what is missing; **never overwrites owner edits** |
@@ -43,8 +43,9 @@ copy instance\client-profile.example.yaml instance\acme-profile.yaml
 ```
 
 Edit it: `client_slug`, store name and tagline, locale, timezone, currency, domain,
-contact defaults, theme colours, features, home sections, static pages. Set
-`template_version` to the release you are deploying.
+contact defaults, theme colours, features, home sections, static pages (with the client's
+approved copy in `content:` where it exists) and delivery areas. Set `template_version` to
+the release you are deploying.
 
 The `client_slug` is permanent. It is written to the database, and a later `apply` with a
 different slug is refused rather than silently rebranding a live store.

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useStore } from "../app/StoreProvider.jsx";
 import { checkoutService } from "../services/checkout.js";
 import { useCartLines } from "../components/public/cart/useCartLines.js";
+import FreeDeliveryNotice from "../components/public/cart/FreeDeliveryNotice.jsx";
 import QuantityStepper from "../components/public/cart/QuantityStepper.jsx";
 import Media from "../components/public/shell/Media.jsx";
 import { CartIcon, TrashIcon } from "../components/public/shell/icons.jsx";
@@ -112,6 +113,8 @@ export default function CartRoutePage() {
               <span>التوصيل</span>
               <span className="vs-summary__muted">يُحتسب عند إتمام الطلب</span>
             </div>
+
+            <FreeDeliveryNotice subtotal={subtotal} />
 
             <div className="vs-coupon">
               <input

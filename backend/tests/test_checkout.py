@@ -107,6 +107,45 @@ def test_delivery_fee_applies_and_becomes_free_over_the_threshold(
     assert pricing.compute_delivery_fee(delivery_area, Decimal("500.00")) == Decimal("0.00")
 
 
+def test_an_order_at_the_threshold_is_delivered_free(
+    client: TestClient, db: Session, delivery_area: DeliveryArea
+) -> None:
+    """The client's rule, end to end: the stored order pays no delivery at the threshold.
+
+    Charged from the area's own threshold, so the three areas the client gave —
+    220 for الضفة and القدس, 400 for الداخل — need no code of their own. The
+    boundary itself is the case worth pinning: "220 or more" is free, not "over 220".
+    """
+    delivery_area.delivery_fee = Decimal("25.00")
+    delivery_area.free_delivery_threshold = Decimal("220.00")
+    db.commit()
+
+    product = make_product(db, price="110.00", stock=10)  # 2 × 110 == exactly 220
+    response = client.post(
+        "/api/v1/orders", json=_order_payload(product, delivery_area_id=delivery_area.id)
+    )
+    assert response.status_code == 201
+    order = db.get(Order, response.json()["id"])
+    assert order.subtotal == Decimal("220.00")
+    assert order.delivery_fee == Decimal("0.00")
+    assert order.total == Decimal("220.00")
+
+    # A shekel short and the fee is charged again.
+    cheaper = make_product(db, slug="test-product-cheaper", price="109.50", stock=10)
+    response = client.post(
+        "/api/v1/orders",
+        json={
+            **_order_payload(cheaper, delivery_area_id=delivery_area.id),
+            "client_reference": "test-order-below-threshold",
+        },
+    )
+    assert response.status_code == 201
+    order = db.get(Order, response.json()["id"])
+    assert order.subtotal == Decimal("219.00")
+    assert order.delivery_fee == Decimal("25.00")
+    assert order.total == Decimal("244.00")
+
+
 def test_inactive_delivery_area_cannot_be_selected(
     client: TestClient, db: Session, delivery_area: DeliveryArea
 ) -> None:

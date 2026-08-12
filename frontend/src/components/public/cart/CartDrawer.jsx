@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { Drawer } from "../overlays/Overlay.jsx";
 import Media from "../shell/Media.jsx";
+import FreeDeliveryNotice from "./FreeDeliveryNotice.jsx";
 import QuantityStepper from "./QuantityStepper.jsx";
 import { useCartLines } from "./useCartLines.js";
 import { CartIcon, TrashIcon } from "../shell/icons.jsx";
 
 export default function CartDrawer({ open, onClose }) {
-  const { lines, count, subtotalText, empty } = useCartLines();
+  const { lines, count, subtotal, subtotalText, empty } = useCartLines();
 
   return (
     <Drawer
@@ -25,6 +26,7 @@ export default function CartDrawer({ open, onClose }) {
             <p className="vs-cartdrawer__hint">
               تُحتسب رسوم التوصيل حسب المنطقة في صفحة إتمام الطلب.
             </p>
+            <FreeDeliveryNotice subtotal={subtotal} />
             <Link
               to="/checkout"
               className="vs-btn vs-btn--primary vs-btn--lg vs-btn--block"

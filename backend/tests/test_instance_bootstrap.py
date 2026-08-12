@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,7 @@ from app.instance.manifest import build_manifest
 from app.instance.profile import load_profile, parse_profile
 from app.models import (
     Coupon,
+    DeliveryArea,
     HomeSection,
     InstanceMetadata,
     Order,
@@ -60,8 +62,18 @@ PROFILE = {
         },
     ],
     "static_pages": [
-        {"slug": "about", "title": "About us", "lead": "Who we are."},
+        {"slug": "about", "title": "About us", "lead": "Who we are.", "content": "Founded 2019.\n\nStill here."},
         {"slug": "terms", "title": "Terms", "lead": "The rules."},
+    ],
+    "delivery_areas": [
+        {
+            "name": "City",
+            "delivery_fee": 20,
+            "free_delivery_threshold": 200,
+            "estimated_days": "2 days",
+            "sort_order": 1,
+        },
+        {"name": "Outskirts", "delivery_fee": 35, "is_active": False, "sort_order": 2},
     ],
 }
 
@@ -88,6 +100,7 @@ def test_plan_writes_nothing(db: Session, profile) -> None:
     assert db.execute(select(StoreSettings)).scalars().all() == []
     assert db.execute(select(HomeSection)).scalars().all() == []
     assert db.execute(select(StaticPage)).scalars().all() == []
+    assert db.execute(select(DeliveryArea)).scalars().all() == []
 
 
 def test_plan_skips_sections_whose_feature_is_disabled(db: Session, profile) -> None:
@@ -117,6 +130,46 @@ def test_first_apply_initializes_the_instance(db: Session, profile) -> None:
 
     pages = {row.slug for row in db.execute(select(StaticPage)).scalars()}
     assert pages == {"about", "terms"}
+
+
+def test_first_apply_creates_the_delivery_table(db: Session, profile) -> None:
+    apply_profile(db, profile)
+
+    areas = db.execute(select(DeliveryArea).order_by(DeliveryArea.sort_order)).scalars().all()
+    assert [area.name for area in areas] == ["City", "Outskirts"]
+
+    city, outskirts = areas
+    assert city.delivery_fee == Decimal("20")
+    assert city.free_delivery_threshold == Decimal("200")
+    assert city.estimated_days == "2 days"
+    assert city.is_active is True
+    # "no minimum" is the absence of a rule, never a zero that is always satisfied.
+    assert city.min_order_amount is None
+    assert outskirts.is_active is False
+    assert outskirts.free_delivery_threshold is None
+
+
+def test_first_apply_publishes_the_page_body_from_the_profile(db: Session, profile) -> None:
+    apply_profile(db, profile)
+
+    page = db.execute(select(StaticPage).where(StaticPage.slug == "about")).scalar_one()
+    assert page.content == "Founded 2019.\n\nStill here."
+    # A page the profile gives no body still exists, ready for Admin.
+    terms = db.execute(select(StaticPage).where(StaticPage.slug == "terms")).scalar_one()
+    assert terms.content == ""
+
+
+def test_apply_fills_a_placeholder_page_left_over_from_an_earlier_bootstrap(
+    db: Session, profile
+) -> None:
+    """The state every existing instance is in: pages created, bodies still blank."""
+    db.add(StaticPage(slug="about", title="About us", lead="Who we are.", content=""))
+    db.commit()
+
+    apply_profile(db, profile)
+
+    page = db.execute(select(StaticPage).where(StaticPage.slug == "about")).scalar_one()
+    assert page.content == "Founded 2019.\n\nStill here."
 
 
 def test_bootstrap_creates_no_demo_products_orders_or_coupons(db: Session, profile) -> None:
@@ -194,6 +247,22 @@ def test_repeated_apply_preserves_admin_edited_content(db: Session, profile) -> 
     page = db.execute(select(StaticPage).where(StaticPage.slug == "about")).scalar_one()
     assert page.title == "Our story"
     assert page.content == "Written by the owner."
+
+
+def test_repeated_apply_preserves_owner_edited_delivery_areas(db: Session, profile) -> None:
+    apply_profile(db, profile)
+
+    area = db.execute(select(DeliveryArea).where(DeliveryArea.name == "City")).scalar_one()
+    area.delivery_fee = Decimal("28")
+    area.free_delivery_threshold = None
+    db.commit()
+
+    apply_profile(db, profile)
+
+    area = db.execute(select(DeliveryArea).where(DeliveryArea.name == "City")).scalar_one()
+    assert area.delivery_fee == Decimal("28")
+    assert area.free_delivery_threshold is None
+    assert len(db.execute(select(DeliveryArea)).scalars().all()) == 2
 
 
 def test_apply_fills_a_field_the_owner_left_at_its_default(db: Session, profile) -> None:
@@ -287,3 +356,52 @@ def test_a_fresh_instance_is_branded_Tara_without_a_manual_edit(db: Session) -> 
         "#4C7C63",
     )
     assert "#1F4E4A" not in (row.primary_color, row.secondary_color, row.accent_color)
+
+
+def test_the_shipped_profile_carries_the_clients_confirmed_store_data(db: Session) -> None:
+    """The client data phase, checked against the file the instance is bootstrapped from."""
+    apply_profile(db, load_profile(TARA_PROFILE))
+
+    row = db.execute(select(StoreSettings)).scalar_one()
+    # The brand is latin and stays latin; only the copy around it is Arabic.
+    assert row.store_name == "Tara"
+    assert row.store_name_ar is None
+    assert row.currency_code == "ILS"
+    assert row.currency_symbol == "₪"
+    # The client confirmed one line for both.
+    assert row.phone == row.whatsapp == "970594402699"
+    # Nothing was invented for what the client has not supplied.
+    assert row.email is None
+    assert row.address is None
+    assert (row.instagram_url, row.facebook_url, row.tiktok_url, row.youtube_url) == (
+        None,
+        None,
+        None,
+        None,
+    )
+
+    areas = db.execute(select(DeliveryArea).order_by(DeliveryArea.sort_order)).scalars().all()
+    assert [
+        (a.name, a.delivery_fee, a.free_delivery_threshold, a.min_order_amount, a.is_active)
+        for a in areas
+    ] == [
+        ("الضفة", Decimal("25"), Decimal("220"), None, True),
+        ("القدس", Decimal("35"), Decimal("220"), None, True),
+        ("الداخل", Decimal("80"), Decimal("400"), None, True),
+    ]
+
+    pages = {row.slug: row for row in db.execute(select(StaticPage)).scalars()}
+    assert set(pages) == {
+        "about",
+        "privacy-policy",
+        "return-policy",
+        "terms",
+        "shipping-policy",
+        "contact",
+    }
+    for slug, page in pages.items():
+        assert page.content.strip(), f"{slug} has no published body"
+        assert page.is_published is True
+    # The workbook's contact answer was still full of placeholders; none of it shipped.
+    assert "[رقم التواصل]" not in pages["contact"].content
+    assert "[اسم الحساب]" not in pages["contact"].content

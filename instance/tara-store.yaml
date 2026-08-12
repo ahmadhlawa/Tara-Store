@@ -27,14 +27,20 @@ template_version: "0.3.0-rc.1"
 # characters. Recorded in the database and refused if it ever changes.
 client_slug: "tara-store"
 
+# The brand name is latin and stays latin: the storefront is a single Arabic RTL
+# experience, but "Tara" is the mark on the logo and the name the store is known by, so
+# `display_name_ar` is deliberately left unset rather than renaming the header to تارا.
+# The customer-facing copy around it — policies, delivery, contact, section headings — is
+# Arabic. `name` is the displayed brand and the name snapshotted onto invoices; the
+# registered legal name has its own field and the client has not supplied one.
 store:
-  name: "Tara Store"
+  name: "Tara"
   tagline: null
   locale: "ar"                  # 'ar' or e.g. 'ar-PS'
   timezone: "Asia/Hebron"       # IANA timezone
   currency_code: "ILS"          # three uppercase letters
   currency_symbol: "₪"
-  seo_title: "Tara Store"
+  seo_title: "Tara"
   seo_description: null
 
 domain:
@@ -43,12 +49,18 @@ domain:
 
 # Seeded into store settings on first bootstrap. The owner can change all of it in
 # Admin afterwards, and a later bootstrap will not overwrite their edits.
+#
+# The client confirmed the phone and the WhatsApp number are the same line. Everything
+# still null below is genuinely not supplied yet — no address (TARA is online only), no
+# email, no social accounts — and stays null rather than being filled with a placeholder
+# the storefront would then display. `working_hours` is the short line the header and
+# footer print; the full note about ordering outside those hours is on the contact page.
 contact:
-  phone: null
-  whatsapp: null
+  phone: "970594402699"
+  whatsapp: "970594402699"
   email: null
   address: null
-  working_hours: null
+  working_hours: "من الساعة العاشرة صباحا حتى السابعة مساء"
   instagram_url: null
   facebook_url: null
 
@@ -76,56 +88,164 @@ features:
 # Home page structure created on first bootstrap. Sections that already exist are left
 # alone, so owner edits survive. A section with `requires_feature` is skipped when that
 # feature is disabled.
+#
+# The titles are the headings the Arabic storefront prints above each section, so they
+# are written in Arabic here rather than left in the template's English — a section that
+# does render should not be the one English heading on the page. They match the
+# storefront's own fallback headings, and the owner can rename any of them in Admin.
 home_sections:
   - key: "hero"
     type: "promo_banner"
-    title: "Featured"
+    title: "عروض المتجر"
     sort_order: 0
   - key: "categories"
     type: "categories"
-    title: "Shop by category"
+    title: "تسوّق حسب القسم"
     sort_order: 1
   - key: "packages"
     type: "packages"
-    title: "Starter packages"
+    title: "باقات جاهزة"
     sort_order: 2
     requires_feature: "packages"
   - key: "molds"
     type: "silicone_molds"
-    title: "Silicone moulds"
+    title: "قوالب سيليكون"
     sort_order: 3
     requires_feature: "silicone_molds"
   - key: "featured"
     type: "featured_products"
-    title: "Selected products"
+    title: "منتجات مختارة"
     sort_order: 4
   - key: "new"
     type: "new_products"
-    title: "New arrivals"
+    title: "وصل حديثاً"
     sort_order: 5
   - key: "bestsellers"
     type: "bestsellers"
-    title: "Best sellers"
+    title: "الأكثر مبيعاً"
     sort_order: 6
 
-# Created empty, for the owner to fill in through Admin. The storefront footer links to
-# about, privacy-policy, return-policy and terms, so leaving them out creates dead ends.
+# The client's approved policy copy, as written by them. Spreadsheet-only formatting
+# (markdown asterisks, stray list numbering, decorative characters) has been removed so
+# the text renders as paragraphs, and nothing has been rewritten or added — these are
+# legal statements and the wording is the client's.
+#
+# A page is filled here only while its body is still blank. Once anyone edits it in
+# Admin, bootstrap leaves it alone; later changes to the copy are made in Admin, not by
+# re-applying this file.
 static_pages:
   - slug: "about"
-    title: "About us"
-    lead: "Tell customers who you are."
+    title: "من نحن"
+    lead: "TARA — تصميم وصناعة منتجات يدوية بتفاصيل مصنوعة بعناية."
+    content: |
+      TARA هي براند متخصصة في تصميم وصناعة المنتجات اليدوية، حيث نبتكر قطعًا تحمل طابعًا خاصًا يجمع بين البساطة، الجمال والتفاصيل المصنوعة بعناية لتناسب الذوق الشخصي الفريد لكل مِنّا.
+
+      من خلال موقع TARA الإلكتروني، نقدم مجموعاتنا ومنتجاتنا لعملائنا، ونسعى إلى توفير تجربة تسوق موثوقة وسلسة تعكس هوية العلامة وقيمها.
   - slug: "privacy-policy"
-    title: "Privacy policy"
-    lead: "How customer data is handled."
+    title: "سياسة الخصوصية"
+    lead: "كيف نتعامل مع معلوماتكم."
+    content: |
+      نقدّر في TARA ثقتكم بنا، ونحرص على حماية خصوصيتكم والتعامل مع معلوماتكم بمسؤولية وشفافية.
+
+      تُستخدم المعلومات المقدمة عبر موقعنا بما يخدم تجربتكم مع TARA، بدءًا من إتمام الطلب وحتى وصوله إليكم، مع الحرص على الحفاظ على خصوصيتها وعدم استخدامها خارج نطاق الخدمات المقدمة لكم.
   - slug: "return-policy"
-    title: "Returns and exchanges"
-    lead: "Return window and conditions."
+    title: "سياسة الاستبدال والاسترجاع"
+    lead: "شروط الاستبدال والاسترجاع لمنتجات TARA اليدوية."
+    content: |
+      نظرًا لطبيعة منتجات TARA وحساسية القطع وكونها مصنوعة ومجهزة يدويًا بعناية، لا يمكن استبدال أو إرجاع المنتجات بعد تأكيد الطلب أو استلامه.
+
+      يُستثنى من ذلك وصول المنتج بحالة تالفة أو وصول منتج مختلف عن الطلب. في هذه الحالة، يرجى التواصل مع TARA خلال 24 ساعة من استلام الطلب وإرفاق صور واضحة توضح حالة المنتج، ليتم مراجعة الحالة وتقديم الحل المناسب.
+
+      ولا تُعد الاختلافات البسيطة والطبيعية في اللون أو الشكل أو القياس أو التفاصيل الناتجة عن طبيعة التصنيع اليدوي عيبًا أو تلفًا في المنتج.
+
+      نرجو التأكد من تفاصيل المنتج والمواصفات المطلوبة قبل تأكيد الطلب.
   - slug: "terms"
-    title: "Terms and conditions"
-    lead: "Terms of using this store."
+    title: "الشروط والأحكام"
+    lead: "شروط الطلب والشراء من TARA."
+    content: |
+      الطلب وتأكيده
+
+      يُعتبر الطلب مؤكدًا بعد استكماله واعتماده من TARA، سواء تم عبر الموقع الإلكتروني أو صفحاتنا على مواقع التواصل الاجتماعي.
+
+      إلغاء الطلب
+
+      بعد تأكيد واعتماد الطلب تبدأ إجراءات تجهيزه، ولذلك لا يمكن إلغاؤه. نرجو التأكد من المنتجات والكميات والتفاصيل ومعلومات التوصيل قبل تأكيد الطلب.
+
+      توفر المنتجات ومدة التجهيز
+
+      نظرًا لأن بعض منتجات TARA مصنوعة يدويًا أو متوفرة بكميات محدودة، فقد تنفد بعض المنتجات أو تحتاج إلى وقت إضافي للتصنيع والتجهيز قبل الشحن.
+
+      الأسعار
+
+      الأسعار المعروضة على الموقع هي الأسعار المعتمدة وقت إجراء الطلب. ويحق لـ TARA تعديل الأسعار مستقبلًا دون أن يؤثر ذلك على الطلبات التي تم تأكيدها مسبقًا.
+
+      حقوق المحتوى والتصاميم
+
+      جميع الصور والتصاميم والنصوص والمحتوى الخاص بـ TARA مملوكة لها، ولا يجوز نسخها أو استخدامها لأغراض تجارية دون إذن مسبق.
   - slug: "shipping-policy"
-    title: "Shipping policy"
-    lead: "Delivery areas and timescales."
+    title: "سياسة الشحن والتوصيل"
+    lead: "تكلفة ومدة التوصيل وحدود التوصيل المجاني."
+    content: |
+      تختلف تكلفة ومدة التوصيل حسب المنطقة، ويتم احتساب تكلفة التوصيل وفقًا للوجهة المحددة في الطلب.
+
+      التوصيل المجاني
+
+      توفر TARA خدمة التوصيل المجاني للطلبات بقيمة:
+
+      • 220 شيكل فأكثر لمناطق الضفة الغربية والقدس.
+
+      • 400 شيكل فأكثر لمناطق الداخل.
+
+      أما الطلبات التي تقل عن هذه القيم، فتُضاف إليها تكلفة التوصيل المعتمدة حسب المنطقة.
+
+      معلومات التوصيل
+
+      يتحمل العميل مسؤولية إدخال الاسم، رقم الهاتف والعنوان بشكل صحيح وكامل لضمان وصول الطلب.
+
+      تعذّر تسليم الطلب
+
+      يرجى الحرص على الرد على شركة التوصيل عند التواصل لتسليم الطلب.
+
+      في حال محاولة شركة التوصيل التواصل مع العميل عدة مرات دون استجابة، مما يؤدي إلى تعذّر التسليم وإعادة الطلب، تحتفظ TARA بحق عدم قبول طلبات مستقبلية من العميل ذاته.
+  # The workbook's contact answer still carries unfinished placeholders — "[رقم التواصل]",
+  # "[اسم الحساب]" — so none of it is published. What is here is only what the client has
+  # actually confirmed: the WhatsApp line, that TARA is an online store, and the working
+  # hours. The /contact screen itself reads the phone, WhatsApp and hours from store
+  # settings, so there is one source for them and no invented address, map or email.
   - slug: "contact"
-    title: "Contact us"
-    lead: "How to reach the store."
+    title: "تواصل معنا"
+    lead: "يسعدنا تواصلكم مع TARA لأي استفسار حول المنتجات أو الطلبات. TARA متجر إلكتروني، ويمكنكم تقديم طلباتكم عبر الموقع في أي وقت."
+    content: |
+      يسعدنا تواصلكم مع TARA لأي استفسار حول المنتجات، الطلبات أو خدماتنا.
+
+      TARA متجر إلكتروني، ويمكنكم تقديم طلباتكم عبر الموقع في أي وقت.
+
+      للتواصل والاستفسار عبر واتساب: 970594402699
+
+      ساعات العمل: من الساعة العاشرة صباحا حتى السابعة مساء. يمكنكم تقديم الطلبات عبر موقع TARA في أي وقت، وسيتم الرد على الاستفسارات ومتابعة الطلبات خلال ساعات العمل.
+
+# The client's delivery table. "لا يوجد حد أدنى للطلب" is the absence of a minimum, so
+# min_order_amount stays null rather than becoming a zero; the free-delivery thresholds
+# are what the pricing service already charges against, not a display string.
+delivery_areas:
+  - name: "الضفة"
+    delivery_fee: 25
+    min_order_amount: null
+    free_delivery_threshold: 220
+    estimated_days: "3 أيام عمل"
+    is_active: true
+    sort_order: 1
+  - name: "القدس"
+    delivery_fee: 35
+    min_order_amount: null
+    free_delivery_threshold: 220
+    estimated_days: "3 أيام عمل"
+    is_active: true
+    sort_order: 2
+  - name: "الداخل"
+    delivery_fee: 80
+    min_order_amount: null
+    free_delivery_threshold: 400
+    estimated_days: "3 أيام عمل"
+    is_active: true
+    sort_order: 3

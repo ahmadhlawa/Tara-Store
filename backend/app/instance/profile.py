@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -118,10 +119,34 @@ class HomeSectionProfile(_Strict):
         return value
 
 
+class DeliveryAreaProfile(_Strict):
+    """One row of the store's delivery table.
+
+    Delivery areas are store configuration, not commercial content: a store cannot
+    take an order without at least one, and the values are the client's own, so they
+    belong in the profile beside the currency and the contact details rather than in
+    the demo seed.
+    """
+
+    name: str = Field(min_length=1, max_length=150)
+    delivery_fee: Decimal = Field(ge=0)
+    # Both of these are genuinely optional. "no minimum" is the absence of a number,
+    # never a zero and never the client's prose.
+    min_order_amount: Decimal | None = Field(default=None, ge=0)
+    free_delivery_threshold: Decimal | None = Field(default=None, ge=0)
+    estimated_days: str | None = Field(default=None, max_length=100)
+    is_active: bool = True
+    sort_order: int = 0
+
+
 class StaticPageProfile(_Strict):
     slug: str = Field(max_length=160)
     title: str = Field(max_length=250)
     lead: str | None = None
+    # The page body. Blank lines separate paragraphs, which is what the storefront
+    # renders; the profile carries the client's approved copy so the published text
+    # is reviewable and reproducible rather than typed straight into a database.
+    content: str | None = None
     is_published: bool = True
 
     @field_validator("slug")
@@ -180,6 +205,7 @@ class InstanceProfile(_Strict):
     features: dict[str, bool] = Field(default_factory=dict)
     home_sections: list[HomeSectionProfile] = Field(default_factory=list)
     static_pages: list[StaticPageProfile] = Field(default_factory=list)
+    delivery_areas: list[DeliveryAreaProfile] = Field(default_factory=list)
 
     @field_validator("profile_schema_version")
     @classmethod
@@ -227,6 +253,15 @@ class InstanceProfile(_Strict):
         duplicates = sorted({slug for slug in slugs if slugs.count(slug) > 1})
         if duplicates:
             raise ValueError(f"duplicate static page slug(s): {duplicates}")
+        return value
+
+    @field_validator("delivery_areas")
+    @classmethod
+    def _unique_area_names(cls, value: list[DeliveryAreaProfile]) -> list[DeliveryAreaProfile]:
+        names = [area.name for area in value]
+        duplicates = sorted({name for name in names if names.count(name) > 1})
+        if duplicates:
+            raise ValueError(f"duplicate delivery area name(s): {duplicates}")
         return value
 
     def enabled_features(self) -> list[str]:

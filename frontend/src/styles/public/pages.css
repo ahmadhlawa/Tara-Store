@@ -461,6 +461,36 @@
   line-height: 1.7;
 }
 
+/* The free-delivery rule, in the cart drawer, the cart page and the checkout
+   summary. A quiet lilac card until the threshold is met, and the success green
+   only once it actually is — the colour is the answer, not decoration. */
+.vs-freeship {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--vs-border-accent);
+  border-radius: var(--vs-r-md);
+  background: var(--vs-surface-2);
+}
+
+.vs-freeship__title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--vs-primary);
+}
+
+.vs-freeship__row {
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--vs-ink-2);
+}
+
+.vs-freeship__row.is-reached {
+  color: var(--vs-success);
+  font-weight: 700;
+}
+
 .vs-coupon {
   display: flex;
   gap: 8px;
