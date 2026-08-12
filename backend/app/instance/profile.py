@@ -79,7 +79,7 @@ class ContactProfile(_Strict):
 
 
 class ThemeProfile(_Strict):
-    primary_color: str = "#7D595B"
+    primary_color: str = "#7F568F"
     secondary_color: str = "#D19F57"
     accent_color: str = "#4C7C63"
 

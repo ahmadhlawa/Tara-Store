@@ -76,7 +76,7 @@ export function MediaPickerDialog({ onSelect, onClose, initialUrl = null }) {
         <Button variant="secondary" disabled={uploading} onClick={() => fileRef.current?.click()}>
           {uploading ? "جارٍ الرفع…" : "رفع صورة جديدة"}
         </Button>
-        <span style={sx`font-size:12px;color:#8B7A7E`}>JPEG، PNG، WebP، GIF، ICO — بحد أقصى ٥ ميغابايت.</span>
+        <span style={sx`font-size:12px;color:#8A7F95`}>JPEG، PNG، WebP، GIF، ICO — بحد أقصى ٥ ميغابايت.</span>
       </div>
 
       <input
@@ -115,10 +115,10 @@ export function MediaPickerDialog({ onSelect, onClose, initialUrl = null }) {
                 aria-pressed={active}
                 onClick={() => setSelected(asset.url)}
                 onDoubleClick={() => onSelect(asset.url)}
-                style={sx`text-align:start;padding:0;background:#fff;cursor:pointer;border-radius:12px;overflow:hidden;font-family:inherit;display:flex;flex-direction:column;border:2px solid ${active ? "#7D595B" : "#E9DED0"};box-shadow:${active ? "0 0 0 3px rgba(125,89,91,.16)" : "none"}`}
+                style={sx`text-align:start;padding:0;background:#fff;cursor:pointer;border-radius:12px;overflow:hidden;font-family:inherit;display:flex;flex-direction:column;border:2px solid ${active ? "#7F568F" : "#E7DCF2"};box-shadow:${active ? "0 0 0 3px rgba(127,86,143,.16)" : "none"}`}
               >
                 <span style={sx`aspect-ratio:1 / 1;background:#F5EDE3 url("${asset.url}") center/cover no-repeat`}></span>
-                <span style={sx`padding:8px;font-size:11.5px;color:#5C4D4F;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`}>
+                <span style={sx`padding:8px;font-size:11.5px;color:#4B4155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`}>
                   {asset.original_filename}
                 </span>
               </button>
@@ -145,7 +145,7 @@ export function MediaField({ title, hint, value, onChange }) {
     <div style={{ ...label, gap: "8px" }}>
       <span>{title}</span>
       {value ? (
-        <div style={sx`display:flex;gap:10px;align-items:center;border:1px solid #E9DED0;border-radius:10px;padding:8px;background:#FDF8F2`}>
+        <div style={sx`display:flex;gap:10px;align-items:center;border:1px solid #E7DCF2;border-radius:10px;padding:8px;background:#FAF7FD`}>
           <span style={sx`width:56px;height:56px;flex:0 0 auto;border-radius:8px;background:#F5EDE3 url("${value}") center/cover no-repeat`}></span>
           <span style={sx`flex:1;min-width:0;font-size:11.5px;font-weight:400;color:#766669;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`} title={value}>
             {value}
@@ -155,7 +155,7 @@ export function MediaField({ title, hint, value, onChange }) {
           </Button>
         </div>
       ) : (
-        <span style={sx`font-size:12px;font-weight:400;color:#8B7A7E`}>لا توجد صورة محددة.</span>
+        <span style={sx`font-size:12px;font-weight:400;color:#8A7F95`}>لا توجد صورة محددة.</span>
       )}
 
       <div style={sx`display:flex;gap:8px;flex-wrap:wrap`}>
@@ -178,7 +178,7 @@ export function MediaField({ title, hint, value, onChange }) {
         />
       )}
 
-      {hint && <span style={sx`font-size:11.5px;font-weight:400;color:#8B7A7E`}>{hint}</span>}
+      {hint && <span style={sx`font-size:11.5px;font-weight:400;color:#8A7F95`}>{hint}</span>}
 
       {picking && (
         <MediaPickerDialog

@@ -132,7 +132,7 @@ def test_the_shipped_tara_profile_applies(cli_env, capsys) -> None:
         # Through the CLI, which is how an instance is actually stood up: the
         # branding a fresh Tara store comes online with is whatever this writes.
         settings_row = db.execute(select(StoreSettings)).scalar_one()
-        assert settings_row.primary_color == "#7D595B"
+        assert settings_row.primary_color == "#7F568F"
         assert settings_row.secondary_color == "#D19F57"
         assert settings_row.accent_color == "#4C7C63"
         # Identity only — the catalogue is the separate demo seed.

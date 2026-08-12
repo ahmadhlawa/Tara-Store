@@ -282,7 +282,7 @@ def test_a_fresh_instance_is_branded_Tara_without_a_manual_edit(db: Session) -> 
 
     row = db.execute(select(StoreSettings)).scalar_one()
     assert (row.primary_color, row.secondary_color, row.accent_color) == (
-        "#7D595B",
+        "#7F568F",
         "#D19F57",
         "#4C7C63",
     )

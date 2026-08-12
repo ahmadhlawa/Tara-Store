@@ -126,11 +126,11 @@ export default function MediaPage() {
         ) : (
           <div style={sx`display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px`}>
             {items.map((asset) => (
-              <div key={asset.id} style={sx`border:1px solid #E9DED0;border-radius:12px;overflow:hidden;display:flex;flex-direction:column`}>
+              <div key={asset.id} style={sx`border:1px solid #E7DCF2;border-radius:12px;overflow:hidden;display:flex;flex-direction:column`}>
                 <span style={sx`aspect-ratio:1 / 1;background:url("${asset.url}") center/cover no-repeat;background-color:#F5EDE3`}></span>
                 <div style={sx`padding:10px;display:flex;flex-direction:column;gap:8px`}>
                   <span style={sx`font-size:12px;color:#766669;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`}>{asset.original_filename}</span>
-                  <span style={sx`font-size:11.5px;color:#8B7A7E`}>{Math.round(asset.size_bytes / 1024)} كيلوبايت</span>
+                  <span style={sx`font-size:11.5px;color:#8A7F95`}>{Math.round(asset.size_bytes / 1024)} كيلوبايت</span>
                   {editing === asset.id ? (
                     <>
                       <input aria-label="اسم الملف" value={filename} onChange={(event) => setFilename(event.target.value)} style={sx`width:100%;padding:8px;border:1px solid #DCCDBC;border-radius:8px;font:inherit;font-size:12px`} />

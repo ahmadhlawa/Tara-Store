@@ -52,14 +52,15 @@ contact:
   instagram_url: null
   facebook_url: null
 
-# Sampled from the Tara logo: deep mauve, warm gold, muted sage. These are what a
-# fresh bootstrap writes into store settings, and they must stay in step with the
-# storefront's own fallbacks (frontend/src/styles/public/tokens.css) and the
-# shipped column defaults (app/models/store.py) — a mismatch shows up as the
-# storefront changing colour the moment settings load. The owner can restyle all
-# three in Admin afterwards.
+# The client's approved palette: deep lilac as the brand, gold kept back as a
+# special accent, muted sage for success. These are what a fresh bootstrap writes
+# into store settings, and they must stay in step with the storefront's own
+# fallbacks (frontend/src/styles/public/tokens.css) and the shipped column
+# defaults (app/models/store.py) — a mismatch shows up as the storefront changing
+# colour the moment settings load. The owner can restyle all three in Admin
+# afterwards.
 theme:
-  primary_color: "#7D595B"
+  primary_color: "#7F568F"
   secondary_color: "#D19F57"
   accent_color: "#4C7C63"
 

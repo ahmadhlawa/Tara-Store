@@ -49,7 +49,7 @@ export default function ProductImageGallery({ images, onReorder, onDelete }) {
   };
 
   if (!order.length) {
-    return <span style={sx`font-size:13px;color:#8B7A7E`}>لا توجد صور بعد — سيظهر المنتج بخلفية متدرجة.</span>;
+    return <span style={sx`font-size:13px;color:#8A7F95`}>لا توجد صور بعد — سيظهر المنتج بخلفية متدرجة.</span>;
   }
 
   return (
@@ -71,11 +71,11 @@ export default function ProductImageGallery({ images, onReorder, onDelete }) {
             setDragging(null);
           }}
           onDragEnd={() => setDragging(null)}
-          style={sx`width:140px;display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid ${index === 0 ? "#7D595B" : "#E9DED0"};border-radius:12px;background:#fff;opacity:${dragging === index ? 0.5 : 1}`}
+          style={sx`width:140px;display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid ${index === 0 ? "#7F568F" : "#E7DCF2"};border-radius:12px;background:#fff;opacity:${dragging === index ? 0.5 : 1}`}
         >
           <span
             title="اسحب لإعادة الترتيب"
-            style={sx`cursor:grab;font-size:13px;color:#8B7A7E;letter-spacing:2px;text-align:center;user-select:none`}
+            style={sx`cursor:grab;font-size:13px;color:#8A7F95;letter-spacing:2px;text-align:center;user-select:none`}
           >
             ⠿
           </span>
@@ -83,7 +83,7 @@ export default function ProductImageGallery({ images, onReorder, onDelete }) {
           {index === 0 ? (
             <Badge tone="good">الصورة الرئيسية</Badge>
           ) : (
-            <span style={sx`font-size:11.5px;color:#8B7A7E;text-align:center`}>الترتيب {index + 1}</span>
+            <span style={sx`font-size:11.5px;color:#8A7F95;text-align:center`}>الترتيب {index + 1}</span>
           )}
           <div style={sx`display:flex;gap:6px`}>
             <Button

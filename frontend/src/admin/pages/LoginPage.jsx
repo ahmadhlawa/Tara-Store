@@ -34,18 +34,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={sx`direction:rtl;min-height:100vh;background:#FDF8F2;display:flex;align-items:center;justify-content:center;padding:20px`}>
+    <div style={sx`direction:rtl;min-height:100vh;background:#FFFFFF;display:flex;align-items:center;justify-content:center;padding:20px`}>
       {/* One gold hairline across the top of the card and the logo above the
           heading: enough for the page to belong to Tara without turning a
           credentials form into a brand showcase. */}
-      <form onSubmit={submit} style={sx`background:#fff;border:1px solid #E9DED0;border-top:2px solid #D19F57;border-radius:16px;padding:28px;width:min(420px,100%);display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 50px rgba(93,68,70,.10)`}>
+      <form onSubmit={submit} style={sx`background:#fff;border:1px solid #E7DCF2;border-top:2px solid #D19F57;border-radius:16px;padding:28px;width:min(420px,100%);display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 50px rgba(127,86,143,.10)`}>
         <div style={sx`display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center`}>
           <img
             src={LOGO_URL}
             alt={STORE_NAME_AR}
             style={sx`width:104px;height:104px;object-fit:contain;display:block`}
           />
-          <h1 style={sx`margin:0;font-size:22px;font-weight:800;color:#7D595B`}>تسجيل دخول الإدارة</h1>
+          <h1 style={sx`margin:0;font-size:22px;font-weight:800;color:#7F568F`}>تسجيل دخول الإدارة</h1>
           <p style={sx`margin:0;font-size:13.5px;color:#766669`}>هذه الصفحة مخصّصة لمدراء المتجر فقط.</p>
         </div>
         {error && <Notice kind="error">{error}</Notice>}
@@ -62,7 +62,7 @@ export default function LoginPage() {
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          style={sx`align-self:center;display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:700;color:#7D595B;text-decoration:none`}
+          style={sx`align-self:center;display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:700;color:#7F568F;text-decoration:none`}
         >
           <span aria-hidden="true">🛍</span>
           العودة إلى الموقع

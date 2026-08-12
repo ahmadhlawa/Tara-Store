@@ -55,7 +55,7 @@ def test_the_shipped_tara_profile_carries_the_tara_palette() -> None:
     fresh bootstrap wrote #1F4E4A into store settings and the storefront came up in
     the source project's colours with nothing in the frontend able to stop it."""
     profile = load_profile(TARA_PROFILE)
-    assert profile.theme.primary_color == "#7D595B"
+    assert profile.theme.primary_color == "#7F568F"
     assert profile.theme.secondary_color == "#D19F57"
     assert profile.theme.accent_color == "#4C7C63"
 

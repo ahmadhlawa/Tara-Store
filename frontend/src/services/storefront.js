@@ -17,7 +17,7 @@ import { formatDate, readingTime } from "../utils/format.js";
 export const FALLBACK_SETTINGS = {
   store_name: STORE_NAME_LATIN,
   currency_symbol: "₪",
-  primary_color: "#7D595B",
+  primary_color: "#7F568F",
   secondary_color: "#D19F57",
   accent_color: "#4C7C63",
   maintenance_mode: false,
@@ -66,18 +66,19 @@ export function normalizeSettings(raw) {
 
 // Artwork-less records fall back to a Tara tone gradient rather than a blank
 // panel; the components render a real <img> whenever a URL exists so the
-// browser can lazy-load and size it. Mauve into cream with a touch of gold —
-// considered enough to stand in for artwork, never mistakable for the real
-// promotional banners still to come.
+// browser can lazy-load and size it. The client's two sanctioned lilac gradients
+// with one gold variant held back for a highlight — considered enough to stand
+// in for artwork, never mistakable for the real promotional banners still to
+// come.
 const HERO_FALLBACKS = [
-  "linear-gradient(115deg,#7d595b 0%,#ab8a91 52%,#f7ebdf 145%)",
-  "linear-gradient(115deg,#967474 0%,#c9b4ba 55%,#eecc94 150%)",
-  "linear-gradient(115deg,#6d5152 0%,#a58a86 55%,#eddbc7 150%)",
+  "linear-gradient(115deg,#7f568f 0%,#b38acf 55%,#d8c2ea 145%)",
+  "linear-gradient(115deg,#b38acf 0%,#d8c2ea 60%,#ffffff 150%)",
+  "linear-gradient(115deg,#6d477c 0%,#a077bd 55%,#d8c2ea 150%)",
 ];
 
 const BANNER_FALLBACKS = [
-  "linear-gradient(150deg,#7d595b,#ab8a91)",
-  "linear-gradient(150deg,#8a6329,#d19f57)",
+  "linear-gradient(150deg,#b38acf,#7f568f)",
+  "linear-gradient(150deg,#d8c2ea,#b38acf)",
 ];
 
 export function normalizeHeroSlide(raw, index) {

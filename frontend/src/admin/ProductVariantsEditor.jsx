@@ -220,7 +220,7 @@ export default function ProductVariantsEditor({
         )}
       </div>
       {!!options.length && (
-        <p style={sx`margin:0;font-size:12.5px;color:#8B7A7E`}>
+        <p style={sx`margin:0;font-size:12.5px;color:#8A7F95`}>
           التوليد ينشئ التركيبات الناقصة فقط بسعر المنتج ومخزون صفر، ولا يغيّر النسخ الموجودة.
         </p>
       )}
@@ -265,7 +265,7 @@ export default function ProductVariantsEditor({
                   type="checkbox"
                   checked={editing.is_active}
                   onChange={(event) => setEditing({ ...editing, is_active: event.target.checked })}
-                  style={sx`width:18px;height:18px;accent-color:#7D595B`}
+                  style={sx`width:18px;height:18px;accent-color:#7F568F`}
                 />
                 فعّالة
               </label>
@@ -313,7 +313,7 @@ export default function ProductVariantsEditor({
           ),
         )}
         {!variants.length && (
-          <span style={sx`font-size:13px;color:#8B7A7E`}>
+          <span style={sx`font-size:13px;color:#8A7F95`}>
             {options.length
               ? "لا توجد نسخ — المنتج له خيارات ولن يمكن شراؤه حتى تُولَّد النسخ."
               : "لا توجد نسخ — سيُباع المنتج بسعر ومخزون واحد."}

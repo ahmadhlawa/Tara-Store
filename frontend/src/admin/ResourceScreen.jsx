@@ -54,12 +54,12 @@ function serialize(fields, values) {
 function FieldControl({ field, value, onChange }) {
   if (field.type === "checkbox") {
     return (
-      <label style={sx`display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#4B3F41;cursor:pointer`}>
+      <label style={sx`display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#3B3243;cursor:pointer`}>
         <input
           type="checkbox"
           checked={!!value}
           onChange={(event) => onChange(event.target.checked)}
-          style={sx`width:18px;height:18px;accent-color:#7D595B;cursor:pointer`}
+          style={sx`width:18px;height:18px;accent-color:#7F568F;cursor:pointer`}
         />
         {field.title}
       </label>

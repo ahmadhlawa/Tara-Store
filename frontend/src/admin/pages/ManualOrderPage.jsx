@@ -23,7 +23,7 @@ function OrderLines({ items, products, catalogQuery, onCatalogQueryChange, onCat
     setProductId("");
   };
   return <section aria-label="أصناف الطلب اليدوي" style={sx`display:flex;flex-direction:column;gap:10px`}>
-    {items.map((item, index) => <fieldset key={`${item.kind}-${item.product_id || index}`} disabled={disabled} style={sx`border:1px solid #E9DED0;border-radius:10px;padding:12px;display:grid;grid-template-columns:minmax(140px,1fr) 90px 120px auto;gap:10px;align-items:end`}>
+    {items.map((item, index) => <fieldset key={`${item.kind}-${item.product_id || index}`} disabled={disabled} style={sx`border:1px solid #E7DCF2;border-radius:10px;padding:12px;display:grid;grid-template-columns:minmax(140px,1fr) 90px 120px auto;gap:10px;align-items:end`}>
       <legend style={sx`font-size:13px;font-weight:800;padding-inline:4px`}>{item.kind === "catalog" ? item.product_name : `صنف يدوي ${index + 1}`}</legend>
       {item.kind === "manual" ? <><Field title="اسم الصنف"><input aria-label={`اسم الصنف اليدوي ${index + 1}`} required value={item.name} onChange={(event) => update(index, { name: event.target.value })} style={input} /></Field><Field title="الوصف"><input aria-label={`وصف الصنف اليدوي ${index + 1}`} value={item.description} onChange={(event) => update(index, { description: event.target.value })} style={input} /></Field></> : <span style={sx`font-size:12px;color:#766669;align-self:center`}>{item.sku || "بدون SKU"}</span>}
       <Field title="الكمية"><input aria-label={`كمية الصنف ${index + 1}`} inputMode="numeric" required value={item.quantity} onChange={(event) => update(index, { quantity: event.target.value })} style={input} /></Field>

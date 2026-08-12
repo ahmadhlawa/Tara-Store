@@ -207,7 +207,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={!!form[key]}
                 onChange={(event) => update(key, event.target.checked)}
-                style={sx`width:18px;height:18px;accent-color:#7D595B`}
+                style={sx`width:18px;height:18px;accent-color:#7F568F`}
               />
               {title}
             </label>
@@ -221,11 +221,11 @@ export default function SettingsPage() {
             type="checkbox"
             checked={!!form.maintenance_mode}
             onChange={(event) => update("maintenance_mode", event.target.checked)}
-            style={sx`width:18px;height:18px;accent-color:#7D595B`}
+            style={sx`width:18px;height:18px;accent-color:#7F568F`}
           />
           وضع الصيانة
         </label>
-        <p style={sx`margin:8px 0 0;font-size:12.5px;color:#8B7A7E`}>يُعلن هذا الحقل عبر واجهة المتجر ليستخدمه المطوّر لاحقاً؛ لا يوقف المتجر تلقائياً في هذه النسخة.</p>
+        <p style={sx`margin:8px 0 0;font-size:12.5px;color:#8A7F95`}>يُعلن هذا الحقل عبر واجهة المتجر ليستخدمه المطوّر لاحقاً؛ لا يوقف المتجر تلقائياً في هذه النسخة.</p>
       </div>
 
       <div style={sx`margin-bottom:30px`}>

@@ -2,7 +2,8 @@
  *
  * The Tara palette is declared for the storefront in src/styles/public/tokens.css
  * and is only echoed here in the handful of document-level values both areas
- * share — the page ground, link colour, focus ring, selection and scrollbar.
+ * share — the white page ground, lilac link colour, focus ring, selection and
+ * scrollbar.
  * These are literals rather than variables because they have to be correct
  * before any React tree (storefront or admin) has mounted.
  *
@@ -20,7 +21,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #fdf8f2;
+  background: #ffffff;
   /* `clip`, not `hidden`: `overflow-x: hidden` makes the body a scroll
      container, which silently disables every `position: sticky` inside it —
      the storefront header included. `clip` keeps the same safety net against a
@@ -41,17 +42,17 @@ html {
 
 body {
   font-family: "Cairo", system-ui, sans-serif;
-  color: #4b3f41;
+  color: #3b3243;
   -webkit-font-smoothing: antialiased;
 }
 
 a {
-  color: #7d595b;
+  color: #7f568f;
   text-decoration: none;
 }
 
 a:hover {
-  color: #614547;
+  color: #6a4478;
 }
 
 button,
@@ -62,19 +63,19 @@ textarea {
 }
 
 :focus-visible {
-  outline: 2px solid #7d595b;
+  outline: 2px solid #7f568f;
   outline-offset: 2px;
   border-radius: 6px;
 }
 
 ::selection {
-  background: #eddbc7;
-  color: #4b3f41;
+  background: #d8c2ea;
+  color: #3b3243;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #8b7a7e;
+  color: #8a7f95;
 }
 
 ::-webkit-scrollbar {
@@ -83,7 +84,7 @@ textarea::placeholder {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #e3d3c2;
+  background: #d8c2ea;
   border-radius: 8px;
 }
 
