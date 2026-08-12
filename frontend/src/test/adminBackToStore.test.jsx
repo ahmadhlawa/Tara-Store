@@ -49,7 +49,7 @@ describe("back to store link", () => {
     stubApi({});
     renderApp("/admin/login");
 
-    expect(document.querySelector('img[src="/branding/tara-logo2.jpeg"]')).not.toBeNull();
+    expect(document.querySelector('img[src="/branding/tara-logo2.png"]')).not.toBeNull();
     expect(await screen.findByRole("heading", { name: "تسجيل دخول الإدارة" })).toBeInTheDocument();
     expectStoreLink(screen.getByRole("link", { name: /العودة إلى الموقع/ }));
     expect(screen.getByRole("button", { name: "دخول" })).toBeInTheDocument();

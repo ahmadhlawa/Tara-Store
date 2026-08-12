@@ -421,7 +421,7 @@ describe("store logo", () => {
     // branding stands in rather than the header going bare.
     expect(document.querySelector(".vs-header .vs-logo__img")).toHaveAttribute(
       "src",
-      "/branding/tara-logo2.jpeg",
+      "/branding/tara-logo2.png",
     );
     // What the store *has* set still wins over the shipped defaults — the
     // fallback fills gaps, it does not overwrite the owner's identity.

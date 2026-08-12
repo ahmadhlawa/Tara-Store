@@ -10,10 +10,13 @@
 // document) and are echoed into StoreSettings' defaults in services/storefront.js
 // so a fresh database boots on brand.
 
-/** The owner's logo, served from public/branding/. Used unedited: never cropped,
- *  recoloured or regenerated. It is a square lockup carrying its own ivory
- *  ground, which is why the storefront header is ivory too. */
-export const LOGO_URL = "/branding/tara-logo2.jpeg";
+/** The owner's logo, served from public/branding/. Never cropped, recoloured or
+ *  regenerated — the only edit is the one the client asked for: the supplied
+ *  JPEG's ivory ground is keyed out, so the PNG shipped here is the same mark on
+ *  transparency and sits on the white page (and on a lilac band) without
+ *  carrying its own square of cream. The original JPEG stays beside it as the
+ *  source file. */
+export const LOGO_URL = "/branding/tara-logo2.png";
 
 /** Arabic is the storefront's own language, so it is the name shown; the latin
  *  form stays the fallback and the document title. */
