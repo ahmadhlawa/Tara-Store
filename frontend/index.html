@@ -8,11 +8,14 @@
          is the one place the client name is hard-coded, and it stays a plain name
          with no unverified claim attached. -->
     <title>Tara Store</title>
-    <!-- The client's supplied favicon, served from public/branding/ and used
-         unedited. StoreSettings' favicon_url still replaces it whenever the
-         owner uploads one. -->
-    <link rel="icon" type="image/png" href="/branding/tara-favicon.png" />
-    <link rel="apple-touch-icon" href="/branding/tara-favicon.png" />
+    <!-- The client's favicon, cropped to the badge and re-weighted per size from
+         branding/tara-favicon.png so the T still reads in a 16px tab. The 32px
+         build carries the tab; 192px covers Android/PWA and the touch icon.
+         StoreSettings' favicon_url still replaces it whenever the owner
+         uploads one. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/branding/tara-favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/branding/tara-favicon-192.png" />
+    <link rel="apple-touch-icon" href="/branding/tara-favicon-192.png" />
     <meta name="theme-color" content="#7F568F" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
