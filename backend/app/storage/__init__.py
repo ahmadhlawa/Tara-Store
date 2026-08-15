@@ -24,11 +24,12 @@ __all__ = [
 def build_storage(config: Settings) -> StorageProvider:
     if config.STORAGE_PROVIDER == StorageProviderName.R2.value:
         return R2StorageProvider(
-            account_id=config.R2_ACCOUNT_ID,
+            endpoint_url=config.R2_ENDPOINT_URL,
             access_key_id=config.R2_ACCESS_KEY_ID,
             secret_access_key=config.R2_SECRET_ACCESS_KEY,
             bucket_name=config.R2_BUCKET_NAME,
             public_base_url=config.R2_PUBLIC_BASE_URL,
+            region_name=config.R2_REGION,
             object_prefix=config.R2_OBJECT_PREFIX,
         )
     return LocalStorageProvider(config.media_root, config.LOCAL_MEDIA_BASE_URL)

@@ -43,18 +43,19 @@ class R2StorageProvider(StorageProvider):
     def __init__(
         self,
         *,
-        account_id: str,
+        endpoint_url: str,
         access_key_id: str,
         secret_access_key: str,
         bucket_name: str,
         public_base_url: str,
+        region_name: str = "auto",
         object_prefix: str = "",
         client: Any | None = None,
     ) -> None:
         missing = [
             field
             for field, value in (
-                ("R2_ACCOUNT_ID", account_id),
+                ("R2_ENDPOINT_URL", endpoint_url),
                 ("R2_ACCESS_KEY_ID", access_key_id),
                 ("R2_SECRET_ACCESS_KEY", secret_access_key),
                 ("R2_BUCKET_NAME", bucket_name),
@@ -66,17 +67,14 @@ class R2StorageProvider(StorageProvider):
             raise R2NotConfiguredError(
                 "R2 storage is selected but not configured. Missing: " + ", ".join(missing)
             )
-        self.account_id = account_id
+        self.endpoint_url = endpoint_url.rstrip("/")
         self.access_key_id = access_key_id
         self.secret_access_key = secret_access_key
         self.bucket_name = bucket_name
         self.public_base_url = public_base_url.rstrip("/")
+        self.region_name = region_name or "auto"
         self.object_prefix = normalize_prefix(object_prefix)
         self._client = client
-
-    @property
-    def endpoint_url(self) -> str:
-        return f"https://{self.account_id}.r2.cloudflarestorage.com"
 
     @property
     def client(self) -> Any:
@@ -94,7 +92,7 @@ class R2StorageProvider(StorageProvider):
                 endpoint_url=self.endpoint_url,
                 aws_access_key_id=self.access_key_id,
                 aws_secret_access_key=self.secret_access_key,
-                region_name="auto",
+                region_name=self.region_name,
                 config=Config(signature_version="s3v4", retries={"max_attempts": 3}),
             )
         return self._client

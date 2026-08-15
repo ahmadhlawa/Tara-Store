@@ -44,11 +44,12 @@ class Settings(BaseSettings):
     LOCAL_MEDIA_BASE_URL: str = "/media"
     MAX_UPLOAD_SIZE_BYTES: int = 5 * 1024 * 1024
 
-    R2_ACCOUNT_ID: str = ""
+    R2_ENDPOINT_URL: str = ""
     R2_ACCESS_KEY_ID: str = ""
     R2_SECRET_ACCESS_KEY: str = ""
     R2_BUCKET_NAME: str = ""
     R2_PUBLIC_BASE_URL: str = ""
+    R2_REGION: str = "auto"
     # Every object this application writes lives under this prefix, and it will not
     # delete anything outside it. Leave empty only for a bucket used by nothing else.
     R2_OBJECT_PREFIX: str = ""

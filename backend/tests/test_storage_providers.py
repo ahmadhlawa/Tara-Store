@@ -22,12 +22,20 @@ from app.services.placeholder_image import gradient_png
 
 R2_ENV = {
     "STORAGE_PROVIDER": "r2",
-    "R2_ACCOUNT_ID": "account",
+    "R2_ENDPOINT_URL": "https://account.r2.cloudflarestorage.com",
     "R2_ACCESS_KEY_ID": "key-id",
     "R2_SECRET_ACCESS_KEY": "secret",
     "R2_BUCKET_NAME": "bucket",
     "R2_PUBLIC_BASE_URL": "https://media.example.test",
     "R2_OBJECT_PREFIX": "vista-store/",
+}
+
+R2_EMPTY_ENV = {
+    "R2_ENDPOINT_URL": "",
+    "R2_ACCESS_KEY_ID": "",
+    "R2_SECRET_ACCESS_KEY": "",
+    "R2_BUCKET_NAME": "",
+    "R2_PUBLIC_BASE_URL": "",
 }
 
 
@@ -64,7 +72,7 @@ def stub() -> StubS3Client:
 @pytest.fixture()
 def r2(stub: StubS3Client) -> R2StorageProvider:
     return R2StorageProvider(
-        account_id="account",
+        endpoint_url="https://account.r2.cloudflarestorage.com",
         access_key_id="key-id",
         secret_access_key="secret",
         bucket_name="bucket",
@@ -76,7 +84,7 @@ def r2(stub: StubS3Client) -> R2StorageProvider:
 
 # ── provider selection ───────────────────────────────────────────────────────
 def test_default_configuration_selects_local_storage(tmp_path: Path) -> None:
-    config = Settings(LOCAL_MEDIA_ROOT=str(tmp_path))
+    config = Settings(STORAGE_PROVIDER="local", LOCAL_MEDIA_ROOT=str(tmp_path))
     provider = build_storage(config)
     assert isinstance(provider, LocalStorageProvider)
     assert provider.name == StorageProviderName.LOCAL.value
@@ -86,19 +94,26 @@ def test_r2_configuration_selects_the_r2_provider() -> None:
     provider = build_storage(Settings(**R2_ENV))
     assert isinstance(provider, R2StorageProvider)
     assert provider.name == StorageProviderName.R2.value
+    assert provider.endpoint_url == "https://account.r2.cloudflarestorage.com"
+    assert provider.region_name == "auto"
     assert provider.object_prefix == "vista-store/"
 
 
 def test_selecting_r2_without_credentials_fails_loudly_and_names_what_is_missing() -> None:
     with pytest.raises(R2NotConfiguredError) as exc:
-        build_storage(Settings(STORAGE_PROVIDER="r2"))
+        build_storage(Settings(STORAGE_PROVIDER="r2", **R2_EMPTY_ENV))
     message = str(exc.value)
-    assert "R2_ACCOUNT_ID" in message and "R2_BUCKET_NAME" in message
+    assert "R2_ENDPOINT_URL" in message and "R2_BUCKET_NAME" in message
 
 
 def test_the_error_never_contains_a_credential_value() -> None:
     with pytest.raises(R2NotConfiguredError) as exc:
-        build_storage(Settings(STORAGE_PROVIDER="r2", R2_ACCESS_KEY_ID="super-secret-value"))
+        build_storage(
+            Settings(
+                STORAGE_PROVIDER="r2",
+                **(R2_EMPTY_ENV | {"R2_ACCESS_KEY_ID": "super-secret-value"}),
+            )
+        )
     assert "super-secret-value" not in str(exc.value)
 
 
@@ -240,7 +255,7 @@ def test_a_failing_upload_is_reported_without_the_credential() -> None:
             raise RuntimeError("AccessDenied for secret-value")
 
     provider = R2StorageProvider(
-        account_id="account",
+        endpoint_url="https://account.r2.cloudflarestorage.com",
         access_key_id="secret-value",
         secret_access_key="secret-value",
         bucket_name="bucket",
@@ -253,8 +268,9 @@ def test_a_failing_upload_is_reported_without_the_credential() -> None:
     assert "secret-value" not in str(exc.value)
 
 
-def test_endpoint_is_derived_from_the_account_id(r2: R2StorageProvider) -> None:
+def test_endpoint_and_region_are_configurable(r2: R2StorageProvider) -> None:
     assert r2.endpoint_url == "https://account.r2.cloudflarestorage.com"
+    assert r2.region_name == "auto"
 
 
 # ── local storage keeps working ──────────────────────────────────────────────
