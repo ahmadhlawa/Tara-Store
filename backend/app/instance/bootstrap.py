@@ -94,9 +94,16 @@ def _settings_updates(row: StoreSettings, profile: InstanceProfile) -> dict[str,
         "whatsapp": profile.contact.whatsapp,
         "email": profile.contact.email,
         "address": profile.contact.address,
+        "location_url": profile.contact.location_url,
         "working_hours": profile.contact.working_hours,
         "instagram_url": profile.contact.instagram_url,
         "facebook_url": profile.contact.facebook_url,
+        "tiktok_url": profile.contact.tiktok_url,
+        "youtube_url": profile.contact.youtube_url,
+        "instagram_visible": profile.contact.instagram_visible,
+        "facebook_visible": profile.contact.facebook_visible,
+        "tiktok_visible": profile.contact.tiktok_visible,
+        "youtube_visible": profile.contact.youtube_visible,
     }
     return {
         attribute: value

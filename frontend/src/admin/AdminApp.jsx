@@ -11,7 +11,6 @@ import {
   ArticlesPage,
   BannersPage,
   HeroSlidesPage,
-  HomeSectionsPage,
   StaticPagesPage,
 } from "./pages/ContentScreens.jsx";
 import { OrderDetailPage, OrdersPage } from "./pages/OrdersPages.jsx";
@@ -70,7 +69,6 @@ export default function AdminApp() {
           <Route path="delivery" element={<DeliveryAreasPage />} />
           <Route path="hero" element={<HeroSlidesPage />} />
           <Route path="banners" element={<BannersPage />} />
-          <Route path="home" element={<HomeSectionsPage />} />
           <Route path="articles" element={<ArticlesPage />} />
           <Route path="pages" element={<StaticPagesPage />} />
           <Route path="media" element={<MediaPage />} />

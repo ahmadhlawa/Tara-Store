@@ -21,7 +21,7 @@ def _reject_markup(value: str, field: str) -> str:
 
 # ── Hero slides ───────────────────────────────────────────────────────────────
 class HeroSlideBase(APIModel):
-    title: str = Field(min_length=1, max_length=250)
+    title: str = Field(default="", max_length=250)
     subtitle: str | None = Field(default=None, max_length=250)
     description: str | None = None
     image_url: str | None = Field(default=None, max_length=500)
@@ -40,7 +40,7 @@ class HeroSlideBase(APIModel):
 
 
 class HeroSlideCreate(HeroSlideBase):
-    pass
+    image_url: str = Field(min_length=1, max_length=500)
 
 
 class HeroSlideUpdate(APIModel):

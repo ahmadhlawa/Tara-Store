@@ -23,6 +23,10 @@ STORE_SETTINGS_DEFAULTS: dict[str, object] = {
     "secondary_color": "#D19F57",
     "accent_color": "#4C7C63",
     "maintenance_mode": False,
+    "instagram_visible": True,
+    "facebook_visible": True,
+    "tiktok_visible": True,
+    "youtube_visible": True,
     "invoice_prefix": DEFAULT_INVOICE_PREFIX,
     "tax_enabled": False,
     "tax_rate": Decimal("0.000"),
@@ -54,6 +58,10 @@ class StoreSettings(TimestampMixin, Base):
     facebook_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     tiktok_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     youtube_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    instagram_visible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    facebook_visible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    tiktok_visible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    youtube_visible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     currency_code: Mapped[str] = mapped_column(String(8), default="ILS", nullable=False)
     currency_symbol: Mapped[str] = mapped_column(String(8), default="₪", nullable=False)

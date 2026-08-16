@@ -49,11 +49,6 @@ export const adminApi = {
   updateBanner: (id, payload) => api.patch(`/admin/banners/${id}`, payload, authed),
   deleteBanner: (id) => api.delete(`/admin/banners/${id}`, authed),
 
-  listHomeSections: () => api.get("/admin/home-sections", authed),
-  createHomeSection: (payload) => api.post("/admin/home-sections", payload, authed),
-  updateHomeSection: (id, payload) => api.patch(`/admin/home-sections/${id}`, payload, authed),
-  deleteHomeSection: (id) => api.delete(`/admin/home-sections/${id}`, authed),
-
   listCoupons: (params) => api.get("/admin/coupons", withParams(params)),
   createCoupon: (payload) => api.post("/admin/coupons", payload, authed),
   updateCoupon: (id, payload) => api.patch(`/admin/coupons/${id}`, payload, authed),

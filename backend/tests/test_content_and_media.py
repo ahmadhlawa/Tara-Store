@@ -60,6 +60,57 @@ def test_settings_are_created_on_first_admin_read_and_can_be_updated(
     assert bad_colour.status_code == 422
 
 
+def test_social_links_and_visibility_round_trip_without_leaking_private_settings(
+    client: TestClient, admin_token: str
+) -> None:
+    updated = client.patch(
+        "/api/v1/admin/settings",
+        headers=auth(admin_token),
+        json={
+            "instagram_url": "https://instagram.com/tara",
+            "instagram_visible": True,
+            "facebook_url": "https://facebook.com/tara",
+            "facebook_visible": False,
+            "tiktok_url": None,
+            "tiktok_visible": True,
+            "youtube_url": "https://youtube.com/@tara",
+            "youtube_visible": True,
+            "order_notifications_email": "ops@example.com",
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["facebook_visible"] is False
+
+    public = client.get("/api/v1/store/settings").json()
+    assert public["instagram_url"] == "https://instagram.com/tara"
+    assert public["instagram_visible"] is True
+    assert public["facebook_visible"] is False
+    assert public["tiktok_url"] is None
+    assert public["tiktok_visible"] is True
+    assert public["youtube_visible"] is True
+    assert "order_notifications_email" not in public
+
+
+def test_location_url_can_be_cleared_and_restored_through_store_settings(
+    client: TestClient, admin_token: str
+) -> None:
+    location = "https://www.openstreetmap.org/export/embed.html?bbox=35.20%2C31.76%2C35.22%2C31.78"
+    assert client.patch(
+        "/api/v1/admin/settings", headers=auth(admin_token), json={"location_url": location}
+    ).status_code == 200
+    assert client.get("/api/v1/store/settings").json()["location_url"] == location
+
+    assert client.patch(
+        "/api/v1/admin/settings", headers=auth(admin_token), json={"location_url": None}
+    ).status_code == 200
+    assert client.get("/api/v1/store/settings").json()["location_url"] is None
+
+    assert client.patch(
+        "/api/v1/admin/settings", headers=auth(admin_token), json={"location_url": location}
+    ).status_code == 200
+    assert client.get("/api/v1/store/settings").json()["location_url"] == location
+
+
 # ── articles and pages ───────────────────────────────────────────────────────
 def test_only_published_articles_are_public(
     client: TestClient, db: Session, admin_token: str
@@ -106,76 +157,29 @@ def test_only_published_static_pages_are_public(client: TestClient, db: Session)
 
 
 # ── homepage composition ─────────────────────────────────────────────────────
-def test_home_sections_are_ordered_and_hidden_when_invisible(
-    client: TestClient, admin_token: str
-) -> None:
-    client.post(
-        "/api/v1/admin/home-sections",
-        headers=auth(admin_token),
-        json={
-            "section_key": "second",
-            "section_type": "featured_products",
-            "title": "ثانٍ",
-            "sort_order": 2,
-        },
-    )
-    first = client.post(
-        "/api/v1/admin/home-sections",
-        headers=auth(admin_token),
-        json={
-            "section_key": "first",
-            "section_type": "categories",
-            "title": "أول",
-            "sort_order": 1,
-        },
-    )
-    assert first.status_code == 201
-
-    public = client.get("/api/v1/home-sections").json()
-    assert [section["section_key"] for section in public] == ["first", "second"]
-
-    client.patch(
-        f"/api/v1/admin/home-sections/{first.json()['id']}",
-        headers=auth(admin_token),
-        json={"is_visible": False},
-    )
-    assert [s["section_key"] for s in client.get("/api/v1/home-sections").json()] == ["second"]
-
-    duplicate = client.post(
-        "/api/v1/admin/home-sections",
-        headers=auth(admin_token),
-        json={"section_key": "first", "section_type": "categories"},
-    )
-    assert duplicate.status_code == 409
-
-
-def test_home_section_config_rejects_markup(client: TestClient, admin_token: str) -> None:
-    response = client.post(
-        "/api/v1/admin/home-sections",
-        headers=auth(admin_token),
-        json={
-            "section_key": "evil",
-            "section_type": "custom_text",
-            "config": {"body": "<script>alert(1)</script>"},
-        },
-    )
-    assert response.status_code == 422
+def test_home_sections_are_not_an_admin_builder(client: TestClient, admin_token: str) -> None:
+    headers = auth(admin_token)
+    assert client.get("/api/v1/admin/home-sections", headers=headers).status_code == 404
+    assert client.post("/api/v1/admin/home-sections", headers=headers, json={}).status_code == 404
 
 
 def test_hero_slides_and_banners_respect_their_schedule(
     client: TestClient, admin_token: str
 ) -> None:
+    assert client.post(
+        "/api/v1/admin/hero-slides", headers=auth(admin_token), json={}
+    ).status_code == 422
     live = client.post(
         "/api/v1/admin/hero-slides",
         headers=auth(admin_token),
-        json={"title": "شريحة فعّالة", "sort_order": 0},
+        json={"image_url": "/media/hero-live.png", "sort_order": 0},
     )
     assert live.status_code == 201
     expired = client.post(
         "/api/v1/admin/hero-slides",
         headers=auth(admin_token),
         json={
-            "title": "شريحة منتهية",
+            "image_url": "/media/hero-expired.png",
             "starts_at": "2020-01-01T00:00:00",
             "ends_at": "2020-02-01T00:00:00",
         },
@@ -183,7 +187,7 @@ def test_hero_slides_and_banners_respect_their_schedule(
     assert expired.status_code == 201
 
     public = client.get("/api/v1/hero-slides").json()
-    assert [slide["title"] for slide in public] == ["شريحة فعّالة"]
+    assert [slide["image_url"] for slide in public] == ["/media/hero-live.png"]
 
     bad_window = client.post(
         "/api/v1/admin/banners",

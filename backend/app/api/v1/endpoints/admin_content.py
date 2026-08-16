@@ -195,15 +195,11 @@ def delete_banner(banner_id: int, db: DbSession, admin: CurrentAdmin):
 
 
 # ── Home sections ─────────────────────────────────────────────────────────────
-@router.get("/home-sections", response_model=list[HomeSectionAdminOut])
 def list_home_sections(db: DbSession, admin: CurrentAdmin):
     stmt = select(HomeSection).order_by(HomeSection.sort_order.asc(), HomeSection.id.asc())
     return list(db.execute(stmt).scalars().all())
 
 
-@router.post(
-    "/home-sections", response_model=HomeSectionAdminOut, status_code=status.HTTP_201_CREATED
-)
 def create_home_section(payload: HomeSectionCreate, db: DbSession, admin: CurrentAdmin):
     exists = db.execute(
         select(HomeSection.id).where(HomeSection.section_key == payload.section_key)
@@ -228,7 +224,6 @@ def create_home_section(payload: HomeSectionCreate, db: DbSession, admin: Curren
     return section
 
 
-@router.patch("/home-sections/{section_id}", response_model=HomeSectionAdminOut)
 def update_home_section(
     section_id: int, payload: HomeSectionUpdate, db: DbSession, admin: CurrentAdmin
 ):
@@ -254,7 +249,6 @@ def update_home_section(
     return section
 
 
-@router.delete("/home-sections/{section_id}", response_model=MessageResponse)
 def delete_home_section(section_id: int, db: DbSession, admin: CurrentAdmin):
     section = get_or_404(db, HomeSection, section_id, "قسم الصفحة الرئيسية غير موجود.")
     audit_service.record(

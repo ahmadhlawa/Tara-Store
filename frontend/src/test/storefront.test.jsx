@@ -34,7 +34,7 @@ describe("public storefront", () => {
           description: "وصف",
           button_label: "تسوّق",
           button_url: "/shop",
-          image_url: null,
+          image_url: "/media/hero.png",
           sort_order: 0,
         },
       ],
@@ -45,7 +45,10 @@ describe("public storefront", () => {
     });
     renderApp("/");
 
-    expect(await screen.findByText("عنوان الشريحة")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(document.querySelector(".vs-hero img")).toHaveAttribute("src", "/media/hero.png"),
+    );
+    expect(screen.queryByText("عنوان الشريحة")).not.toBeInTheDocument();
     expect(await screen.findByText("أقسامنا")).toBeInTheDocument();
     expect(await screen.findAllByText(categoryFixture.name)).not.toHaveLength(0);
   });

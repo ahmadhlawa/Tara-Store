@@ -204,28 +204,13 @@ describe("homepage hero", () => {
     expect(document.querySelector(".vs-hero__slide")).toBeNull();
   });
 
-  it("moves between slides from its own controls", async () => {
+  it("renders no controls over the uploaded artwork", async () => {
     stubApi(heroRoutes);
     renderApp("/");
 
     await waitFor(() => expect(document.querySelector(".vs-hero")).not.toBeNull());
-    const active = () =>
-      [...document.querySelectorAll(".vs-hero__slide")].findIndex(
-        (slide) => slide.dataset.active === "true",
-      );
-    expect(active()).toBe(0);
-
-    await userEvent.click(screen.getByRole("button", { name: "الشريحة التالية" }));
-    expect(active()).toBe(1);
-
-    await userEvent.click(screen.getByRole("button", { name: "الشريحة السابقة" }));
-    expect(active()).toBe(0);
-
-    // Dots are real buttons and report which slide is showing.
-    const dot = screen.getByRole("tab", { name: "الشريحة 2" });
-    await userEvent.click(dot);
-    expect(dot).toHaveAttribute("aria-current", "true");
-    expect(active()).toBe(1);
+    expect(document.querySelector(".vs-hero__dots")).toBeNull();
+    expect(document.querySelector(".vs-hero__arrows")).toBeNull();
   });
 
   it("does not autoplay when the visitor has asked for reduced motion", async () => {
@@ -288,20 +273,17 @@ describe("hero advertisement copy", () => {
     expect(advert.querySelector(".vs-hero__veil")).toBeNull();
     expect(advert.querySelector(".vs-hero__cta")).toBeNull();
     expect(screen.queryByText("إعلان جاهز")).not.toBeInTheDocument();
-    // The title is still the image's alt text, so the slide is not silent.
-    expect(advert.querySelector("img")).toHaveAttribute("alt", "إعلان جاهز");
+    expect(advert.querySelector("img")).toHaveAttribute("alt", "");
 
-    // The slide the owner actually wrote copy for keeps all of it.
-    expect(withCopy.querySelector(".vs-hero__body")).not.toBeNull();
-    expect(withCopy.querySelector(".vs-hero__veil")).not.toBeNull();
-    expect(within(withCopy).getByText("نص كتبه المسؤول في لوحة التحكم.")).toBeInTheDocument();
-    // Queried by class: an inactive slide is aria-hidden, so its button is
-    // deliberately out of the accessibility tree until the slide comes round.
-    expect(withCopy.querySelector(".vs-hero__cta")).toHaveAttribute("href", "/shop");
-    expect(document.querySelectorAll(".vs-hero__body")).toHaveLength(1);
+    // Tara ignores legacy copy fields even if a record still carries them.
+    expect(withCopy.querySelector(".vs-hero__body")).toBeNull();
+    expect(withCopy.querySelector(".vs-hero__veil")).toBeNull();
+    expect(withCopy.querySelector(".vs-hero__cta")).toBeNull();
+    expect(screen.queryByText("نص كتبه المسؤول في لوحة التحكم.")).not.toBeInTheDocument();
+    expect(document.querySelectorAll(".vs-hero__body")).toHaveLength(0);
   });
 
-  it("keeps the copy of a slide that has no artwork to speak for it", async () => {
+  it("omits a slide with no artwork instead of fabricating a fallback", async () => {
     stubApi(
       routesFor([
         {
@@ -318,9 +300,9 @@ describe("hero advertisement copy", () => {
     );
     renderApp("/");
 
-    await waitFor(() => expect(document.querySelector(".vs-hero")).not.toBeNull());
-    // Suppressing the title here would leave a blank gradient.
-    expect(screen.getByText("بدون صورة")).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector(".vs-header")).not.toBeNull());
+    expect(document.querySelector(".vs-hero")).toBeNull();
+    expect(screen.queryByText("بدون صورة")).not.toBeInTheDocument();
   });
 
   it("runs the hero band outside the page container", async () => {

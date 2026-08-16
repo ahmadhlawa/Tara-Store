@@ -861,7 +861,10 @@ img.vs-logo__img {
     padding-block-end: calc(var(--vs-tabbar-h) + env(safe-area-inset-bottom));
   }
   .vs-header__row {
-    gap: 10px;
+    gap: 4px;
+  }
+  .vs-hactions {
+    gap: 2px;
   }
   /* Back to a full touch target: on a phone these are the only controls in the
      header, and there is no pointer to aim with. */
@@ -983,6 +986,41 @@ img.vs-logo__img {
   color: var(--vs-ink-3);
 }
 
+.vs-footer__social-row {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+}
+
+.vs-footer__social-row a {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--vs-border-strong);
+  border-radius: var(--vs-r-md);
+  background: var(--vs-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vs-ink-2);
+  transition: background var(--vs-t) var(--vs-ease), color var(--vs-t) var(--vs-ease),
+    border-color var(--vs-t) var(--vs-ease);
+}
+
+.vs-footer__social-row svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.vs-footer__social-row a:hover,
+.vs-footer__social-row a:focus-visible {
+  background: var(--vs-primary);
+  border-color: var(--vs-primary);
+  color: var(--vs-ink-invert);
+}
+
 .vs-footer__social {
   display: flex;
   gap: 9px;
@@ -1063,14 +1101,20 @@ img.vs-logo__img {
 }
 
 .vs-footer__bottom-row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 16px;
   align-items: center;
-  justify-content: space-between;
   padding-block: 16px;
   font-size: 12.5px;
   color: var(--vs-ink-3);
+}
+
+.vs-footer__bottom-row > :last-child { justify-self: end; }
+
+@media (max-width: 599px) {
+  .vs-footer__bottom-row { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .vs-footer__bottom-row > :last-child { justify-self: center; }
 }
 
 .vs-footer__credit {

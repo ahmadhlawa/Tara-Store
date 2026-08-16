@@ -48,9 +48,12 @@ contact:
   whatsapp: "0000000000"
   email: "info@example.com"
   address: "Set the address from the admin panel"
+  location_url: null
   working_hours: "Sat–Thu · 09:00 – 19:00"
   instagram_url: null
   facebook_url: null
+  tiktok_url: null
+  youtube_url: null
 
 theme:
   primary_color: "#1F4E4A"

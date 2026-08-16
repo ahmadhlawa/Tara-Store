@@ -10,7 +10,6 @@ import OrderSuccessRoutePage from "./pages/OrderSuccessRoutePage.jsx";
 import { ArticleDetailPage, BlogListPage } from "./pages/BlogRoutePages.jsx";
 import StaticContentPage from "./pages/StaticContentPage.jsx";
 import ContactRoutePage from "./pages/ContactRoutePage.jsx";
-import CalculatorRoutePage from "./pages/CalculatorRoutePage.jsx";
 import NotFoundRoutePage from "./pages/NotFoundRoutePage.jsx";
 import AdminApp from "./admin/AdminApp.jsx";
 
@@ -50,7 +49,6 @@ export default function App() {
         <Route path="return-policy" element={<StaticContentPage slug="return-policy" />} />
         <Route path="terms" element={<StaticContentPage slug="terms" />} />
         <Route path="contact" element={<ContactRoutePage />} />
-        <Route path="tools/calculator" element={<CalculatorRoutePage />} />
         <Route path="*" element={<NotFoundRoutePage />} />
       </Route>
     </Routes>

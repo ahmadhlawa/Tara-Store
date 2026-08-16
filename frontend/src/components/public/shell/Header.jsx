@@ -101,21 +101,18 @@ export default function Header() {
               <SearchBox />
             </div>
 
-            {settings.phone && (
-              <div className="vs-hcontact vs-desk">
-                <span className="vs-hcontact__icon">
-                  <PhoneIcon size={17} />
-                </span>
-                <span className="vs-hcontact__text">
-                  <a className="vs-hcontact__num" href={`tel:${settings.phone}`}>
-                    {settings.phone}
-                  </a>
-                  {settings.hours && <span className="vs-hcontact__hours">{settings.hours}</span>}
-                </span>
-              </div>
-            )}
-
             <div className="vs-hactions">
+              {settings.phone && (
+                <a
+                  className="vs-iconbtn"
+                  href={`tel:${settings.phone}`}
+                  aria-label="اتصل بنا"
+                  title="اتصل بنا"
+                >
+                  <PhoneIcon size={18} />
+                </a>
+              )}
+
               <button
                 type="button"
                 className="vs-iconbtn vs-mob"

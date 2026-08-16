@@ -802,36 +802,14 @@
   color: var(--vs-ink-4);
 }
 
-/* ── contact, tracking, calculator ─────────────────────────────────────── */
+/* ── contact and tracking ─────────────────────────────────────────────── */
 
-.vs-contact,
-.vs-calc {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-  gap: 22px;
-  align-items: start;
+.vs-contact {
+  max-width: 620px;
+  margin-inline: auto;
 }
 
-@media (max-width: 767px) {
-  .vs-contact,
-  .vs-calc {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.vs-contact__form,
-.vs-calc__form {
-  background: var(--vs-surface);
-  border: 1px solid var(--vs-border);
-  border-radius: var(--vs-r-lg);
-  padding: 22px;
-  gap: 14px;
-  display: flex;
-  flex-direction: column;
-}
-
-.vs-contact__side,
-.vs-calc__result {
+.vs-contact__side {
   background: var(--vs-surface);
   border: 1px solid var(--vs-border);
   border-radius: var(--vs-r-lg);
@@ -853,20 +831,38 @@
   margin-block-start: 6px;
 }
 
-.vs-calc__shapes {
-  display: flex;
-  gap: 8px;
+.vs-contact__whatsapp {
+  align-self: flex-start;
+  margin-block-start: 6px;
 }
 
-.vs-calc__label {
-  font-size: var(--vs-fs-sm);
-  color: var(--vs-ink-3);
+.vs-contact__map {
+  max-width: 620px;
+  margin: 22px auto 0;
+  padding: 22px;
+  background: var(--vs-surface);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-r-lg);
+  display: grid;
+  gap: 16px;
 }
 
-.vs-calc__total {
-  font-size: 30px;
-  font-weight: 800;
-  color: var(--vs-primary);
+.vs-contact__map iframe {
+  display: block;
+  width: 100%;
+  height: min(360px, 62vw);
+  min-height: 220px;
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-r-md);
+}
+
+@media (max-width: 479px) {
+  .vs-contact__map {
+    padding: 16px;
+  }
+  .vs-contact__whatsapp {
+    align-self: stretch;
+  }
 }
 
 .vs-track__form {

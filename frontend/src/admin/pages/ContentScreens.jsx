@@ -15,29 +15,20 @@ export function HeroSlidesPage() {
   return (
     <ResourceScreen
       title="شرائح الواجهة"
-      description="الشرائح المتحركة أعلى الصفحة الرئيسية. إذا رفعت صورة إعلان جاهزة ولم تضف عنواناً فرعياً أو وصفاً أو زراً، تُعرض الصورة وحدها دون أي نص فوقها، ويبقى «العنوان» اسماً للشريحة ونصاً بديلاً للصورة."
+      description="اختر صورة الإعلان الجاهزة من مكتبة الوسائط. تُعرض الصورة كما هي في أعلى الصفحة الرئيسية."
       createLabel="إضافة شريحة"
       fetchList={fetchList}
       createItem={adminApi.createHeroSlide}
       updateItem={adminApi.updateHeroSlide}
       deleteItem={adminApi.deleteHeroSlide}
-      describeRow={(row) => row.title}
+      describeRow={() => "صورة الواجهة"}
       columns={[
-        { key: "title", title: "العنوان" },
-        { key: "subtitle", title: "العنوان الفرعي", render: (row) => row.subtitle || "—" },
-        { key: "button_label", title: "زر", render: (row) => row.button_label || "—" },
+        { key: "image_url", title: "الصورة", render: (row) => row.image_url ? "تم اختيار صورة" : "—" },
         { key: "sort_order", title: "الترتيب" },
         activeColumn,
       ]}
       fields={[
-        { name: "title", title: "العنوان", required: true },
-        { name: "subtitle", title: "العنوان الفرعي" },
-        { name: "description", title: "الوصف", type: "textarea", rows: 3 },
-        { name: "image_url", title: "الصورة", type: "media", emptyAsNull: true },
-        { name: "button_label", title: "نص الزر" },
-        { name: "button_url", title: "رابط الزر", placeholder: "/shop" },
-        { name: "starts_at", title: "يبدأ في", type: "date" },
-        { name: "ends_at", title: "ينتهي في", type: "date" },
+        { name: "image_url", title: "الصورة", type: "media", required: true },
         { name: "sort_order", title: "الترتيب", type: "number", defaultValue: 0 },
         { name: "is_active", title: "ظاهر", type: "checkbox", defaultValue: true },
       ]}
@@ -86,64 +77,6 @@ export function BannersPage() {
         { name: "ends_at", title: "ينتهي في", type: "date" },
         { name: "sort_order", title: "الترتيب", type: "number", defaultValue: 0 },
         { name: "is_active", title: "ظاهر", type: "checkbox", defaultValue: true },
-      ]}
-    />
-  );
-}
-
-export function HomeSectionsPage() {
-  const fetchList = useCallback(() => adminApi.listHomeSections(), []);
-  return (
-    <ResourceScreen
-      title="أقسام الصفحة الرئيسية"
-      description="تحكّم في ترتيب أقسام الصفحة الرئيسية وظهورها وعناوينها."
-      createLabel="إضافة قسم"
-      fetchList={fetchList}
-      createItem={adminApi.createHomeSection}
-      updateItem={adminApi.updateHomeSection}
-      deleteItem={adminApi.deleteHomeSection}
-      describeRow={(row) => row.title || row.section_key}
-      columns={[
-        { key: "title", title: "العنوان", render: (row) => row.title || "—" },
-        { key: "section_key", title: "المفتاح" },
-        { key: "section_type", title: "النوع" },
-        { key: "sort_order", title: "الترتيب" },
-        {
-          key: "is_visible",
-          title: "الظهور",
-          render: (row) => (
-            <Badge tone={row.is_visible ? "good" : "bad"}>{row.is_visible ? "ظاهر" : "مخفي"}</Badge>
-          ),
-        },
-      ]}
-      fields={[
-        {
-          name: "section_key",
-          title: "المفتاح الثابت",
-          hint: "أحرف إنجليزية صغيرة وأرقام وشرطات فقط. لا يُستخدم إلا عند الإنشاء.",
-          required: true,
-        },
-        {
-          name: "section_type",
-          title: "نوع القسم",
-          type: "select",
-          required: true,
-          defaultValue: "featured_products",
-          options: [
-            { value: "featured_products", label: "منتجات مختارة" },
-            { value: "new_products", label: "منتجات جديدة" },
-            { value: "bestsellers", label: "الأكثر مبيعاً" },
-            { value: "packages", label: "البكجات" },
-            { value: "silicone_molds", label: "قوالب سيليكون" },
-            { value: "categories", label: "الأقسام" },
-            { value: "promo_banner", label: "بانر ترويجي" },
-            { value: "custom_text", label: "نص مخصّص" },
-          ],
-        },
-        { name: "title", title: "العنوان الظاهر" },
-        { name: "description", title: "الوصف", type: "textarea", rows: 3 },
-        { name: "sort_order", title: "الترتيب", type: "number", defaultValue: 0 },
-        { name: "is_visible", title: "ظاهر في الواجهة", type: "checkbox", defaultValue: true },
       ]}
     />
   );

@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from urllib.parse import urlparse
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -74,9 +75,26 @@ class ContactProfile(_Strict):
     # cannot serialise — a 500 that takes the whole storefront down on first load.
     email: EmailStr | None = Field(default=None, max_length=255)
     address: str | None = Field(default=None, max_length=300)
+    location_url: str | None = Field(default=None, max_length=500)
     working_hours: str | None = Field(default=None, max_length=200)
     instagram_url: str | None = Field(default=None, max_length=500)
     facebook_url: str | None = Field(default=None, max_length=500)
+    tiktok_url: str | None = Field(default=None, max_length=500)
+    youtube_url: str | None = Field(default=None, max_length=500)
+    instagram_visible: bool = True
+    facebook_visible: bool = True
+    tiktok_visible: bool = True
+    youtube_visible: bool = True
+
+    @field_validator("location_url")
+    @classmethod
+    def _check_location_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        parsed = urlparse(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("location_url must be a valid http or https URL")
+        return value
 
 
 class ThemeProfile(_Strict):

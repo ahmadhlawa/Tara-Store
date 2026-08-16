@@ -30,7 +30,6 @@ export const footerLinks = {
     title: "خدمة العملاء",
     items: [
       ["عربة التسوّق", "/cart"],
-      ["حاسبة نسب المواد", "/tools/calculator"],
       ["تواصل معنا", "/contact"],
     ],
   },

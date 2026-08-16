@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pydantic import EmailStr, Field
+from urllib.parse import urlparse
+
+from pydantic import EmailStr, Field, field_validator
 
 from app.schemas.common import APIModel, Money, UTCDateTime
 
@@ -30,6 +32,10 @@ class StoreSettingsPublic(APIModel):
     facebook_url: str | None = None
     tiktok_url: str | None = None
     youtube_url: str | None = None
+    instagram_visible: bool = True
+    facebook_visible: bool = True
+    tiktok_visible: bool = True
+    youtube_visible: bool = True
     currency_code: str
     currency_symbol: str
     primary_color: str
@@ -76,6 +82,10 @@ class StoreSettingsUpdate(APIModel):
     facebook_url: str | None = Field(default=None, max_length=500)
     tiktok_url: str | None = Field(default=None, max_length=500)
     youtube_url: str | None = Field(default=None, max_length=500)
+    instagram_visible: bool | None = None
+    facebook_visible: bool | None = None
+    tiktok_visible: bool | None = None
+    youtube_visible: bool | None = None
     currency_code: str | None = Field(default=None, min_length=1, max_length=8)
     currency_symbol: str | None = Field(default=None, min_length=1, max_length=8)
     primary_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
@@ -102,3 +112,13 @@ class StoreSettingsUpdate(APIModel):
     tax_enabled: bool | None = None
     tax_rate: Decimal | None = Field(default=None, ge=0, le=100)
     prices_include_tax: bool | None = None
+
+    @field_validator("location_url", "instagram_url", "facebook_url", "tiktok_url", "youtube_url")
+    @classmethod
+    def validate_social_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        parsed = urlparse(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("must be a valid http or https URL")
+        return value

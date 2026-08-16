@@ -47,9 +47,13 @@ export function normalizeSettings(raw) {
     hours: settings.working_hours || "",
     announcement: settings.announcement || "",
     instagram: settings.instagram_url || "",
+    instagramVisible: settings.instagram_visible !== false,
     facebook: settings.facebook_url || "",
+    facebookVisible: settings.facebook_visible !== false,
     tiktok: settings.tiktok_url || "",
+    tiktokVisible: settings.tiktok_visible !== false,
     youtube: settings.youtube_url || "",
+    youtubeVisible: settings.youtube_visible !== false,
     currency: settings.currency_symbol || "₪",
     currencyCode: settings.currency_code || "ILS",
     primaryColor: settings.primary_color,
@@ -70,18 +74,12 @@ export function normalizeSettings(raw) {
 // with one gold variant held back for a highlight — considered enough to stand
 // in for artwork, never mistakable for the real promotional banners still to
 // come.
-const HERO_FALLBACKS = [
-  "linear-gradient(115deg,#7f568f 0%,#b38acf 55%,#d8c2ea 145%)",
-  "linear-gradient(115deg,#b38acf 0%,#d8c2ea 60%,#ffffff 150%)",
-  "linear-gradient(115deg,#6d477c 0%,#a077bd 55%,#d8c2ea 150%)",
-];
-
 const BANNER_FALLBACKS = [
   "linear-gradient(150deg,#b38acf,#7f568f)",
   "linear-gradient(150deg,#d8c2ea,#b38acf)",
 ];
 
-export function normalizeHeroSlide(raw, index) {
+export function normalizeHeroSlide(raw) {
   // What decides whether copy is printed over the artwork: an eyebrow, a
   // paragraph or a button — the fields an owner fills in *in addition to*
   // naming the slide. A slide with an image and nothing but a name is a
@@ -89,17 +87,9 @@ export function normalizeHeroSlide(raw, index) {
   // its title stays the slide's label in Admin and the image's alt text, and
   // nothing is overprinted on it. A slide with no image has only its copy, so
   // that always shows — otherwise the slide would be a blank gradient.
-  const supporting = !!(raw.subtitle || raw.description || raw.button_label);
   return {
     id: raw.id,
-    title: raw.title,
-    subtitle: raw.subtitle || "",
-    desc: raw.description || "",
-    cta: raw.button_label || "",
-    href: raw.button_url || "/shop",
-    imageUrl: raw.image_url || null,
-    overlay: supporting || !raw.image_url,
-    fallback: HERO_FALLBACKS[index % HERO_FALLBACKS.length],
+    imageUrl: raw.image_url,
   };
 }
 
@@ -181,7 +171,7 @@ export const storefrontService = {
   },
   async heroSlides() {
     const rows = await publicApi.heroSlides();
-    return rows.map(normalizeHeroSlide);
+    return rows.filter((row) => row.image_url).map(normalizeHeroSlide);
   },
   async banners(placement) {
     const rows = await publicApi.banners(placement);

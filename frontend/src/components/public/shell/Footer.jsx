@@ -5,6 +5,25 @@ import { useLogoFit } from "../../../hooks/useLogoFit.js";
 import { footerLinks } from "../../../store.js";
 import { whatsappHref } from "../../../utils/format.js";
 
+function SocialIcon({ name }) {
+  const paths = {
+    instagram: <><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></>,
+    facebook: <path d="M13.5 21v-8h2.75l.41-3h-3.16V8.08c0-.87.24-1.46 1.49-1.46H16.6V3.94c-.28-.04-1.24-.12-2.36-.12-2.33 0-3.92 1.42-3.92 4.03V10H7.7v3h2.62v8h3.18Z" fill="currentColor" stroke="none" />,
+    tiktok: <path d="M14.5 3c.4 2.15 1.61 3.43 3.5 3.83v3.08a7.28 7.28 0 0 1-3.5-1.04v5.96a5.34 5.34 0 1 1-4.61-5.29v3.11a2.25 2.25 0 1 0 1.52 2.13V3h3.09Z" fill="currentColor" stroke="none" />,
+    youtube: <path d="M21 7.2a2.8 2.8 0 0 0-1.96-1.98C17.3 4.75 12 4.75 12 4.75s-5.3 0-7.04.47A2.8 2.8 0 0 0 3 7.2C2.53 8.95 2.53 12 2.53 12S2.53 15.05 3 16.8a2.8 2.8 0 0 0 1.96 1.98c1.74.47 7.04.47 7.04.47s5.3 0 7.04-.47A2.8 2.8 0 0 0 21 16.8c.47-1.75.47-4.8.47-4.8S21.47 8.95 21 7.2ZM10.2 15.37V8.63L15.82 12l-5.62 3.37Z" fill="currentColor" stroke="none" />,
+  };
+  return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">{paths[name]}</svg>;
+}
+
+function validExternalUrl(value) {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Everything here is real data or nothing. A field the owner has not filled in
  * is omitted rather than shown as a placeholder — the storefront never invents
@@ -20,17 +39,11 @@ export default function Footer() {
   const { boxRef: logoBox, style: logoStyle } = useLogoFit(settings.logoUrl);
 
   const socials = [
-    { key: "ig", label: "إنستغرام", short: "IG", href: settings.instagram },
-    { key: "fb", label: "فيسبوك", short: "FB", href: settings.facebook },
-    { key: "tt", label: "تيك توك", short: "TT", href: settings.tiktok },
-    { key: "yt", label: "يوتيوب", short: "YT", href: settings.youtube },
-    {
-      key: "wa",
-      label: "واتساب",
-      short: "WA",
-      href: whatsappHref(settings.whatsapp, `مرحباً ${settings.storeName}`),
-    },
-  ].filter((item) => item.href && item.href !== "#");
+    { key: "instagram", label: "إنستغرام", href: settings.instagram, visible: settings.instagramVisible },
+    { key: "facebook", label: "فيسبوك", href: settings.facebook, visible: settings.facebookVisible },
+    { key: "tiktok", label: "تيك توك", href: settings.tiktok, visible: settings.tiktokVisible },
+    { key: "youtube", label: "يوتيوب", href: settings.youtube, visible: settings.youtubeVisible },
+  ].map((item) => ({ ...item, href: item.visible ? validExternalUrl(item.href) : null })).filter((item) => item.href);
 
   const contact = [
     settings.phone && { key: "phone", node: <a href={`tel:${settings.phone}`}>{settings.phone}</a> },
@@ -61,22 +74,6 @@ export default function Footer() {
           )}
           {(settings.seoDescription || settings.tagline) && (
             <p className="vs-footer__desc">{settings.seoDescription || settings.tagline}</p>
-          )}
-          {socials.length > 0 && (
-            <div className="vs-footer__social">
-              {socials.map((item) => (
-                <a
-                  key={item.key}
-                  href={item.href}
-                  target="_blank"
-                  rel="noopener"
-                  aria-label={item.label}
-                  title={item.label}
-                >
-                  {item.short}
-                </a>
-              ))}
-            </div>
           )}
         </div>
 
@@ -120,6 +117,15 @@ export default function Footer() {
           <span>
             © {year} {settings.storeName} — جميع الحقوق محفوظة
           </span>
+          {socials.length > 0 && (
+            <div className="vs-footer__social-row" aria-label="روابط التواصل الاجتماعي">
+              {socials.map((item) => (
+                <a key={item.key} href={item.href} target="_blank" rel="noopener noreferrer" aria-label={item.label} title={item.label}>
+                  <SocialIcon name={item.key} />
+                </a>
+              ))}
+            </div>
+          )}
           <Link to="/page/terms">الشروط والأحكام</Link>
         </div>
       </div>

@@ -16,11 +16,10 @@ const NAV = [
   { to: "/admin/delivery", label: "مناطق التوصيل" },
   { to: "/admin/hero", label: "شرائح الواجهة" },
   { to: "/admin/banners", label: "البانرات" },
-  { to: "/admin/home", label: "الصفحة الرئيسية" },
   { to: "/admin/articles", label: "المقالات" },
   { to: "/admin/pages", label: "الصفحات" },
   { to: "/admin/media", label: "الوسائط" },
-  { to: "/admin/settings", label: "إعدادات المتجر" },
+  { to: "/admin/settings", label: "روابط المتجر" },
   { to: "/admin/admins", label: "حسابات الإدارة", superOnly: true },
   { to: "/admin/audit", label: "سجل التغييرات", superOnly: true },
 ];
@@ -46,7 +45,7 @@ export default function AdminLayout() {
     sx`display:block;padding:11px 14px;border-radius:10px;font-size:14px;font-weight:${isActive ? 800 : 600};color:${isActive ? "#fff" : "#3B3243"};background:${isActive ? "#7F568F" : "transparent"};text-decoration:none`;
 
   return (
-    <div style={sx`direction:rtl;min-height:100vh;background:#FAF3EA;display:flex;flex-direction:column`}>
+    <div className="vs-public" style={sx`direction:rtl;min-height:100vh;background:var(--vs-surface-2);display:flex;flex-direction:column`}>
       {/* Admin gets the brand as two marks and nothing more: the logo beside the
           title, and a gold hairline under the header. The screens below stay
           plain white and warm grey, because they are read all day. */}

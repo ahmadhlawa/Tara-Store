@@ -60,9 +60,12 @@ contact:
   whatsapp: "970594402699"
   email: null
   address: null
+  location_url: "https://www.openstreetmap.org/export/embed.html?bbox=35.2066%2C31.7630%2C35.2204%2C31.7736&layer=mapnik&marker=31.7683%2C35.2137"
   working_hours: "من الساعة العاشرة صباحا حتى السابعة مساء"
   instagram_url: null
   facebook_url: null
+  tiktok_url: null
+  youtube_url: null
 
 # The client's approved palette: deep lilac as the brand, gold kept back as a
 # special accent, muted sage for success. These are what a fresh bootstrap writes
@@ -100,16 +103,16 @@ home_sections:
     sort_order: 0
   - key: "categories"
     type: "categories"
-    title: "تسوّق حسب القسم"
+    title: "تسوق حسب القسم"
     sort_order: 1
   - key: "packages"
     type: "packages"
-    title: "باقات جاهزة"
+    title: "البكجات المميزة"
     sort_order: 2
     requires_feature: "packages"
   - key: "molds"
     type: "silicone_molds"
-    title: "قوالب سيليكون"
+    title: "قوالب السيليكون"
     sort_order: 3
     requires_feature: "silicone_molds"
   - key: "featured"
