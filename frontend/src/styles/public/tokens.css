@@ -6,14 +6,15 @@
    The palette is the client's approved one and this is the one place it is
    stated: every surface, border, ink and accent below is either a stated value
    or mixed from one, so restyling Tara is editing this file rather than hunting
-   hexes through the components. The balance the design asks for — a white page,
-   lilac carrying the brand, gold as jewellery only — is a property of *where*
+   hexes through the components. The balance the design asks for â€” a white page,
+   lilac carrying the brand, gold as jewellery only â€” is a property of *where*
    these tokens are spent, and the rule that keeps it true is simple: gold is a
    border, a rule or a small mark, never a body colour and never a large fill. */
 
 .vs-public {
-  /* ── layout ──────────────────────────────────────────────────────────── */
+  /* â”€â”€ layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --vs-container: 1400px;
+  --vs-font: "Alexandria", system-ui, sans-serif;
   --vs-container-narrow: 1080px;
   --vs-gutter: 20px;
   --vs-section: 56px;
@@ -23,7 +24,7 @@
   --vs-cols-cat: 4;
   --vs-cols-pkg: 3;
 
-  /* ── header ──────────────────────────────────────────────────────────── */
+  /* â”€â”€ header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   /* Two compact bands rather than two roomy ones: the identity row is sized by
      its tallest control (the logo viewport) plus one 9px rhythm step, and the
      nav band is just tall enough for a 34px trigger. Everything in the identity
@@ -34,15 +35,15 @@
   --vs-rail-h: 0px;
   /* A fixed-size viewport the logo is clipped to. The owner's file carries its
      own whitespace, so `useLogoFit` measures where the mark actually sits and
-     scales the image inside this box until the mark fills it — the file is
+     scales the image inside this box until the mark fills it â€” the file is
      never edited, never stretched, and a trimmed logo is left alone. */
   /* Near-square, because Tara's supplied mark is a square lockup: in the wide
      viewport this box used to be, `contain` centred a 46px mark inside 132px and
-     the surplus 86px pushed the logo visibly out of line with the "كل الأقسام"
+     the surplus 86px pushed the logo visibly out of line with the "ÙƒÙ„ Ø§Ù„Ø£Ù‚Ø³Ø§Ù…"
      trigger sitting directly beneath it. Sized to the mark, the artwork's own
      ivory meets the header's ivory and there is no seam to see. A little wider
      than tall so a landscape logo uploaded later is still shown at a usable
-     size — `contain` means either shape is scaled, never cropped or stretched. */
+     size â€” `contain` means either shape is scaled, never cropped or stretched. */
   --vs-logo-h: 46px;
   --vs-logo-w: 54px;
   /* How wide the header's search field is allowed to grow. Stated once: the
@@ -59,19 +60,19 @@
      panels never re-derive it. */
   --vs-sticky-top: calc(var(--vs-header-h) + var(--vs-nav-h) + 16px);
 
-  /* ── lilac scale ─────────────────────────────────────────────────────── */
+  /* â”€â”€ lilac scale â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   /* The client's three approved lilacs, stated once and referenced everywhere
      else in this file. Nothing outside this block should carry a lilac hex. */
   --vs-lilac-lite: #d8c2ea;
   --vs-lilac: #b38acf;
   --vs-lilac-deep: #7f568f;
 
-  /* ── surfaces ────────────────────────────────────────────────────────── */
+  /* â”€â”€ surfaces â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   /* Pure white is the page *and* the card: the client asked for a white site, so
      a card lifts off the ground with a hairline and a tinted shadow rather than
      with warmth. The two tints below are light lilac diluted into white and
      carry the tinted sections; `surface-deep` is the single dark tone the
-     storefront owns — a deep lilac, not a black — and only the toast and the
+     storefront owns â€” a deep lilac, not a black â€” and only the toast and the
      footer's own tinting reach for it. */
   --vs-page: #ffffff;
   --vs-surface: #ffffff;
@@ -83,7 +84,7 @@
   --vs-surface-dark: var(--vs-surface-deep);
   --vs-surface-dark-2: color-mix(in srgb, var(--vs-primary) 48%, #332639);
 
-  /* ── borders ─────────────────────────────────────────────────────────── */
+  /* â”€â”€ borders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   /* Lilac hairlines mixed from the brand, never grey. `border-accent` is the
      jewellery: a pale gold rule reserved for dividers and premium detail, and
      deliberately too light to be mistaken for a structural border. */
@@ -92,10 +93,10 @@
   --vs-border-accent: color-mix(in srgb, var(--vs-accent) 52%, #fff);
   --vs-border-dark: color-mix(in srgb, var(--vs-primary) 34%, #40304a);
 
-  /* ── text ────────────────────────────────────────────────────────────── */
+  /* â”€â”€ text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   /* A plum-leaning dark rather than black, so type belongs to the lilac family.
      Every step is checked against white: ink 11.4:1, ink-2 8.6:1, ink-3 5.6:1
-     and ink-4 3.9:1 — so the muted step is still safe for the small meta text it
+     and ink-4 3.9:1 â€” so the muted step is still safe for the small meta text it
      is used for. */
   --vs-ink: #3b3243;
   --vs-ink-2: #4b4155;
@@ -103,7 +104,7 @@
   --vs-ink-4: #8a7f95;
   --vs-ink-invert: #ffffff;
 
-  /* ── brand ───────────────────────────────────────────────────────────── */
+  /* â”€â”€ brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   /* The client's lilac as the brand, gold kept back as a special accent.
      StoreProvider writes `--vs-brand-*` from StoreSettings, so the owner
      restyles the store from Admin; the values here are the fallback and are
@@ -113,17 +114,19 @@
      because this token is asked to do both jobs at once: it is a button fill
      under white text *and* a link colour on white. At #7f568f it clears 6.5:1
      both ways; #b38acf manages 3.1:1 and could do neither, so it lives on as
-     `--vs-primary-lite` — the main brand accent, for fills, active states and
+     `--vs-primary-lite` â€” the main brand accent, for fills, active states and
      decoration rather than for small text. */
   --vs-primary: var(--vs-brand-primary, #7f568f);
   --vs-primary-dark: color-mix(in srgb, var(--vs-primary) 82%, #000);
   --vs-primary-mid: color-mix(in srgb, var(--vs-primary) 62%, var(--vs-lilac));
   --vs-primary-lite: var(--vs-lilac);
   --vs-primary-soft: color-mix(in srgb, var(--vs-lilac-lite) 24%, #fff);
-  /* The two sanctioned gradients. Used sparingly — a hero wash, a promo band —
+  /* The two sanctioned gradients. Used sparingly â€” a hero wash, a promo band â€”
      never as a default fill. */
   --vs-grad-soft: linear-gradient(135deg, var(--vs-lilac-lite), var(--vs-lilac));
   --vs-grad-deep: linear-gradient(135deg, var(--vs-lilac), var(--vs-lilac-deep));
+  --vs-grad-nav: linear-gradient(110deg, var(--vs-lilac-lite), var(--vs-lilac));
+  --vs-grad-footer: linear-gradient(135deg, #f3ecfa, var(--vs-lilac-lite));
   --vs-accent: var(--vs-brand-accent, #d19f57);
   /* Gold dark enough to be read as text on white (5.2:1). The bright gold above
      is for fills, rules and small marks; the section eyebrows and the package
@@ -135,14 +138,14 @@
   --vs-danger-soft: #fbefec;
   --vs-warn: #8a6329;
 
-  /* ── radius ──────────────────────────────────────────────────────────── */
+  /* â”€â”€ radius â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --vs-r-sm: 8px;
   --vs-r-md: 12px;
   --vs-r-lg: 16px;
   --vs-r-xl: 22px;
   --vs-r-pill: 999px;
 
-  /* ── shadow ──────────────────────────────────────────────────────────── */
+  /* â”€â”€ shadow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   /* Tinted with the brand lilac rather than neutral black, and a step softer
      than the template's: on a white page a grey shadow reads as dirt, and a
      boutique card should look lifted, not dropped. */
@@ -152,15 +155,16 @@
   --vs-shadow-4: 0 0 60px rgba(59, 50, 67, 0.24);
   --vs-shadow-header: 0 4px 18px rgba(127, 86, 143, 0.08);
 
-  /* ── motion ──────────────────────────────────────────────────────────── */
+  /* â”€â”€ motion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --vs-t-fast: 140ms;
   --vs-t: 200ms;
   --vs-t-card: 260ms;
   --vs-t-drawer: 300ms;
   --vs-t-hero: 600ms;
+  --vs-t-reveal: 440ms;
   --vs-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* ── type ────────────────────────────────────────────────────────────── */
+  /* â”€â”€ type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --vs-fs-h1: 34px;
   --vs-fs-h2: 24px;
   --vs-fs-h3: 18px;
@@ -169,7 +173,7 @@
   --vs-fs-xs: 11.5px;
   --vs-lh: 1.75;
 
-  /* ── z layers ────────────────────────────────────────────────────────── */
+  /* â”€â”€ z layers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --vs-z-rail: 40;
   --vs-z-header: 60;
   --vs-z-popover: 70;
@@ -178,13 +182,13 @@
   --vs-z-modal: 95;
   --vs-z-toast: 100;
 
-  /* ── aspect ratios ───────────────────────────────────────────────────── */
+  /* â”€â”€ aspect ratios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --vs-ar-product: 1 / 1;
   --vs-ar-category: 4 / 5;
   /* Square by default so a package sitting in a mixed catalogue grid lines up
      with the products around it; the dedicated package grid widens it. */
   --vs-ar-package: 1 / 1;
-  /* A wide advertising banner. The ratio — not a pixel height — is what the
+  /* A wide advertising banner. The ratio â€” not a pixel height â€” is what the
      hero reserves, so the box is correct before the image decodes. The cap
      stops the same ratio from turning a 1852px-wide band into a 700px wall on
      a large monitor; the artwork covers, so a shorter box only crops. */
@@ -227,7 +231,7 @@
     --vs-fs-h1: 26px;
     --vs-fs-h2: 20px;
     /* A tablet still reads a landscape banner; the portrait crop is for phones
-       only, and starts at 600 (below). At 768 a 5/6 hero was 878px tall — most
+       only, and starts at 600 (below). At 768 a 5/6 hero was 878px tall â€” most
        of the screen for one advertisement. */
     --vs-ar-hero: 16 / 9;
     /* The fixed rail leaves the layout entirely below 900: its trigger moves
@@ -253,8 +257,8 @@
     --vs-fs-h1: 23px;
     --vs-fs-h2: 18.5px;
     /* A phone shows the whole advertisement, not a slice of it. Banner artwork
-       is landscape (the shipped hero is 1672×941), so a portrait phone box plus
-       `cover` threw away more than half the image width — the Arabic promo text
+       is landscape (the shipped hero is 1672Ã—941), so a portrait phone box plus
+       `cover` threw away more than half the image width â€” the Arabic promo text
        and the branding were cropped straight out of the viewport. The box keeps
        the artwork's own landscape ratio and the media contains rather than
        covers below 600 (see home.css), so nothing is cut sideways. */

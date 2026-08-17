@@ -61,6 +61,16 @@ describe("public shell", () => {
     expect(footer.querySelectorAll('a[href="/track-order"]')).toHaveLength(0);
   });
 
+  it("keeps duplicate contact details out of the header and payment note out of the footer", async () => {
+    stubApi(storefrontRoutes);
+    renderApp("/");
+
+    const header = await screen.findByRole("banner");
+    const footer = screen.getByRole("contentinfo");
+    expect(header.querySelector('a[href^="tel:"]')).toBeNull();
+    expect(within(footer).queryByText("لا يتم إدخال بيانات بطاقات بنكية في هذا المتجر.")).not.toBeInTheDocument();
+  });
+
   it("keeps the header and opened mobile navigation free of tracking links", async () => {
     stubApi(storefrontRoutes);
     renderApp("/");

@@ -108,7 +108,6 @@ export default function Footer() {
             <span>الدفع عند الاستلام</span>
             <span>تحويل بنكي / يدوي</span>
           </div>
-          <span className="vs-footer__note">لا يتم إدخال بيانات بطاقات بنكية في هذا المتجر.</span>
         </div>
       </div>
 

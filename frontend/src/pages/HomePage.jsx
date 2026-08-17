@@ -12,6 +12,7 @@ import SectionHead from "../components/public/shell/SectionHead.jsx";
 import CategoryCard from "../components/public/catalog/CategoryCard.jsx";
 import ProductGrid, { GridSkeleton } from "../components/public/catalog/ProductGrid.jsx";
 import { ArrowForward } from "../components/public/shell/icons.jsx";
+import { useViewportReveal } from "../hooks/useViewportReveal.js";
 
 /**
  * Each admin-managed section type is rendered by exactly one composition, and
@@ -71,6 +72,11 @@ const LOADERS = {
   packages: (limit) => catalogService.packages({ page_size: limit }),
   molds: (limit) => catalogService.molds({ page_size: limit }),
 };
+
+function RevealSection({ className, children }) {
+  const revealProps = useViewportReveal();
+  return <section className={className} {...revealProps}>{children}</section>;
+}
 
 export default function HomePage() {
   const store = useStore();
@@ -171,7 +177,7 @@ export default function HomePage() {
             />
             <div className="vs-grid vs-grid--cats">
               {categories.slice(0, limit).map((category, index) => (
-                <CategoryCard key={category.slug} category={category} eager={index < 4} />
+                <CategoryCard key={category.slug} category={category} eager={index < 4} revealDelay={Math.min(index * 70, 280)} />
               ))}
             </div>
           </section>
@@ -192,7 +198,7 @@ export default function HomePage() {
       if (spec.kind === "text") {
         if (!section.title && !section.description) return null;
         return (
-          <section key={section.id} className="vs-container vs-section">
+          <RevealSection key={section.id} className="vs-container vs-section">
             <div className="vs-split__panel">
               <h2 className="vs-split__title">{section.title}</h2>
               {section.description && <p className="vs-split__desc">{section.description}</p>}
@@ -200,7 +206,7 @@ export default function HomePage() {
                 تصفّح المتجر <ArrowForward size={16} />
               </Link>
             </div>
-          </section>
+          </RevealSection>
         );
       }
 
@@ -209,10 +215,10 @@ export default function HomePage() {
 
       if (list.status === "loading") {
         return (
-          <section key={section.id} className="vs-container vs-section">
+          <RevealSection key={section.id} className="vs-container vs-section">
             <SectionHead title={title} description={section.description} />
             <GridSkeleton count={spec.layout === "packages" ? 3 : 4} />
-          </section>
+          </RevealSection>
         );
       }
 
@@ -223,7 +229,7 @@ export default function HomePage() {
 
       if (spec.layout === "split") {
         return (
-          <section key={section.id} className="vs-container vs-section">
+          <RevealSection key={section.id} className="vs-container vs-section">
             <div className="vs-split">
               <div className="vs-split__panel">
                 <h2 className="vs-split__title">{title}</h2>
@@ -236,7 +242,7 @@ export default function HomePage() {
                 <ProductGrid views={items.slice(0, 4)} variant="plain" eagerCount={0} />
               </div>
             </div>
-          </section>
+          </RevealSection>
         );
       }
 
@@ -267,7 +273,7 @@ export default function HomePage() {
     !stillLoading && !hero.slides.length && !rendered.length && !categories.length;
 
   return (
-    <>
+    <div className="vs-home">
       {/* Deliberately outside `.vs-container`: the advertising band runs the full
           storefront width, stopping only where the category rail's gutter
           begins. Every section below it stays inside the container. */}
@@ -280,15 +286,15 @@ export default function HomePage() {
       </div>
 
       {sections.status === "loading" && (
-        <section className="vs-container vs-section">
+        <RevealSection className="vs-container vs-section">
           <GridSkeleton count={4} />
-        </section>
+        </RevealSection>
       )}
 
       {rendered}
 
       {nothingToShow && (
-        <section className="vs-container vs-section">
+        <RevealSection className="vs-container vs-section">
           <div className="vs-state">
             <h2 className="vs-state__title">المتجر قيد التجهيز</h2>
             <p className="vs-state__body">
@@ -299,12 +305,12 @@ export default function HomePage() {
               تواصل معنا
             </Link>
           </div>
-        </section>
+        </RevealSection>
       )}
 
       <section className="vs-container vs-section--tight">
         <TrustStrip />
       </section>
-    </>
+    </div>
   );
 }

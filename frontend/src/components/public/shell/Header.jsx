@@ -5,7 +5,7 @@ import { useLogoFit } from "../../../hooks/useLogoFit.js";
 import { useMoney } from "../../../hooks/useStorefront.js";
 import { navLinks } from "../../../store.js";
 import SearchBox from "../search/SearchBox.jsx";
-import { CartIcon, GridIcon, MenuIcon, PhoneIcon, SearchIcon, UserIcon } from "./icons.jsx";
+import { CartIcon, GridIcon, MenuIcon, SearchIcon, UserIcon } from "./icons.jsx";
 
 function StoreMark({ settings }) {
   // The file is left exactly as the owner supplied it; only how much of the box
@@ -102,17 +102,6 @@ export default function Header() {
             </div>
 
             <div className="vs-hactions">
-              {settings.phone && (
-                <a
-                  className="vs-iconbtn"
-                  href={`tel:${settings.phone}`}
-                  aria-label="اتصل بنا"
-                  title="اتصل بنا"
-                >
-                  <PhoneIcon size={18} />
-                </a>
-              )}
-
               <button
                 type="button"
                 className="vs-iconbtn vs-mob"
@@ -173,12 +162,6 @@ export default function Header() {
               </NavLink>
             ))}
 
-            {settings.hours && (
-              <span className="vs-nav__hours">
-                <span aria-hidden="true">✦</span>
-                {settings.hours}
-              </span>
-            )}
           </div>
         </nav>
       </header>

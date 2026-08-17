@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useStore } from "../../../app/StoreProvider.jsx";
 import { ShieldIcon, TruckIcon, WalletIcon } from "../shell/icons.jsx";
+import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
 
 /**
  * Only claims the store can actually keep: the payment methods the checkout
@@ -9,6 +10,9 @@ import { ShieldIcon, TruckIcon, WalletIcon } from "../shell/icons.jsx";
  */
 export default function TrustStrip() {
   const { deliveryAreas, settings } = useStore();
+  const paymentReveal = useViewportReveal(0);
+  const deliveryReveal = useViewportReveal(70);
+  const returnReveal = useViewportReveal(140);
 
   // Checkout offers manual transfer only once the owner has published account
   // details for it, so this line has to follow the same rule or it advertises a
@@ -25,7 +29,7 @@ export default function TrustStrip() {
 
   return (
     <div className="vs-trust">
-      <div className="vs-trust__item">
+      <div className="vs-trust__item" {...paymentReveal}>
         <span className="vs-trust__icon">
           <WalletIcon size={20} />
         </span>
@@ -37,7 +41,7 @@ export default function TrustStrip() {
       </div>
 
       {areasText && (
-        <div className="vs-trust__item">
+        <div className="vs-trust__item" {...deliveryReveal}>
           <span className="vs-trust__icon">
             <TruckIcon size={20} />
           </span>
@@ -49,7 +53,7 @@ export default function TrustStrip() {
         </div>
       )}
 
-      <Link to="/page/return-policy" className="vs-trust__item">
+      <Link to="/page/return-policy" className="vs-trust__item" {...returnReveal}>
         <span className="vs-trust__icon">
           <ShieldIcon size={20} />
         </span>

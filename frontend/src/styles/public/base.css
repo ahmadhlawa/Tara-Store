@@ -9,11 +9,11 @@
   flex-direction: column;
   background: var(--vs-page);
   color: var(--vs-ink);
-  font-family: "Cairo", system-ui, sans-serif;
+  font-family: var(--vs-font);
   font-size: var(--vs-fs-body);
   line-height: var(--vs-lh);
   /* The fixed category rail sits at the far right of the viewport, so the whole
-     storefront — header, content and footer alike — reserves its width as a real
+     storefront â€” header, content and footer alike â€” reserves its width as a real
      gutter. Physical `right`, because the layout is RTL and the rail is not on
      the logical end side. The gutter is 0 below 900px, where the rail is gone.
      Drawers and the scrim are `position: fixed` and so are unaffected: they
@@ -51,12 +51,29 @@
   border-radius: var(--vs-r-sm);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  [data-viewport-reveal="pending"] {
+    opacity: 0;
+    transform: translateY(18px) scale(0.99);
+  }
+
+  [data-viewport-reveal="entered"] {
+    animation: vs-viewport-reveal var(--vs-t-reveal) var(--vs-ease) both;
+    animation-delay: var(--vs-reveal-delay, 0ms);
+  }
+}
+
+@keyframes vs-viewport-reveal {
+  from { opacity: 0; transform: translateY(18px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .vs-main {
   flex: 1;
   min-width: 0;
 }
 
-/* ── layout primitives ─────────────────────────────────────────────────── */
+/* â”€â”€ layout primitives â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-container {
   width: 100%;
@@ -100,7 +117,7 @@
 
 /* A short gold rule above every section heading. It is the storefront's most
    repeated brand detail, so it is also the one that has to stay smallest:
-   34×2px, above the type, never around it. */
+   34Ã—2px, above the type, never around it. */
 .vs-sec-head__text {
   position: relative;
   display: flex;
@@ -123,7 +140,7 @@
 
 .vs-sec-head__eyebrow {
   font-size: var(--vs-fs-xs);
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.09em;
   color: var(--vs-accent-dark);
   text-transform: uppercase;
@@ -131,7 +148,7 @@
 
 .vs-sec-head__title {
   font-size: var(--vs-fs-h2);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.4;
   color: var(--vs-ink);
 }
@@ -153,7 +170,7 @@
   border-radius: var(--vs-r-pill);
   background: var(--vs-surface);
   font-size: var(--vs-fs-sm);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--vs-primary);
   white-space: nowrap;
   transition: background var(--vs-t) var(--vs-ease), color var(--vs-t) var(--vs-ease),
@@ -168,7 +185,7 @@
   }
 }
 
-/* ── grids ─────────────────────────────────────────────────────────────── */
+/* â”€â”€ grids â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-grid {
   display: grid;
@@ -180,7 +197,7 @@
   grid-template-columns: repeat(var(--vs-cols-cat), minmax(0, 1fr));
 }
 
-/* A package gets a tall, editorial card in its own grid — and the taller box is
+/* A package gets a tall, editorial card in its own grid â€” and the taller box is
    also what gives the reveal panel room to sit over the artwork without
    crowding it. In a mixed catalogue grid a package stays square (tokens.css) so
    it still lines up with the products around it. */
@@ -208,7 +225,7 @@
   scroll-snap-align: start;
 }
 
-/* ── buttons ───────────────────────────────────────────────────────────── */
+/* â”€â”€ buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-btn {
   display: inline-flex;
@@ -222,7 +239,7 @@
   background: transparent;
   font-family: inherit;
   font-size: var(--vs-fs-sm);
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1;
   color: var(--vs-ink);
   cursor: pointer;
@@ -326,7 +343,7 @@
   background: transparent;
 }
 
-/* ── chips, badges, pills ──────────────────────────────────────────────── */
+/* â”€â”€ chips, badges, pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-chip {
   display: inline-flex;
@@ -367,7 +384,7 @@
   padding-inline: 8px;
   border-radius: var(--vs-r-sm);
   font-size: var(--vs-fs-xs);
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.01em;
   line-height: 1;
 }
@@ -381,7 +398,7 @@
   color: var(--vs-ink-invert);
 }
 /* The one badge that is allowed to be gold, and it is gold as an outline on a
-   light card rather than as a fill — a bronze label inside a thin gold border. */
+   light card rather than as a fill â€” a bronze label inside a thin gold border. */
 .vs-badge--featured {
   background: var(--vs-surface);
   color: var(--vs-accent-dark);
@@ -398,7 +415,7 @@
   color: var(--vs-ink-invert);
 }
 
-/* ── breadcrumb ────────────────────────────────────────────────────────── */
+/* â”€â”€ breadcrumb â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-crumbs {
   display: flex;
@@ -425,7 +442,7 @@
   font-weight: 600;
 }
 
-/* ── skeleton / empty / error ──────────────────────────────────────────── */
+/* â”€â”€ skeleton / empty / error â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-skel {
   background: linear-gradient(
@@ -477,7 +494,7 @@
 
 .vs-state__title {
   font-size: var(--vs-fs-h3);
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .vs-state__body {
@@ -492,7 +509,7 @@
   color: color-mix(in srgb, var(--vs-danger) 82%, #000);
 }
 
-/* ── shared helpers ────────────────────────────────────────────────────── */
+/* â”€â”€ shared helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-clamp-2 {
   display: -webkit-box;
@@ -535,7 +552,7 @@
   height: 100%;
 }
 
-/* ── reduced motion ────────────────────────────────────────────────────── */
+/* â”€â”€ reduced motion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 @media (prefers-reduced-motion: reduce) {
   .vs-public *,

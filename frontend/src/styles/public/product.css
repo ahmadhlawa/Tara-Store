@@ -106,7 +106,7 @@
 
 .vs-pdp__title {
   font-size: clamp(21px, 2.4vw, 30px);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.42;
 }
 
@@ -117,7 +117,7 @@
 
 .vs-pdp__stock {
   font-size: var(--vs-fs-sm);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .vs-pdp__stock[data-tone="ok"] {
@@ -191,7 +191,7 @@
   align-items: center;
   gap: 8px;
   font-size: 14.5px;
-  font-weight: 800;
+  font-weight: 600;
   margin-block-end: 8px;
 }
 
@@ -234,7 +234,7 @@
 
 .vs-options__legend {
   font-size: var(--vs-fs-sm);
-  font-weight: 800;
+  font-weight: 600;
   padding: 0;
 }
 
@@ -324,7 +324,7 @@
 .vs-qty__value {
   min-width: 34px;
   text-align: center;
-  font-weight: 800;
+  font-weight: 600;
   font-size: 14px;
 }
 
@@ -367,7 +367,7 @@
 
 .vs-tabs__tab[aria-selected="true"] {
   color: var(--vs-primary);
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .vs-tabs__tab[aria-selected="true"]::after {
@@ -402,7 +402,7 @@
   background: transparent;
   font-family: inherit;
   font-size: var(--vs-fs-body);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--vs-ink);
   text-align: start;
   cursor: pointer;
@@ -486,7 +486,7 @@
 
 .vs-bullets a {
   color: var(--vs-primary);
-  font-weight: 700;
+  font-weight: 500;
   text-decoration: underline;
 }
 
@@ -531,7 +531,7 @@
   }
   .vs-buybar__price {
     font-size: 14px;
-    font-weight: 800;
+    font-weight: 600;
     color: var(--vs-primary);
   }
   .vs-buybar__cta {
@@ -539,7 +539,7 @@
     height: 44px;
   }
   /* The shell only reserves the tab bar. A product page stacks the buy bar on
-     top of it, so the page owes that height too — otherwise the last band of
+     top of it, so the page owes that height too â€” otherwise the last band of
      the footer sits underneath the bar and cannot be reached. */
   .vs-public:has(.vs-buybar) {
     padding-block-end: calc(var(--vs-tabbar-h) + 66px + env(safe-area-inset-bottom));
@@ -585,13 +585,13 @@
 
 .vs-quick__title {
   font-size: 21px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.45;
 }
 
 .vs-quick__stock {
   font-size: var(--vs-fs-sm);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--vs-success);
 }
 
@@ -634,7 +634,7 @@
 
 .vs-quick__full {
   font-size: var(--vs-fs-sm);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--vs-primary);
   display: inline-flex;
   align-items: center;

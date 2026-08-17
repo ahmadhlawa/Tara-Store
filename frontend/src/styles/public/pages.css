@@ -1,6 +1,6 @@
 /* Cart, checkout, order success, editorial pages, menu drawer, misc chrome. */
 
-/* ── skip link and inline alert ────────────────────────────────────────── */
+/* â”€â”€ skip link and inline alert â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-skip {
   position: absolute;
@@ -11,7 +11,7 @@
   color: var(--vs-ink-invert);
   padding: 10px 16px;
   border-radius: var(--vs-r-sm);
-  font-weight: 700;
+  font-weight: 500;
   transition: inset-block-start var(--vs-t) var(--vs-ease);
 }
 
@@ -76,7 +76,7 @@
   }
 }
 
-/* ── mobile menu drawer ────────────────────────────────────────────────── */
+/* â”€â”€ mobile menu drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-menu {
   padding: 10px 12px 18px;
@@ -121,7 +121,7 @@
 .vs-menu__catname {
   display: block;
   font-size: 14.5px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--vs-ink);
   line-height: 1.4;
 }
@@ -178,7 +178,7 @@
   max-width: none;
 }
 
-/* ── cart drawer ───────────────────────────────────────────────────────── */
+/* â”€â”€ cart drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-cartdrawer__list {
   list-style: none;
@@ -224,7 +224,7 @@
 
 .vs-cartline__name {
   font-size: 13.5px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--vs-ink);
 }
 
@@ -283,7 +283,7 @@
   color: var(--vs-ink-4);
 }
 
-/* ── cart page ─────────────────────────────────────────────────────────── */
+/* â”€â”€ cart page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-cartpage,
 .vs-checkout {
@@ -341,7 +341,7 @@
 
 .vs-cartrow__name {
   font-size: 14.5px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .vs-cartrow__variant,
@@ -369,11 +369,11 @@
   align-self: flex-start;
   margin-block-start: 6px;
   font-size: var(--vs-fs-sm);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--vs-primary);
 }
 
-/* ── order summary ─────────────────────────────────────────────────────── */
+/* â”€â”€ order summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-summary {
   position: sticky;
@@ -396,7 +396,7 @@
 
 .vs-summary__title {
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .vs-summary__row {
@@ -447,7 +447,7 @@
   padding-block-start: 12px;
   border-block-start: 1px solid var(--vs-border);
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .vs-summary__total strong {
@@ -463,7 +463,7 @@
 
 /* The free-delivery rule, in the cart drawer, the cart page and the checkout
    summary. A quiet lilac card until the threshold is met, and the success green
-   only once it actually is — the colour is the answer, not decoration. */
+   only once it actually is â€” the colour is the answer, not decoration. */
 .vs-freeship {
   display: flex;
   flex-direction: column;
@@ -476,7 +476,7 @@
 
 .vs-freeship__title {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--vs-primary);
 }
 
@@ -488,7 +488,7 @@
 
 .vs-freeship__row.is-reached {
   color: var(--vs-success);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .vs-coupon {
@@ -515,7 +515,7 @@
   color: var(--vs-danger);
 }
 
-/* ── forms ─────────────────────────────────────────────────────────────── */
+/* â”€â”€ forms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-form {
   display: flex;
@@ -537,7 +537,7 @@
 
 .vs-panel__title {
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
   padding: 0;
 }
 
@@ -644,7 +644,7 @@
 
 .vs-check--terms a {
   color: var(--vs-primary);
-  font-weight: 700;
+  font-weight: 500;
   text-decoration: underline;
 }
 
@@ -668,7 +668,7 @@
   }
 }
 
-/* ── order success ─────────────────────────────────────────────────────── */
+/* â”€â”€ order success â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-done {
   display: flex;
@@ -695,7 +695,7 @@
 
 .vs-done__title {
   font-size: 25px;
-  font-weight: 800;
+  font-weight: 600;
   margin-block-start: 6px;
 }
 
@@ -723,7 +723,7 @@
 
 .vs-done__nexttitle {
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 600;
   margin-block-end: 8px;
 }
 
@@ -735,11 +735,11 @@
   margin-block-start: 12px;
 }
 
-/* ── editorial pages ───────────────────────────────────────────────────── */
+/* â”€â”€ editorial pages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-page__title {
   font-size: var(--vs-fs-h1);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.35;
   margin-block: 12px 6px;
 }
@@ -787,13 +787,13 @@
 
 .vs-artcard__cat {
   font-size: var(--vs-fs-xs);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--vs-accent-dark);
 }
 
 .vs-artcard__title {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.5;
 }
 
@@ -802,7 +802,7 @@
   color: var(--vs-ink-4);
 }
 
-/* ── contact and tracking ─────────────────────────────────────────────── */
+/* â”€â”€ contact and tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-contact {
   max-width: 620px;
@@ -821,7 +821,7 @@
 
 .vs-contact__title {
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .vs-contact__socials {
@@ -887,7 +887,7 @@
 
 .vs-track__title {
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .vs-track__status {
@@ -915,7 +915,7 @@
 
 .vs-steps__item[data-state="done"] {
   color: var(--vs-ink);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .vs-steps__dot {
@@ -929,7 +929,7 @@
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .vs-steps__item[data-state="done"] .vs-steps__dot {
@@ -942,7 +942,7 @@
   color: var(--vs-ink-invert);
 }
 
-/* ── not found ─────────────────────────────────────────────────────────── */
+/* â”€â”€ not found â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-notfound {
   padding-block: 70px;
@@ -963,7 +963,7 @@
   margin-block-start: 8px;
 }
 
-/* ── add-to-cart success state ─────────────────────────────────────────── */
+/* â”€â”€ add-to-cart success state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-atc.is-added,
 .vs-atc.is-added:hover {

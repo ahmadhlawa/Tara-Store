@@ -3,7 +3,7 @@
    All three cards share one model: the artwork is the card, and everything a
    shopper reads or presses lives in a panel that is absolutely positioned over
    the bottom of it. Because the panel is out of flow, revealing it can never
-   change a card's height or shift the row around it — the single most visible
+   change a card's height or shift the row around it â€” the single most visible
    defect the previous permanent-body cards had.
 
    The reveal is driven by three selectors that always travel together:
@@ -15,7 +15,7 @@
    statically, always visible. A phone has no hover, and a card that small has no
    room to overlay a panel without clipping it. */
 
-/* ── shared reveal ─────────────────────────────────────────────────────── */
+/* â”€â”€ shared reveal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-card,
 .vs-pkg {
@@ -27,7 +27,7 @@
   border: 1px solid var(--vs-border);
   box-shadow: var(--vs-shadow-1);
   transition: border-color var(--vs-t-card) var(--vs-ease),
-    box-shadow var(--vs-t-card) var(--vs-ease);
+    box-shadow var(--vs-t-card) var(--vs-ease), transform var(--vs-t-card) var(--vs-ease);
 }
 
 .vs-card__media,
@@ -95,7 +95,7 @@
   background: var(--vs-ink);
   color: var(--vs-ink-invert);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   padding: 7px 14px;
   border-radius: var(--vs-r-sm);
 }
@@ -138,13 +138,14 @@
 
   /* The hover is a warmth shift, not a jump: the edge picks up the brand mauve
      and the soft shadow deepens by one step. No lift, no scale on the card
-     itself — the artwork already scales inside it. */
+     itself â€” the artwork already scales inside it. */
   .vs-card:hover,
   .vs-card:focus-within,
   .vs-pkg:hover,
   .vs-pkg:focus-within {
     border-color: var(--vs-primary-lite);
     box-shadow: var(--vs-shadow-2);
+    transform: translateY(-3px);
   }
 
   .vs-card:hover .vs-card__img,
@@ -153,7 +154,7 @@
   .vs-pkg:hover .vs-pkg__img,
   .vs-pkg:focus-within .vs-pkg__img,
   .vs-pkg[data-revealed="true"] .vs-pkg__img {
-    transform: scale(1.045);
+    transform: scale(1.025);
   }
 
   .vs-card:hover .vs-card__img2,
@@ -176,11 +177,11 @@
   }
 }
 
-/* ── product card ──────────────────────────────────────────────────────── */
+/* â”€â”€ product card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-card__title {
   font-size: 14.5px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.5;
   color: var(--vs-ink);
   transition: color var(--vs-t) var(--vs-ease);
@@ -221,7 +222,7 @@
   flex: 0 0 auto;
 }
 
-/* ── price block ───────────────────────────────────────────────────────── */
+/* â”€â”€ price block â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-price {
   display: flex;
@@ -239,7 +240,7 @@
 
 .vs-price__now {
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--vs-primary);
   font-feature-settings: "tnum";
 }
@@ -258,11 +259,11 @@
   font-size: 15px;
 }
 
-/* ── package card ──────────────────────────────────────────────────────── */
+/* â”€â”€ package card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-pkg__title {
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.45;
   color: var(--vs-ink);
 }
@@ -294,7 +295,7 @@
   height: 40px;
 }
 
-/* ── category card ─────────────────────────────────────────────────────── */
+/* â”€â”€ category card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-cat {
   position: relative;
@@ -350,7 +351,7 @@
 
 .vs-cat__name {
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.45;
   color: var(--vs-ink-invert);
   text-shadow: 0 1px 10px rgba(46, 33, 35, 0.5);
@@ -361,7 +362,7 @@
   align-items: center;
   gap: 6px;
   font-size: var(--vs-fs-sm);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--vs-accent);
   opacity: 0;
   transition: opacity var(--vs-t-card) var(--vs-ease);
@@ -410,7 +411,7 @@
   }
 }
 
-/* ── catalogue page ────────────────────────────────────────────────────── */
+/* â”€â”€ catalogue page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-cathead {
   position: relative;
@@ -465,7 +466,7 @@
 
 .vs-cathead__title {
   font-size: var(--vs-fs-h1);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.3;
 }
 
@@ -636,7 +637,7 @@
 
 .vs-filters__legend {
   font-size: var(--vs-fs-sm);
-  font-weight: 800;
+  font-weight: 600;
   color: var(--vs-ink);
 }
 
@@ -679,7 +680,7 @@
 
 .vs-activefilters__clear {
   color: var(--vs-danger);
-  font-weight: 700;
+  font-weight: 500;
   font-size: var(--vs-fs-sm);
   background: none;
   border: 0;
@@ -699,7 +700,7 @@
   aspect-ratio: var(--vs-ar-product);
 }
 
-/* On desktop the real card is its image alone — the panel is an overlay — so the
+/* On desktop the real card is its image alone â€” the panel is an overlay â€” so the
    skeleton must not reserve a body the card will never occupy. */
 .vs-cardskel__body {
   display: none;

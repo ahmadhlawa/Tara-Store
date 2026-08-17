@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import AddToCartButton from "../../AddToCartButton.jsx";
 import Media from "../shell/Media.jsx";
 import { useCardReveal } from "../../../hooks/useCardReveal.js";
+import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
 import { useProductActions } from "../../../hooks/useStorefront.js";
 import { ArrowForward, BoxIcon } from "../shell/icons.jsx";
 
@@ -19,9 +20,10 @@ import { ArrowForward, BoxIcon } from "../shell/icons.jsx";
  * The panel is absolutely positioned: revealing it cannot change the card's
  * height or move the row. Below 900px it is static and always visible.
  */
-export default function PackageCard({ view, eager = false }) {
+export default function PackageCard({ view, eager = false, revealDelay = 0 }) {
   const { primaryAction } = useProductActions();
   const { cardProps } = useCardReveal();
+  const revealProps = useViewportReveal(revealDelay);
   if (!view) return null;
 
   const items = view.packageItems || [];
@@ -40,7 +42,7 @@ export default function PackageCard({ view, eager = false }) {
       : view.short || "";
 
   return (
-    <article className="vs-pkg" {...cardProps}>
+    <article className="vs-pkg" {...revealProps} {...cardProps}>
       <div className="vs-pkg__media">
         <Link to={view.href} className="vs-pkg__link" aria-label={view.name}>
           <Media

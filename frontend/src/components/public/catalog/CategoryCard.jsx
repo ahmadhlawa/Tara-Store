@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Media from "../shell/Media.jsx";
 import { ArrowForward } from "../shell/icons.jsx";
+import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
 
 /**
  * Image-only category tile: the artwork fills the card and the name sits centred
@@ -11,12 +12,14 @@ import { ArrowForward } from "../shell/icons.jsx";
  * The whole card is one link, and the product count stays in the accessible name
  * rather than on the artwork, which keeps the tile image-led.
  */
-export default function CategoryCard({ category, compact = false, eager = false }) {
+export default function CategoryCard({ category, compact = false, eager = false, revealDelay = 0 }) {
+  const revealProps = useViewportReveal(revealDelay);
   if (!category) return null;
   return (
     <Link
       to={category.href}
       className={`vs-cat${compact ? " vs-cat--compact" : ""}`}
+      {...revealProps}
       aria-label={`${category.name} — ${category.countText}`}
     >
       <Media

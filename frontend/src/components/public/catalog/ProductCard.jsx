@@ -3,6 +3,7 @@ import AddToCartButton from "../../AddToCartButton.jsx";
 import Media from "../shell/Media.jsx";
 import { productBadges } from "../../../utils/productView.js";
 import { useCardReveal } from "../../../hooks/useCardReveal.js";
+import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
 import { useProductActions } from "../../../hooks/useStorefront.js";
 import { EyeIcon, PlusIcon } from "../shell/icons.jsx";
 
@@ -22,9 +23,10 @@ import { EyeIcon, PlusIcon } from "../shell/icons.jsx";
  * product, "choose an option" for one that needs a variant, and disabled when
  * the product is sold out.
  */
-export default function ProductCard({ view, eager = false }) {
+export default function ProductCard({ view, eager = false, revealDelay = 0 }) {
   const { openQuick, primaryAction } = useProductActions();
   const { cardProps } = useCardReveal();
+  const revealProps = useViewportReveal(revealDelay);
   if (!view) return null;
 
   const badges = productBadges(view);
@@ -33,7 +35,7 @@ export default function ProductCard({ view, eager = false }) {
   const stockLabel = view.soldOut ? "" : view.lowStock ? `بقي ${view.stock} فقط` : "متوفر";
 
   return (
-    <article className="vs-card" {...cardProps}>
+    <article className="vs-card" {...revealProps} {...cardProps}>
       <div className="vs-card__media">
         <Link to={view.href} className="vs-card__link" aria-label={view.name}>
           <Media

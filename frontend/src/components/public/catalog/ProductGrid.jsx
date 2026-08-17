@@ -47,9 +47,9 @@ export default function ProductGrid({ views, variant = "grid", eagerCount = 4 })
   if (!views?.length) return null;
   const cards = views.map((view, index) =>
     view.isPackage ? (
-      <PackageCard key={view.id} view={view} eager={index < eagerCount} />
+      <PackageCard key={view.id} view={view} eager={index < eagerCount} revealDelay={Math.min(index * 70, 280)} />
     ) : (
-      <ProductCard key={view.id} view={view} eager={index < eagerCount} />
+      <ProductCard key={view.id} view={view} eager={index < eagerCount} revealDelay={Math.min(index * 70, 280)} />
     ),
   );
   const wrapper = WRAPPER[variant];

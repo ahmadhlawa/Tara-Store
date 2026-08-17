@@ -1,11 +1,11 @@
 /* Hero, promotional bands and the homepage section compositions.
-   Only the hero's framing, controls and typography are themed here — its sizing
+   Only the hero's framing, controls and typography are themed here â€” its sizing
    and responsive behaviour are deliberately left exactly as they were. */
 
-/* ── hero ──────────────────────────────────────────────────────────────── */
+/* â”€â”€ hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* One advertising image across the full storefront width. Nothing sits beside
-   it and nothing frames it: no container, no gutter, no radius — the band runs
+   it and nothing frames it: no container, no gutter, no radius â€” the band runs
    edge to edge from the nav band down to the first section, and `.vs-public`'s
    own rail gutter is what stops it short of the category rail. */
 .vs-herorow {
@@ -53,18 +53,18 @@
   object-position: center;
 }
 
-/* ── promo band call to action ─────────────────────────────────────────── */
+/* â”€â”€ promo band call to action â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-promo__cta {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: var(--vs-fs-sm);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--vs-accent);
 }
 
-/* ── wide strip banner ─────────────────────────────────────────────────── */
+/* â”€â”€ wide strip banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-strip {
   position: relative;
@@ -104,7 +104,7 @@
 
 .vs-strip__title {
   font-size: var(--vs-fs-h2);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.4;
 }
 
@@ -113,7 +113,7 @@
   color: rgba(255, 253, 250, 0.86);
 }
 
-/* ── split editorial block ─────────────────────────────────────────────── */
+/* â”€â”€ split editorial block â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-split {
   display: grid;
@@ -154,7 +154,7 @@
 
 .vs-split__title {
   font-size: var(--vs-fs-h2);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.4;
   color: var(--vs-ink);
 }
@@ -184,7 +184,7 @@
   gap: var(--vs-grid-gap);
 }
 
-/* ── trust strip ───────────────────────────────────────────────────────── */
+/* â”€â”€ trust strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-trust {
   display: grid;
@@ -217,7 +217,7 @@
 
 .vs-trust__title {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .vs-trust__desc {
@@ -225,7 +225,7 @@
   color: var(--vs-ink-3);
 }
 
-/* ── hero skeleton ─────────────────────────────────────────────────────── */
+/* â”€â”€ hero skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* Reserves exactly the band the hero will occupy, radius and cap included, so
    nothing on the page moves when the slides arrive. */

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Media from "../shell/Media.jsx";
 import { ArrowForward } from "../shell/icons.jsx";
+import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
 
 /**
  * Full-width editorial band between two product sections.
@@ -11,9 +12,10 @@ import { ArrowForward } from "../shell/icons.jsx";
  * are untouched — every placement simply queues up for these bands instead.
  */
 export function StripBanner({ banner }) {
+  const revealProps = useViewportReveal();
   if (!banner) return null;
   return (
-    <Link to={banner.href} className="vs-strip">
+    <Link to={banner.href} className="vs-strip" {...revealProps}>
       <Media className="vs-strip__media" src={banner.imageUrl} fallback={banner.fallback} alt="" />
       <span className="vs-strip__veil" />
       <span className="vs-strip__body">

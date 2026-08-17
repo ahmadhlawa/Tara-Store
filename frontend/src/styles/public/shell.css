@@ -1,6 +1,6 @@
 /* Announcement strip, header, category navigation, mobile tab bar, footer. */
 
-/* ── announcement ──────────────────────────────────────────────────────── */
+/* â”€â”€ announcement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-announce {
   background: var(--vs-primary);
@@ -40,11 +40,11 @@
   color: var(--vs-ink-invert);
 }
 
-/* ── header ────────────────────────────────────────────────────────────── */
+/* â”€â”€ header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* Ivory, not white. The supplied logo carries its own ivory ground, and the one
    thing that would give it away as a pasted-in rectangle is a whiter header
-   behind it — so the header takes the page's ivory and the mark sits on the
+   behind it â€” so the header takes the page's ivory and the mark sits on the
    same paper the rest of the storefront is printed on. Cards keep the warmer
    white, which is what separates them from the page now. */
 .vs-header {
@@ -78,7 +78,7 @@
 
 /* The identity row's controls are a step smaller than the page's, which is what
    takes the band from 76px to 64px without crowding anything. Touch targets are
-   restored at ≤899px, where these same controls are the only ones on screen. */
+   restored at â‰¤899px, where these same controls are the only ones on screen. */
 .vs-header__row .vs-iconbtn {
   width: 38px;
   height: 38px;
@@ -103,7 +103,7 @@
   min-width: 0;
 }
 
-/* The gold hairline appears only when there is a mark to divide the type from —
+/* The gold hairline appears only when there is a mark to divide the type from â€”
    `:not(:first-child)` is the whole of that condition, so no modifier class and
    no second code path. */
 .vs-logo__text:not(:first-child) {
@@ -124,7 +124,7 @@
 
 /* `contain` is the floor: no client's logo is ever cropped or distorted by the
    header. `useLogoFit` replaces these four values inline when it can see that
-   the file carries its own margin — it then scales the image up inside the
+   the file carries its own margin â€” it then scales the image up inside the
    viewport, always on both axes at once, so the aspect ratio is untouched. */
 /* Qualified by the element so it outranks `.vs-public img`, whose `max-width`
    would otherwise clamp the scaled image back to the viewport's width and undo
@@ -140,12 +140,12 @@ img.vs-logo__img {
   object-position: center;
 }
 
-/* Marcellus first for a latin name, Cairo behind it for an Arabic one — the
-   serif has no Arabic glyphs, so "تارا" renders in Cairo either way. The
+/* Marcellus first for a latin name, Cairo behind it for an Arabic one â€” the
+   serif has no Arabic glyphs, so "ØªØ§Ø±Ø§" renders in Cairo either way. The
    template's 0.13em tracking is a latin display trick that pulls Arabic letters
    apart at their joins, so it is dialled back to something both scripts wear. */
 .vs-logo__name {
-  font-family: "Marcellus", "Cairo", serif;
+  font-family: "Marcellus", "Alexandria", serif;
   font-size: 25px;
   line-height: 1.05;
   letter-spacing: 0.04em;
@@ -158,7 +158,7 @@ img.vs-logo__img {
 /* The strapline is the one place a small serif is worth spending on: it is
    latin, it is decorative, and it is the line that says handmade. */
 .vs-logo__tag {
-  font-family: "Marcellus", "Cairo", serif;
+  font-family: "Marcellus", "Alexandria", serif;
   font-size: 11.5px;
   line-height: 1.3;
   letter-spacing: 0.07em;
@@ -221,7 +221,7 @@ img.vs-logo__img {
   color: var(--vs-ink-invert);
   font-family: inherit;
   font-size: var(--vs-fs-sm);
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
   transition: background var(--vs-t) var(--vs-ease);
 }
@@ -301,7 +301,7 @@ img.vs-logo__img {
 
 .vs-suggest__price {
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--vs-primary);
 }
 
@@ -348,7 +348,7 @@ img.vs-logo__img {
 
 .vs-hcontact__num {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   direction: ltr;
 }
 
@@ -378,7 +378,7 @@ img.vs-logo__img {
   color: var(--vs-ink-invert);
   font-family: inherit;
   font-size: var(--vs-fs-sm);
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
   transition: background var(--vs-t) var(--vs-ease);
 }
@@ -398,7 +398,7 @@ img.vs-logo__img {
   background: var(--vs-accent);
   color: var(--vs-ink);
   font-size: 11.5px;
-  font-weight: 800;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -414,7 +414,7 @@ img.vs-logo__img {
   }
 }
 
-/* ── desktop nav band ──────────────────────────────────────────────────── */
+/* â”€â”€ desktop nav band â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* The storefront's one substantial block of mauve, and the reason the rest of
    the page can stay ivory: the navigation carries the brand colour so nothing
@@ -423,8 +423,8 @@ img.vs-logo__img {
 .vs-nav {
   position: relative;
   height: var(--vs-nav-h);
-  background: var(--vs-primary);
-  color: var(--vs-ink-invert);
+  background: var(--vs-grad-nav);
+  color: var(--vs-ink);
   border-block-end: 1px solid var(--vs-border-accent);
 }
 
@@ -444,19 +444,20 @@ img.vs-logo__img {
   margin-inline-end: 8px;
   border: 0;
   border-radius: var(--vs-r-pill);
-  background: rgba(255, 253, 250, 0.16);
-  color: var(--vs-ink-invert);
+  background: rgba(255, 255, 255, 0.42);
+  color: var(--vs-primary-dark);
   font-family: inherit;
   font-size: var(--vs-fs-sm);
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
-  transition: background var(--vs-t) var(--vs-ease);
+  transition: background var(--vs-t) var(--vs-ease), color var(--vs-t) var(--vs-ease), box-shadow var(--vs-t) var(--vs-ease);
 }
 
 .vs-nav__cats:hover,
 .vs-nav__cats[aria-expanded="true"] {
-  background: var(--vs-page);
-  color: var(--vs-primary);
+  background: var(--vs-primary);
+  color: var(--vs-ink-invert);
+  box-shadow: 0 2px 8px rgba(103, 68, 115, 0.2);
 }
 
 .vs-nav__link {
@@ -466,18 +467,20 @@ img.vs-logo__img {
   height: var(--vs-nav-h);
   padding-inline: 12px;
   font-size: var(--vs-fs-sm);
-  font-weight: 600;
-  color: rgba(255, 253, 250, 0.84);
-  transition: color var(--vs-t) var(--vs-ease);
+  font-weight: 500;
+  color: var(--vs-primary-dark);
+  transition: color var(--vs-t) var(--vs-ease), background var(--vs-t) var(--vs-ease);
 }
 
 .vs-nav__link:hover {
-  color: var(--vs-ink-invert);
+  color: var(--vs-ink);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .vs-nav__link[aria-current="page"] {
-  color: var(--vs-ink-invert);
-  font-weight: 800;
+  color: var(--vs-ink);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.48);
 }
 
 .vs-nav__link::after {
@@ -486,7 +489,7 @@ img.vs-logo__img {
   inset-block-end: 0;
   inset-inline: 12px;
   height: 2px;
-  background: var(--vs-accent-soft);
+  background: var(--vs-primary-dark);
   transform: scaleX(0);
   transform-origin: right;
   transition: transform var(--vs-t-card) var(--vs-ease);
@@ -506,7 +509,7 @@ img.vs-logo__img {
   white-space: nowrap;
 }
 
-/* ── fixed category rail ───────────────────────────────────────────────── */
+/* â”€â”€ fixed category rail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* Physical `right`, not `inset-inline-end`: the storefront is RTL, so the
    logical end edge is the left one. The rail belongs at the far right of the
@@ -534,7 +537,7 @@ img.vs-logo__img {
   box-shadow: -2px 0 10px rgba(93, 68, 70, 0.04);
 }
 
-/* The one deliberately heavy element on the rail — it is the way into the whole
+/* The one deliberately heavy element on the rail â€” it is the way into the whole
    catalogue, so it takes the deepest mauve and everything else stays neutral
    around it. */
 .vs-catbar__trigger {
@@ -610,7 +613,7 @@ img.vs-logo__img {
 
 /* Pale gold rather than another block of mauve: the rail marks where you are,
    it does not compete with the nav band for emphasis. This is gold doing what
-   gold is for here — a small active-state detail, not a surface. */
+   gold is for here â€” a small active-state detail, not a surface. */
 .vs-catbar__item[data-active="true"] {
   border-color: var(--vs-accent-dark);
   background: var(--vs-accent-soft);
@@ -624,7 +627,7 @@ img.vs-logo__img {
   object-fit: cover;
 }
 
-/* The neutral stand-in for a category with no artwork — a line icon, never a
+/* The neutral stand-in for a category with no artwork â€” a line icon, never a
    coloured square that would read as a picture the store does not have. */
 .vs-catbar__ico {
   display: flex;
@@ -643,7 +646,7 @@ img.vs-logo__img {
   background: var(--vs-ink);
   color: var(--vs-ink-invert);
   font-size: var(--vs-fs-xs);
-  font-weight: 700;
+  font-weight: 500;
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
@@ -662,7 +665,7 @@ img.vs-logo__img {
   z-index: calc(var(--vs-z-drawer) - 1);
 }
 
-/* ── category drawer ───────────────────────────────────────────────────── */
+/* â”€â”€ category drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* Opens *over* the rail, not beside it: the panel is the rail's expanded state,
    so it takes the same edge and simply reaches further left. Sitting it at
@@ -742,7 +745,7 @@ img.vs-logo__img {
 
 .vs-catdrawer__name {
   font-size: 14.5px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--vs-ink);
   line-height: 1.45;
 }
@@ -780,7 +783,7 @@ img.vs-logo__img {
   color: var(--vs-ink-3);
 }
 
-/* ── mobile tab bar ────────────────────────────────────────────────────── */
+/* â”€â”€ mobile tab bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-tabbar {
   position: fixed;
@@ -829,13 +832,13 @@ img.vs-logo__img {
   background: var(--vs-accent);
   color: var(--vs-ink);
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* ── responsive shell switches ─────────────────────────────────────────── */
+/* â”€â”€ responsive shell switches â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-desk {
   display: flex;
@@ -887,8 +890,8 @@ img.vs-logo__img {
   }
 }
 
-/* A phone header is five 44px touch targets and whatever is left — about 70px at
-   360–390px. That is room for the mark or the wordmark, not both: shown
+/* A phone header is five 44px touch targets and whatever is left â€” about 70px at
+   360â€“390px. That is room for the mark or the wordmark, not both: shown
    together the name was ellipsised down to "..e", which is worse than either
    alone. The mark wins here because it cannot be truncated and it is the thing
    that is actually recognisable at a glance; the name is still in the tab title,
@@ -911,7 +914,7 @@ img.vs-logo__img {
   }
 }
 
-/* Below 1180 the phone block would squeeze the search field — and so would the
+/* Below 1180 the phone block would squeeze the search field â€” and so would the
    strapline, which is decoration and the first thing that can go. */
 @media (max-width: 1179px) {
   .vs-hcontact,
@@ -920,18 +923,18 @@ img.vs-logo__img {
   }
 }
 
-/* ── footer ────────────────────────────────────────────────────────────── */
+/* â”€â”€ footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* Warm cream and mauve, not a dark luxury slab. A handmade store's footer should
    read as the bottom of the same sheet of paper the catalogue is printed on, so
-   the whole block sits one cream step below the page and is separated from it —
-   and internally divided — by gold hairlines rather than by a change of mode.
+   the whole block sits one cream step below the page and is separated from it â€”
+   and internally divided â€” by gold hairlines rather than by a change of mode.
    Type darkens instead of inverting, which is also what keeps it readable: the
    template's #8d877e on near-black became unreadable the moment the ground went
    light, and every one of those greys is now a warm ink token. */
 .vs-footer {
   margin-block-start: var(--vs-section);
-  background: var(--vs-surface-2);
+  background: var(--vs-grad-footer);
   color: var(--vs-ink-2);
   border-block-start: 1px solid var(--vs-border-accent);
 }
@@ -941,14 +944,14 @@ img.vs-logo__img {
 .vs-footer__top {
   display: grid;
   grid-template-columns: minmax(220px, 1.5fr) repeat(auto-fit, minmax(158px, 1fr));
-  gap: 30px;
-  padding-block: 48px 32px;
+  gap: 24px;
+  padding-block: 34px 22px;
 }
 
 .vs-footer__brand {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 9px;
 }
 
 .vs-footer__name {
@@ -960,15 +963,15 @@ img.vs-logo__img {
 
 /* Sizes the shared logo viewport; the clipping and scaling rules come with
    `.vs-logo__box`, so header and footer can never drift apart. Bigger than the
-   header's, because there is room here and this is where the full lockup — the
-   wordmark, the strapline and the mark — can actually be read.
+   header's, because there is room here and this is where the full lockup â€” the
+   wordmark, the strapline and the mark â€” can actually be read.
 
    Given a plate rather than dropped straight onto the cream: the file carries
    its own ivory ground, which against the footer's cream showed as a pale
-   rectangle with no edge — an artefact rather than a decision. Matching that
+   rectangle with no edge â€” an artefact rather than a decision. Matching that
    ground exactly and closing it with a gold hairline turns the same rectangle
    into a framed mark. No padding: the box clips an absolutely positioned image,
-   so padding would not inset it — and the file already carries its own generous
+   so padding would not inset it â€” and the file already carries its own generous
    margin, which is the breathing room the frame sits outside of. The header
    needs none of this: it is already ivory. */
 .vs-footer__logo {
@@ -1038,7 +1041,7 @@ img.vs-logo__img {
   align-items: center;
   justify-content: center;
   color: var(--vs-ink-2);
-  font-weight: 700;
+  font-weight: 500;
   transition: background var(--vs-t) var(--vs-ease), color var(--vs-t) var(--vs-ease),
     border-color var(--vs-t) var(--vs-ease);
 }
@@ -1052,17 +1055,17 @@ img.vs-logo__img {
 .vs-footer__col {
   display: flex;
   flex-direction: column;
-  gap: 11px;
+  gap: 8px;
   min-width: 0;
 }
 
-/* Each column head is underlined by a short gold rule — the footer's one
+/* Each column head is underlined by a short gold rule â€” the footer's one
    decorative gesture, and small enough to stay jewellery. */
 .vs-footer__title {
   font-size: 14.5px;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--vs-ink);
-  padding-block-end: 9px;
+  padding-block-end: 6px;
   border-block-end: 1px solid var(--vs-border-accent);
 }
 
@@ -1081,7 +1084,7 @@ img.vs-logo__img {
   display: flex;
   gap: 7px;
   flex-wrap: wrap;
-  margin-block-start: 6px;
+  margin-block-start: 3px;
 }
 
 .vs-footer__pay span {
@@ -1105,7 +1108,7 @@ img.vs-logo__img {
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 16px;
   align-items: center;
-  padding-block: 16px;
+  padding-block: 12px;
   font-size: 12.5px;
   color: var(--vs-ink-3);
 }
