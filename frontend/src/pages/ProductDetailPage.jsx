@@ -139,7 +139,7 @@ export default function ProductDetailPage() {
       label: "التوصيل والدفع",
       content: (
         <ul className="vs-bullets">
-          <li>الدفع عند الاستلام نقداً، أو تحويل بنكي يدوي بعد تأكيد الطلب.</li>
+          <li>الدفع عند الاستلام نقداً للمندوب عند التسليم.</li>
           <li>لا يطلب المتجر بيانات بطاقات بنكية في أي مرحلة.</li>
           <li>تُحتسب رسوم التوصيل حسب المنطقة في صفحة إتمام الطلب.</li>
           <li>
@@ -256,7 +256,7 @@ export default function ProductDetailPage() {
 
             <ul className="vs-pdp__assurance">
               <li>
-                <WalletIcon size={17} /> الدفع عند الاستلام أو تحويل يدوي
+                <WalletIcon size={17} /> الدفع عند الاستلام
               </li>
               <li>
                 <TruckIcon size={17} /> رسوم التوصيل تُحسب حسب المنطقة

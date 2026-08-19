@@ -47,7 +47,7 @@ export const footerLinks = {
 
 export const trustFeatures = [
   { title: "توصيل لكل المناطق", desc: "خلال ١–٤ أيام عمل", icon: "truck" },
-  { title: "دفع عند الاستلام", desc: "أو تحويل يدوي", icon: "wallet" },
+  { title: "دفع عند الاستلام", desc: "نقداً للمندوب عند التسليم", icon: "wallet" },
   { title: "إرجاع خلال ١٤ يوماً", desc: "على المنتجات غير المستخدمة", icon: "refresh" },
   { title: "دعم فني حرفي", desc: "نساعدك في اختيار المواد", icon: "headset" },
 ];
@@ -59,14 +59,6 @@ export const paymentMethods = [
     key: "cash_on_delivery",
     label: "الدفع عند الاستلام",
     desc: "ادفع نقداً للمندوب عند التسليم",
-  },
-  {
-    // Must stay one of the API's PaymentMethod values (cash_on_delivery, card,
-    // bank_transfer). The storefront used to send "manual" here, which the orders
-    // endpoint rejected with a 422 only after the customer had filled the form.
-    key: "bank_transfer",
-    label: "تحويل بنكي / يدوي",
-    desc: "نرسل تفاصيل الحساب بعد تأكيد الطلب",
   },
 ];
 

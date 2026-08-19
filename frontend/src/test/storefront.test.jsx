@@ -21,6 +21,9 @@ describe("public storefront", () => {
     expect(await screen.findAllByText(settingsFixture.store_name)).not.toHaveLength(0);
     expect(screen.getByRole("search")).toBeInTheDocument();
     expect(screen.getByText(settingsFixture.announcement)).toBeInTheDocument();
+    expect(document.querySelector(".vs-footer")).toHaveTextContent("الدفع عند الاستلام");
+    expect(screen.queryByText(/تحويل بنكي|تحويل يدوي/)).not.toBeInTheDocument();
+    expect(screen.queryByText("من الساعة العاشرة صباحاً حتى السابعة مساءً")).not.toBeInTheDocument();
   });
 
   it("renders the homepage sections the admin has made visible", async () => {
@@ -163,41 +166,40 @@ describe("public storefront", () => {
     });
     renderApp("/checkout");
 
-    const submit = await screen.findByRole("button", { name: /تأكيد الطلب/ });
+    await userEvent.click(await screen.findByRole("checkbox"));
+    const submit = screen.getByRole("button", { name: /تأكيد وإرسال الطلب/ });
     await userEvent.click(submit);
 
     expect(await screen.findAllByText("الرجاء إدخال الاسم الكامل")).not.toHaveLength(0);
     expect(screen.getByText("رقم هاتف غير صالح — مثال 0591234567")).toBeInTheDocument();
     expect(screen.getByText("اختر منطقة التوصيل")).toBeInTheDocument();
-    expect(screen.getByText("يجب الموافقة على الشروط قبل إتمام الطلب")).toBeInTheDocument();
     expect(await screen.findByRole("alert")).toHaveTextContent("الرجاء إدخال الاسم الكامل");
     expect(screen.getByPlaceholderText("مثال: سارة أحمد")).toHaveFocus();
     expect(calls.some((call) => call.path === "/api/v1/orders")).toBe(false);
   });
 
-  it("makes an unchecked terms agreement visible and focusable after a valid checkout click", async () => {
+  it("requires return-policy acknowledgement before enabling final confirmation", async () => {
     cartStorage.save([
       { key: "1|", productId: 1, variantId: null, slug: "clear-resin", name: "ريزن شفاف", unit: 100, bg: "", variation: "", qty: 1 },
     ]);
-    const calls = stubApi({
+    stubApi({
       ...storefrontRoutes,
       "POST /api/v1/cart/price": {
         lines: [], subtotal: 100, discount: 0, delivery_fee: 20, total: 120,
         coupon_code: null, delivery_area_name: "رام الله",
       },
-      "POST /api/v1/orders": respond(500, { error: { code: "must_not_submit", message: "must not be called" } }),
     });
     renderApp("/checkout");
 
-    await userEvent.type(await screen.findByPlaceholderText("مثال: سارة أحمد"), "سارة أحمد");
-    await userEvent.type(screen.getByPlaceholderText("05XXXXXXXX"), "0591234567");
-    await userEvent.type(screen.getByPlaceholderText("الشارع، رقم البناية، أقرب معلم"), "رام الله، شارع الإرسال");
-    await userEvent.selectOptions(screen.getByLabelText(/منطقة التوصيل/), "1");
-    await userEvent.click(screen.getByRole("button", { name: /تأكيد الطلب/ }));
+    expect(await screen.findByText("نظراً لطبيعة منتجات تارا وحساسية القطع، وكونها مصنوعة ومجهزة يدوياً بعناية، لا يمكن استبدال أو إرجاع المنتجات بعد تأكيد الطلب أو استلامه.")).toBeInTheDocument();
+    const acknowledgement = screen.getByRole("checkbox", { name: /قرأت سياسة الإرجاع والاستبدال وأوافق عليها/ });
+    const submit = screen.getByRole("button", { name: /تأكيد وإرسال الطلب/ });
+    expect(acknowledgement).not.toBeChecked();
+    expect(submit).toBeDisabled();
+    expect(screen.getByRole("link", { name: "سياسة الإرجاع والاستبدال" })).toHaveAttribute("href", "/page/return-policy");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("يجب الموافقة على الشروط قبل إتمام الطلب");
-    expect(screen.getByRole("checkbox")).toHaveFocus();
-    expect(calls.some((call) => call.path === "/api/v1/orders")).toBe(false);
+    await userEvent.click(acknowledgement);
+    expect(submit).toBeEnabled();
   });
 
   it("submits a valid checkout and moves to the confirmation route", async () => {
@@ -247,7 +249,7 @@ describe("public storefront", () => {
     // Addressed by its own label: the header search field is also a combobox.
     await userEvent.selectOptions(screen.getByLabelText(/منطقة التوصيل/), "1");
     await userEvent.click(screen.getByRole("checkbox"));
-    await userEvent.click(screen.getByRole("button", { name: /تأكيد الطلب/ }));
+    await userEvent.click(screen.getByRole("button", { name: /تأكيد وإرسال الطلب/ }));
 
     expect(await screen.findByRole("heading", { name: "تم استلام طلبك بنجاح" })).toBeInTheDocument();
     expect(screen.getByText("ORD-260731-1234")).toBeInTheDocument();
@@ -281,7 +283,7 @@ describe("public storefront", () => {
     await userEvent.type(screen.getByPlaceholderText("الشارع، رقم البناية، أقرب معلم"), "رام الله، شارع الإرسال");
     await userEvent.selectOptions(screen.getByLabelText(/منطقة التوصيل/), "1");
     await userEvent.click(screen.getByRole("checkbox"));
-    await userEvent.click(screen.getByRole("button", { name: /تأكيد الطلب/ }));
+    await userEvent.click(screen.getByRole("button", { name: /تأكيد وإرسال الطلب/ }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("تعذر الحفظ");
     expect(cartStorage.load()).toHaveLength(1);

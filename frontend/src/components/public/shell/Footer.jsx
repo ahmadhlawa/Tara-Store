@@ -58,7 +58,6 @@ export default function Footer() {
         <span>{settings.address}</span>
       ),
     },
-    settings.hours && { key: "hours", node: <span>{settings.hours}</span> },
   ].filter(Boolean);
 
   return (
@@ -106,7 +105,6 @@ export default function Footer() {
           ))}
           <div className="vs-footer__pay">
             <span>الدفع عند الاستلام</span>
-            <span>تحويل بنكي / يدوي</span>
           </div>
         </div>
       </div>

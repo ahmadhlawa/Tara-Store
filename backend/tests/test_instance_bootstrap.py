@@ -172,6 +172,28 @@ def test_apply_fills_a_placeholder_page_left_over_from_an_earlier_bootstrap(
     assert page.content == "Founded 2019.\n\nStill here."
 
 
+def test_bootstrap_upgrades_only_the_legacy_tara_return_policy(db: Session) -> None:
+    profile = load_profile(TARA_PROFILE)
+    legacy_content = (
+        "نظرًا لطبيعة منتجات TARA وحساسية القطع وكونها مصنوعة ومجهزة يدويًا بعناية، لا يمكن استبدال أو إرجاع المنتجات بعد تأكيد الطلب أو استلامه.\n\n"
+        "يُستثنى من ذلك وصول المنتج بحالة تالفة أو وصول منتج مختلف عن الطلب. في هذه الحالة، يرجى التواصل مع TARA خلال 24 ساعة من استلام الطلب وإرفاق صور واضحة توضح حالة المنتج، ليتم مراجعة الحالة وتقديم الحل المناسب.\n\n"
+        "ولا تُعد الاختلافات البسيطة والطبيعية في اللون أو الشكل أو القياس أو التفاصيل الناتجة عن طبيعة التصنيع اليدوي عيبًا أو تلفًا في المنتج.\n\n"
+        "نرجو التأكد من تفاصيل المنتج والمواصفات المطلوبة قبل تأكيد الطلب."
+    )
+    page = StaticPage(slug="return-policy", title="سياسة الاستبدال والاسترجاع", content=legacy_content)
+    db.add(page)
+    db.commit()
+
+    apply_profile(db, profile)
+
+    assert page.content == profile.static_pages[2].content
+
+    page.content = "نص عدّله المالك"
+    db.commit()
+    apply_profile(db, profile)
+    assert page.content == "نص عدّله المالك"
+
+
 def test_bootstrap_creates_no_demo_products_orders_or_coupons(db: Session, profile) -> None:
     apply_profile(db, profile)
 
@@ -402,6 +424,11 @@ def test_the_shipped_profile_carries_the_clients_confirmed_store_data(db: Sessio
     for slug, page in pages.items():
         assert page.content.strip(), f"{slug} has no published body"
         assert page.is_published is True
+    assert pages["return-policy"].content == (
+        "نظراً لطبيعة منتجات تارا وحساسية القطع، وكونها مصنوعة ومجهزة يدوياً بعناية، لا يمكن استبدال أو إرجاع المنتجات بعد تأكيد الطلب أو استلامه.\n\n"
+        "ولا تعد الاختلافات البسيطة والطبيعية في اللون أو الشكل أو القياس أو التفاصيل الناتجة عن طبيعة التصنيع اليدوي عيباً أو تلفاً في المنتج.\n\n"
+        "نرجو التأكد من تفاصيل المنتج والمواصفات المطلوبة قبل تأكيد الطلب."
+    )
     # The workbook's contact answer was still full of placeholders; none of it shipped.
     assert "[رقم التواصل]" not in pages["contact"].content
     assert "[اسم الحساب]" not in pages["contact"].content

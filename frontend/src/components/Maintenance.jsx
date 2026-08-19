@@ -29,7 +29,6 @@ export default function MaintenanceScreen({ settings }) {
       value: settings.email,
       href: `mailto:${settings.email}`,
     },
-    settings.hours && { key: "hours", label: "ساعات العمل", value: settings.hours, href: null },
   ].filter(Boolean);
 
   return (

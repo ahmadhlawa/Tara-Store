@@ -648,6 +648,25 @@
   text-decoration: underline;
 }
 
+.vs-return-policy {
+  background: var(--vs-primary-soft);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-r-md);
+  color: var(--vs-ink-2);
+  font-size: 13px;
+  line-height: 1.9;
+  padding: 15px;
+}
+
+.vs-return-policy h2 {
+  color: var(--vs-ink);
+  font-size: 14px;
+  margin: 0 0 7px;
+}
+
+.vs-return-policy p { margin: 0; }
+.vs-return-policy p + p { margin-top: 7px; }
+
 .vs-checkout__error {
   padding: 14px 18px;
   text-align: start;

@@ -9,17 +9,12 @@ import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
  * that really exists. Nothing here is invented copy.
  */
 export default function TrustStrip() {
-  const { deliveryAreas, settings } = useStore();
+  const { deliveryAreas } = useStore();
   const paymentReveal = useViewportReveal(0);
   const deliveryReveal = useViewportReveal(70);
   const returnReveal = useViewportReveal(140);
 
-  // Checkout offers manual transfer only once the owner has published account
-  // details for it, so this line has to follow the same rule or it advertises a
-  // method the customer will not find.
-  const paymentText = settings.manualPaymentInstructions
-    ? "أو تحويل بنكي يدوي — بدون بطاقات"
-    : "ادفع نقداً للمندوب عند التسليم — بدون بطاقات";
+  const paymentText = "ادفع نقداً للمندوب عند التسليم";
 
   const areasText = !deliveryAreas.length
     ? null

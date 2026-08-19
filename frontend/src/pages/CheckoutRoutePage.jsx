@@ -10,6 +10,12 @@ import { paymentMethods } from "../store.js";
 import { useMoney } from "../hooks/useStorefront.js";
 import { whatsappHref } from "../utils/format.js";
 
+const RETURN_POLICY_NOTICE = [
+  "نظراً لطبيعة منتجات تارا وحساسية القطع، وكونها مصنوعة ومجهزة يدوياً بعناية، لا يمكن استبدال أو إرجاع المنتجات بعد تأكيد الطلب أو استلامه.",
+  "ولا تعد الاختلافات البسيطة والطبيعية في اللون أو الشكل أو القياس أو التفاصيل الناتجة عن طبيعة التصنيع اليدوي عيباً أو تلفاً في المنتج.",
+  "نرجو التأكد من تفاصيل المنتج والمواصفات المطلوبة قبل تأكيد الطلب.",
+];
+
 function newClientReference() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
   return `checkout-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -27,7 +33,7 @@ function validate(form) {
   return errors;
 }
 
-/** Cash on delivery and manual transfer only — the form never asks for a card. */
+/** Cash on delivery only — the form never asks for card or transfer details. */
 export default function CheckoutRoutePage() {
   const store = useStore();
   const money = useMoney();
@@ -105,7 +111,7 @@ export default function CheckoutRoutePage() {
         address: form.address.trim(),
         deliveryAreaId: form.areaId,
         couponCode: coupon.applied || null,
-        paymentMethod: form.payment,
+        paymentMethod: "cash_on_delivery",
         notes: form.notes.trim() || null,
       }, clientReference.current);
       orderTokenStorage.save(order.order_number, order.public_token);
@@ -128,14 +134,6 @@ export default function CheckoutRoutePage() {
   };
 
   const totals = priced || { subtotal: 0, discount: 0, shipping: 0, total: 0, areaName: "" };
-
-  // Manual transfer is only a real option once the owner has published account
-  // details to send with it; until then the store takes cash on delivery, and
-  // offering a method whose instructions are blank promises the customer
-  // something the confirmation screen cannot deliver.
-  const offeredPaymentMethods = paymentMethods.filter(
-    (method) => method.key !== "bank_transfer" || !!store.settings.manualPaymentInstructions,
-  );
 
   if (!cart.length) {
     return (
@@ -266,7 +264,7 @@ export default function CheckoutRoutePage() {
 
           <fieldset className="vs-panel">
             <legend className="vs-panel__title">طريقة الدفع</legend>
-            {offeredPaymentMethods.map((method) => (
+            {paymentMethods.map((method) => (
               <label
                 key={method.key}
                 className="vs-payopt"
@@ -285,15 +283,14 @@ export default function CheckoutRoutePage() {
               </label>
             ))}
 
-            {form.payment === "bank_transfer" && store.settings.manualPaymentInstructions && (
-              <div className="vs-payopt__instructions">
-                {store.settings.manualPaymentInstructions}
-              </div>
-            )}
-
             <p className="vs-form__note">
-              لا يتم تحصيل أي مبلغ الآن، ولا يطلب المتجر بيانات بطاقات بنكية في أي مرحلة.
+              لا يتم تحصيل أي مبلغ الآن؛ يُدفع نقداً للمندوب عند التسليم.
             </p>
+
+            <div className="vs-return-policy" aria-labelledby="vs-return-policy-title">
+              <h2 id="vs-return-policy-title">سياسة الإرجاع والاستبدال</h2>
+              {RETURN_POLICY_NOTICE.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+            </div>
 
             <label className="vs-check vs-check--terms">
               <input
@@ -303,8 +300,7 @@ export default function CheckoutRoutePage() {
                 {...field("terms")}
               />
               <span>
-                أوافق على <Link to="/page/terms">الشروط والأحكام</Link> و
-                <Link to="/page/return-policy">سياسة الإرجاع</Link>
+                قرأت <Link to="/page/return-policy">سياسة الإرجاع والاستبدال</Link> وأوافق عليها
               </span>
             </label>
             {errors.terms && (
@@ -323,10 +319,10 @@ export default function CheckoutRoutePage() {
           <button
             type="submit"
             className="vs-btn vs-btn--primary vs-btn--lg vs-btn--block"
-            disabled={placing}
+            disabled={placing || !form.terms}
           >
             {placing && <span className="vs-spinner" aria-hidden="true" />}
-            {placing ? "جارٍ إرسال الطلب…" : `تأكيد الطلب — ${money(totals.total)}`}
+            {placing ? "جارٍ إرسال الطلب…" : `تأكيد وإرسال الطلب — ${money(totals.total)}`}
           </button>
         </form>
 

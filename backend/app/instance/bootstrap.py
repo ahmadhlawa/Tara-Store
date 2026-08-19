@@ -17,6 +17,7 @@ there is no owner text to lose.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from hashlib import sha256
 from typing import Literal
 
 from sqlalchemy import select
@@ -30,6 +31,10 @@ from app.models.store import STORE_SETTINGS_DEFAULTS
 from app.services import store_settings as settings_service
 
 Outcome = Literal["create", "update", "skip", "conflict"]
+
+# The exact body shipped in Tara's original production profile. This one-time
+# compatibility marker lets bootstrap replace only that known, unedited policy.
+LEGACY_TARA_RETURN_POLICY_SHA256 = "49ca4cc312a648777443861b7c6258a31a973fb5118058b6e1e533bc0f758670"
 
 
 class InstanceConflictError(RuntimeError):
@@ -124,7 +129,12 @@ def _page_updates(row: StaticPage, page: StaticPageProfile) -> dict[str, object]
     owner text can be lost. The moment a body exists, whoever wrote it owns the
     page and bootstrap skips it entirely.
     """
-    if (row.content or "").strip():
+    content = (row.content or "").strip()
+    is_legacy_tara_policy = (
+        page.slug == "return-policy"
+        and sha256(content.encode("utf-8")).hexdigest() == LEGACY_TARA_RETURN_POLICY_SHA256
+    )
+    if content and not is_legacy_tara_policy:
         return {}
     desired: dict[str, object | None] = {
         "title": page.title,

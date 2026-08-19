@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useMoney } from "../hooks/useStorefront.js";
 import { checkoutService } from "../services/checkout.js";
 import { orderTokenStorage } from "../storage/authStorage.js";
-import { orderStatusLabels, paymentMethodLabels } from "../store.js";
+import { orderStatusLabels } from "../store.js";
 import { CheckIcon } from "../components/public/shell/icons.jsx";
 
 export default function OrderSuccessRoutePage() {
@@ -93,7 +93,7 @@ export default function OrderSuccessRoutePage() {
           </div>
           <div className="vs-summary__row">
             <span>طريقة الدفع</span>
-            <strong>{paymentMethodLabels[order.payment_method] || order.payment_method}</strong>
+            <strong>الدفع عند الاستلام</strong>
           </div>
           <div className="vs-summary__total">
             <span>الإجمالي</span>
@@ -106,7 +106,7 @@ export default function OrderSuccessRoutePage() {
           <ol className="vs-bullets">
             <li>سنراجع الطلب ونتواصل معك لتأكيد التفاصيل.</li>
             <li>يُجهَّز الطلب ثم يُسلَّم لمندوب التوصيل في منطقتك.</li>
-            <li>الدفع يتم عند الاستلام أو بتحويل يدوي حسب ما اخترته.</li>
+            <li>الدفع يتم عند الاستلام نقداً للمندوب.</li>
           </ol>
         </div>
 

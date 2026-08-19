@@ -25,7 +25,6 @@ export default function ContactRoutePage() {
   const rows = [
     { label: "الهاتف", value: settings.phone, href: `tel:${settings.phone}` },
     { label: "واتساب", value: settings.whatsapp, href: whatsappHref(settings.whatsapp, "") },
-    { label: "ساعات العمل", value: settings.hours },
   ].filter((row) => row.value);
   const socials = [
     { label: "إنستغرام", href: settings.instagram, visible: settings.instagramVisible },

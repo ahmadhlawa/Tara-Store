@@ -37,37 +37,28 @@ test.describe("journey C — website order lifecycle", () => {
     await page.goto("/checkout");
     const customerName = `عميل قبول ${Date.now()}`;
 
-    // Submitting an empty form must surface a visible Arabic error, not a silent no-op.
-    await page.getByRole("button", { name: /تأكيد الطلب/ }).click();
-    await expect(page.getByRole("alert")).toBeVisible();
-    await expect(page).toHaveURL(/\/checkout$/);
+    const confirmation = page.getByRole("button", { name: /تأكيد وإرسال الطلب/ });
+    await expect(confirmation).toBeDisabled();
+    await expect(page.getByRole("heading", { name: "سياسة الإرجاع والاستبدال" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "سياسة الإرجاع والاستبدال" })).toHaveAttribute("href", "/page/return-policy");
 
     await page.getByLabel("الاسم الكامل").fill(customerName);
     await page.getByLabel("رقم الهاتف").fill("0591234567");
     await page.getByLabel("العنوان بالتفصيل").fill("رام الله - شارع الإرسال ١٢");
     await page.getByLabel("منطقة التوصيل").selectOption({ index: 1 });
 
-    // The terms error must be visible before the box is ticked.
-    await page.getByRole("button", { name: /تأكيد الطلب/ }).click();
-    // The message is shown twice on purpose: beside the checkbox and in the form-level
-    // alert. Assert both places rather than letting strict mode reject the match.
-    await expect(page.locator("#vs-err-terms")).toBeVisible();
-    await expect(page.getByRole("alert")).toContainText("يجب الموافقة على الشروط قبل إتمام الطلب");
-
     await page.getByRole("checkbox").check();
-
-    // The bank-transfer option is the one that used to send a value the API rejects.
-    // Scoped to the form because the same label also appears in the footer.
-    await page.locator('form input[name="pay"]').nth(1).check();
+    await expect(confirmation).toBeEnabled();
+    await expect(page.locator('form input[name="pay"]')).toHaveCount(1);
 
     const created = page.waitForResponse(
       (response) => response.url().includes("/api/v1/orders") && response.request().method() === "POST",
     );
-    await page.getByRole("button", { name: /تأكيد الطلب/ }).click();
+    await confirmation.click();
     const response = await created;
     expect(response.status(), await response.text()).toBe(201);
     const order = await response.json();
-    expect(order.payment_method).toBe("bank_transfer");
+    expect(order.payment_method).toBe("cash_on_delivery");
 
     // The hand-off happens only after the order exists, and it carries the server's
     // order number rather than anything the browser made up.
