@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import sx from "../../sx.js";
 import { adminApi } from "../../api/adminApi.js";
-import { MediaPickerDialog } from "../MediaPicker.jsx";
 import ProductImageGallery from "../ProductImageGallery.jsx";
+import ProductImagesEditor from "../ProductImagesEditor.jsx";
+import { automaticSeo } from "../seo.js";
 import ProductVariantsEditor, {
   buildOptionsPayload,
   variantsRemovedByOptions,
@@ -72,8 +73,8 @@ export default function ProductEditorPage() {
   const [confirming, setConfirming] = useState(null);
   const [optionsConfirm, setOptionsConfirm] = useState(null);
 
-  const [imageUrl, setImageUrl] = useState("");
-  const [pickingImage, setPickingImage] = useState(false);
+  const [queuedMain, setQueuedMain] = useState(null);
+  const [queuedAdditional, setQueuedAdditional] = useState([]);
   const [specs, setSpecs] = useState([]);
   const [options, setOptions] = useState([]);
   const [packageChoice, setPackageChoice] = useState({ included_product_id: "", quantity: 1, display_note: "" });
@@ -119,6 +120,46 @@ export default function ProductEditorPage() {
     adminApi.listProducts({ page_size: 100 }).then((r) => setAllProducts(r.items || [])).catch(() => {});
   }, []);
 
+  const clearQueuedImages = () => {
+    setQueuedMain(null);
+    setQueuedAdditional([]);
+  };
+
+  const uploadQueuedImages = async () => {
+    const uploaded = [];
+    try {
+      const resolve = async (image) => {
+        if (image.url) return { url: image.url, alt_text: form.name };
+        const asset = await adminApi.uploadMedia(image.file);
+        uploaded.push(asset);
+        return { url: asset.url, alt_text: form.name };
+      };
+      const images = [];
+      for (const image of [queuedMain, ...queuedAdditional].filter(Boolean)) {
+        images.push(await resolve(image));
+      }
+      return { images, uploaded };
+    } catch (error) {
+      await Promise.allSettled(uploaded.map((asset) => adminApi.deleteMedia(asset.id)));
+      throw error;
+    }
+  };
+
+  const attachQueuedImages = async (id) => {
+    const { images, uploaded } = await uploadQueuedImages();
+    const added = [];
+    try {
+      for (const image of images) added.push(await adminApi.addProductImage(id, image));
+      return { added, uploaded };
+    } catch (error) {
+      await Promise.allSettled([
+        ...added.map((image) => adminApi.deleteProductImage(id, image.id)),
+        ...uploaded.map((asset) => adminApi.deleteMedia(asset.id)),
+      ]);
+      throw error;
+    }
+  };
+
   const save = async () => {
     setSaving(true);
     try {
@@ -140,17 +181,37 @@ export default function ProductEditorPage() {
         is_new: !!form.is_new,
         is_bestseller: !!form.is_bestseller,
         sort_order: Number(form.sort_order) || 0,
-        seo_title: form.seo_title || null,
-        seo_description: form.seo_description || null,
+        ...automaticSeo({
+          title: form.name,
+          summary: form.short_description,
+          description: form.description,
+          existing: isNew ? undefined : form,
+        }),
       };
       if (form.slug.trim()) payload.slug = form.slug.trim();
 
       if (isNew) {
         const created = await adminApi.createProduct(payload);
+        try {
+          await attachQueuedImages(created.id);
+        } catch (error) {
+          await Promise.allSettled([adminApi.deleteProduct(created.id)]);
+          throw error;
+        }
+        clearQueuedImages();
         feedback.success("تم إنشاء المنتج.");
         navigate(`/admin/products/${created.id}`, { replace: true });
       } else {
         await adminApi.updateProduct(productId, payload);
+        const { added } = await attachQueuedImages(productId);
+        if (added.length) {
+          if (queuedMain) {
+            const previousCover = product?.images?.[0];
+            await adminApi.reorderProductImages(productId, [added[0].id, ...(product?.images || []).map((image) => image.id), ...added.slice(1).map((image) => image.id)]);
+            if (previousCover) await adminApi.deleteProductImage(productId, previousCover.id);
+          }
+        }
+        clearQueuedImages();
         feedback.success("تم حفظ المنتج.");
         await loadProduct();
       }
@@ -196,7 +257,7 @@ export default function ProductEditorPage() {
     <>
       <PageHeader
         title={isNew ? "منتج جديد" : form.name || "تعديل المنتج"}
-        description={isNew ? "أدخل البيانات الأساسية ثم احفظ لإضافة الصور والخيارات." : `المعرّف: ${productId}`}
+        description={isNew ? "أدخل بيانات المنتج وصوره ثم احفظها معاً." : `المعرّف: ${productId}`}
         actions={
           <>
             <Button variant="ghost" onClick={() => navigate("/admin/products")}>رجوع</Button>
@@ -254,40 +315,20 @@ export default function ProductEditorPage() {
         </div>
       </Section>
 
-      <Section title="تحسين محركات البحث">
-        <Field title="عنوان SEO"><input value={form.seo_title ?? ""} onChange={(e) => update({ seo_title: e.target.value })} style={input} /></Field>
-        <Field title="وصف SEO"><textarea rows="2" value={form.seo_description ?? ""} onChange={(e) => update({ seo_description: e.target.value })} style={textarea} /></Field>
+      <Section title="صور المنتج">
+        <ProductImagesEditor
+          mainImage={product?.images?.[0]}
+          queuedMain={queuedMain}
+          queuedAdditional={queuedAdditional}
+          onMainChange={setQueuedMain}
+          onAdditionalAdd={(image) => setQueuedAdditional((images) => [...images, image])}
+          onAdditionalRemove={(index) => setQueuedAdditional((images) => images.filter((_, i) => i !== index))}
+        />
       </Section>
 
-      {isNew ? (
-        <div style={{ ...card, ...sx`font-size:13.5px;color:#766669` }}>
-          احفظ المنتج أولاً لتتمكن من إضافة الصور والمواصفات والخيارات ومحتويات البكج.
-        </div>
-      ) : (
+      {!isNew && (
         <>
           <Section title="الصور">
-            <div style={sx`display:flex;gap:10px;flex-wrap:wrap`}>
-              <Button variant="secondary" onClick={() => setPickingImage(true)}>إضافة صورة من مكتبة الوسائط</Button>
-              <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="أو الصق رابط صورة" style={{ ...input, ...sx`flex:1;min-width:220px` }} />
-              <Button
-                disabled={!imageUrl.trim()}
-                onClick={() => run(async () => {
-                  await adminApi.addProductImage(productId, { url: imageUrl.trim(), alt_text: form.name });
-                  setImageUrl("");
-                }, "تمت إضافة الصورة.")}
-              >
-                إضافة صورة
-              </Button>
-            </div>
-            {pickingImage && (
-              <MediaPickerDialog
-                onClose={() => setPickingImage(false)}
-                onSelect={(url) => {
-                  setPickingImage(false);
-                  run(() => adminApi.addProductImage(productId, { url, alt_text: form.name }), "تمت إضافة الصورة.");
-                }}
-              />
-            )}
             <ProductImageGallery
               images={product?.images || []}
               onReorder={async (imageIds) => {

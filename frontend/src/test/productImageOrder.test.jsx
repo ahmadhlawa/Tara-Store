@@ -119,6 +119,123 @@ const renderEditor = (routes) => {
 };
 
 describe("product editor image ordering", () => {
+  it("creates a product with a device-uploaded cover and gallery in one save", async () => {
+    const created = { ...PRODUCT, id: 8, images: [] };
+    const attached = [];
+    const calls = stubApi({
+      "POST /api/v1/admin/media": ({ init }) => {
+        const file = init.body.get("file");
+        return { id: file.name === "main.png" ? 20 : 21, url: `/media/${file.name}` };
+      },
+      "/api/v1/admin/categories": page([]),
+      "POST /api/v1/admin/products": ({ init }) => {
+        if ((init.method || "GET") === "POST") {
+          const payload = JSON.parse(init.body);
+          expect(payload.images).toBeUndefined();
+          expect(payload.seo_title).toBe("منتج جديد");
+          expect(payload.seo_description).toBe("وصف المنتج الجديد");
+          return created;
+        }
+        return page([]);
+      },
+      "POST /api/v1/admin/products/8/images": ({ init }) => {
+        const image = JSON.parse(init.body);
+        attached.push(image);
+        return { id: attached.length, ...image, sort_order: attached.length - 1 };
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/admin/products/new"]}>
+        <Routes>
+          <Route path="/admin/products/:productId" element={<ProductEditorPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await userEvent.upload(screen.getByLabelText("الصورة الرئيسية — رفع من الجهاز"), new File(["main"], "main.png", { type: "image/png" }));
+    await userEvent.upload(screen.getByLabelText("صور إضافية — رفع من الجهاز"), new File(["extra"], "extra.png", { type: "image/png" }));
+    await userEvent.type(screen.getByLabelText("اسم المنتج"), "منتج جديد");
+    await userEvent.type(screen.getByLabelText("وصف مختصر"), "وصف المنتج الجديد");
+    expect(screen.getByText("صورة رئيسية جديدة")).toBeInTheDocument();
+    expect(screen.getByText("extra.png")).toBeInTheDocument();
+    expect(screen.queryByText(/احفظ المنتج أولاً/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "حفظ" }));
+
+    await waitFor(() => expect(attached.map((image) => image.url)).toEqual(["/media/main.png", "/media/extra.png"]));
+    expect(calls.filter((call) => call.method === "POST").map((call) => call.path)).toEqual([
+      "/api/v1/admin/products",
+      "/api/v1/admin/media",
+      "/api/v1/admin/media",
+      "/api/v1/admin/products/8/images",
+      "/api/v1/admin/products/8/images",
+    ]);
+  });
+
+  it("reports a staged upload failure after creating the product", async () => {
+    const created = { ...PRODUCT, id: 8, images: [] };
+    const calls = stubApi({
+      "POST /api/v1/admin/media": respond(500, { error: { code: "server_error", message: "فشل رفع الصورة." } }),
+      "/api/v1/admin/categories": page([]),
+      "POST /api/v1/admin/products": created,
+      "/api/v1/admin/products": page([]),
+      "DELETE /api/v1/admin/products/8": { message: "تم حذف المنتج." },
+    });
+    render(
+      <MemoryRouter initialEntries={["/admin/products/new"]}>
+        <Routes><Route path="/admin/products/:productId" element={<ProductEditorPage />} /></Routes>
+      </MemoryRouter>,
+    );
+
+    await userEvent.upload(screen.getByLabelText("الصورة الرئيسية — رفع من الجهاز"), new File(["main"], "main.png", { type: "image/png" }));
+    await userEvent.click(screen.getByRole("button", { name: "حفظ" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("فشل رفع الصورة.");
+    expect(calls.some((call) => call.method === "POST" && call.path === "/api/v1/admin/products")).toBe(true);
+    expect(calls.some((call) => call.method === "DELETE" && call.path === "/api/v1/admin/products/8")).toBe(true);
+  });
+
+  it("creates a product with only its staged main image", async () => {
+    const calls = stubApi({
+      "POST /api/v1/admin/media": { id: 20, url: "/media/main.png" },
+      "/api/v1/admin/categories": page([]),
+      "POST /api/v1/admin/products": { ...PRODUCT, id: 9, images: [] },
+      "POST /api/v1/admin/products/9/images": { id: 1, url: "/media/main.png", sort_order: 0 },
+    });
+    render(
+      <MemoryRouter initialEntries={["/admin/products/new"]}>
+        <Routes><Route path="/admin/products/:productId" element={<ProductEditorPage />} /></Routes>
+      </MemoryRouter>,
+    );
+
+    await userEvent.upload(screen.getByLabelText("الصورة الرئيسية — رفع من الجهاز"), new File(["main"], "main.png", { type: "image/png" }));
+    await userEvent.click(screen.getByRole("button", { name: "حفظ" }));
+
+    await waitFor(() => expect(calls.some((call) => call.method === "POST" && call.path === "/api/v1/admin/products/9/images")).toBe(true));
+    expect(calls.filter((call) => call.path === "/api/v1/admin/products/9/images")).toHaveLength(1);
+  });
+
+  it("stages a media-library image for a new product", async () => {
+    stubApi({
+      "/api/v1/admin/categories": page([]),
+      "/api/v1/admin/products": page([]),
+      "/api/v1/admin/media": page([{ id: 11, original_filename: "library.png", url: "/media/library.png" }]),
+    });
+    render(
+      <MemoryRouter initialEntries={["/admin/products/new"]}>
+        <Routes><Route path="/admin/products/:productId" element={<ProductEditorPage />} /></Routes>
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(screen.getAllByRole("button", { name: "اختيار من مكتبة الوسائط" })[0]);
+    const dialog = await screen.findByRole("dialog", { name: "مكتبة الوسائط" });
+    await userEvent.click(await within(dialog).findByText("library.png"));
+    await userEvent.click(within(dialog).getByRole("button", { name: "اختيار" }));
+
+    expect(screen.getByText("صورة رئيسية جديدة")).toBeInTheDocument();
+    expect(screen.queryByText(/احفظ المنتج أولاً/)).not.toBeInTheDocument();
+  });
+
   it("persists a reorder through the product images endpoint", async () => {
     const calls = renderEditor({
       "PUT /api/v1/admin/products/7/images/reorder": [B, A, C],
@@ -171,6 +288,7 @@ describe("product editor image ordering", () => {
     let added = false;
     const calls = renderEditor({
       "/api/v1/admin/products/7": () => (added ? { ...PRODUCT, images: [A, B, C, D] } : PRODUCT),
+      "PATCH /api/v1/admin/products/7": PRODUCT,
       "POST /api/v1/admin/products/7/images": () => {
         added = true;
         return D;
@@ -190,10 +308,11 @@ describe("product editor image ordering", () => {
     });
 
     await screen.findByText("الصورة الرئيسية");
-    await userEvent.click(screen.getByRole("button", { name: "إضافة صورة من مكتبة الوسائط" }));
+    await userEvent.click(screen.getAllByRole("button", { name: "اختيار من مكتبة الوسائط" })[1]);
     const dialog = await screen.findByRole("dialog", { name: "مكتبة الوسائط" });
     await userEvent.click(await within(dialog).findByText("d.png"));
     await userEvent.click(within(dialog).getByRole("button", { name: "اختيار" }));
+    await userEvent.click(screen.getByRole("button", { name: "حفظ" }));
 
     await waitFor(() => expect(cards()).toHaveLength(4));
     expect(badgeOwner()).toBe(cards()[0]);

@@ -3,6 +3,17 @@ import { adminApi } from "../../api/adminApi.js";
 import ResourceScreen from "../ResourceScreen.jsx";
 import { Badge } from "../ui.jsx";
 import { formatDate } from "../../utils/format.js";
+import { automaticSeo } from "../seo.js";
+
+const articlePayload = (payload, existing) => ({
+  ...payload,
+  ...automaticSeo({ title: payload.title, summary: payload.excerpt, description: payload.content, existing }),
+});
+
+const pagePayload = (payload, existing) => ({
+  ...payload,
+  ...automaticSeo({ title: payload.title, summary: payload.lead, description: payload.content, existing }),
+});
 
 const activeColumn = {
   key: "is_active",
@@ -93,6 +104,7 @@ export function ArticlesPage() {
       fetchList={fetchList}
       createItem={adminApi.createArticle}
       updateItem={adminApi.updateArticle}
+      preparePayload={articlePayload}
       deleteItem={adminApi.deleteArticle}
       describeRow={(row) => row.title}
       columns={[
@@ -115,8 +127,6 @@ export function ArticlesPage() {
         { name: "excerpt", title: "المقدمة", type: "textarea", rows: 3 },
         { name: "content", title: "المحتوى", type: "textarea", rows: 10, hint: "افصل الفقرات بسطر فارغ." },
         { name: "featured_image_url", title: "صورة المقال", type: "media", emptyAsNull: true },
-        { name: "seo_title", title: "عنوان SEO" },
-        { name: "seo_description", title: "وصف SEO", type: "textarea", rows: 2 },
         { name: "is_published", title: "منشور", type: "checkbox" },
       ]}
     />
@@ -133,6 +143,7 @@ export function StaticPagesPage() {
       fetchList={fetchList}
       createItem={adminApi.createPage}
       updateItem={adminApi.updatePage}
+      preparePayload={pagePayload}
       deleteItem={adminApi.deletePage}
       describeRow={(row) => row.title}
       columns={[
@@ -151,8 +162,6 @@ export function StaticPagesPage() {
         { name: "slug", title: "الرابط (اختياري)", omitWhenEmpty: true, hint: "مثال: about" },
         { name: "lead", title: "المقدمة", type: "textarea", rows: 2 },
         { name: "content", title: "المحتوى", type: "textarea", rows: 10, hint: "افصل الفقرات بسطر فارغ." },
-        { name: "seo_title", title: "عنوان SEO" },
-        { name: "seo_description", title: "وصف SEO", type: "textarea", rows: 2 },
         { name: "is_published", title: "منشورة", type: "checkbox", defaultValue: true },
       ]}
     />

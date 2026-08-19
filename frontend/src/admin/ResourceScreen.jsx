@@ -120,6 +120,7 @@ export default function ResourceScreen({
   fetchList,
   createItem,
   updateItem,
+  preparePayload,
   deleteItem,
   paginated = false,
   createLabel = "إضافة",
@@ -172,7 +173,9 @@ export default function ResourceScreen({
   const save = async () => {
     setSaving(true);
     try {
-      const payload = serialize(fields, values);
+      const payload = preparePayload
+        ? preparePayload(serialize(fields, values), editing.mode === "edit" ? editing.row : undefined)
+        : serialize(fields, values);
       if (editing.mode === "create") {
         await createItem(payload);
         feedback.success("تمت الإضافة بنجاح.");
