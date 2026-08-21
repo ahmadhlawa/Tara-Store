@@ -934,9 +934,9 @@ img.vs-logo__img {
    light, and every one of those greys is now a warm ink token. */
 .vs-footer {
   margin-block-start: var(--vs-section);
-  background: var(--vs-grad-footer);
-  color: var(--vs-ink-2);
-  border-block-start: 1px solid var(--vs-border-accent);
+  background: var(--footer-background);
+  color: var(--footer-text);
+  border-block-start: 1px solid var(--border-color);
 }
 
 /* The contact column only exists when the owner has supplied contact details,
@@ -958,7 +958,7 @@ img.vs-logo__img {
   font-family: "Marcellus", "Cairo", serif;
   font-size: 26px;
   letter-spacing: 0.05em;
-  color: var(--vs-primary);
+  color: var(--footer-text);
 }
 
 /* Sizes the shared logo viewport; the clipping and scaling rules come with
@@ -978,7 +978,7 @@ img.vs-logo__img {
   --vs-logo-w: 148px;
   --vs-logo-h: 148px;
   background: var(--vs-page);
-  border: 1px solid var(--vs-border-accent);
+  border: 1px solid var(--border-color-strong);
   border-radius: var(--vs-r-md);
 }
 
@@ -986,7 +986,7 @@ img.vs-logo__img {
   font-size: var(--vs-fs-sm);
   line-height: 1.9;
   max-width: 34ch;
-  color: var(--vs-ink-3);
+  color: var(--footer-muted-text);
 }
 
 .vs-footer__social-row {
@@ -998,13 +998,13 @@ img.vs-logo__img {
 .vs-footer__social-row a {
   width: 42px;
   height: 42px;
-  border: 1px solid var(--vs-border-strong);
+  border: 1px solid var(--border-color-strong);
   border-radius: var(--vs-r-md);
   background: var(--vs-surface);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--vs-ink-2);
+  color: var(--footer-text);
   transition: background var(--vs-t) var(--vs-ease), color var(--vs-t) var(--vs-ease),
     border-color var(--vs-t) var(--vs-ease);
 }
@@ -1034,13 +1034,13 @@ img.vs-logo__img {
 .vs-footer__social a {
   width: 42px;
   height: 42px;
-  border: 1px solid var(--vs-border-strong);
+  border: 1px solid var(--border-color-strong);
   border-radius: var(--vs-r-md);
   background: var(--vs-surface);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--vs-ink-2);
+  color: var(--footer-text);
   font-weight: 500;
   transition: background var(--vs-t) var(--vs-ease), color var(--vs-t) var(--vs-ease),
     border-color var(--vs-t) var(--vs-ease);
@@ -1064,15 +1064,15 @@ img.vs-logo__img {
 .vs-footer__title {
   font-size: 14.5px;
   font-weight: 600;
-  color: var(--vs-ink);
+  color: var(--footer-text);
   padding-block-end: 6px;
-  border-block-end: 1px solid var(--vs-border-accent);
+  border-block-end: 1px solid var(--border-color);
 }
 
 .vs-footer__col a,
 .vs-footer__col span {
   font-size: var(--vs-fs-sm);
-  color: var(--vs-ink-3);
+  color: var(--footer-text);
   transition: color var(--vs-t) var(--vs-ease);
 }
 
@@ -1090,17 +1090,17 @@ img.vs-logo__img {
 .vs-footer__pay span {
   height: 30px;
   padding-inline: 11px;
-  border: 1px solid var(--vs-border-strong);
+  border: 1px solid var(--border-color-strong);
   border-radius: 7px;
   background: var(--vs-surface);
   display: flex;
   align-items: center;
   font-size: 11px;
-  color: var(--vs-ink-3);
+  color: var(--footer-muted-text);
 }
 
 .vs-footer__bottom {
-  border-block-start: 1px solid var(--vs-border);
+  border-block-start: 1px solid var(--border-color);
 }
 
 .vs-footer__bottom-row {
@@ -1110,7 +1110,16 @@ img.vs-logo__img {
   align-items: center;
   padding-block: 12px;
   font-size: 12.5px;
-  color: var(--vs-ink-3);
+  color: var(--footer-muted-text);
+}
+
+.vs-footer__bottom-row > a {
+  color: var(--footer-text);
+  transition: color var(--vs-t) var(--vs-ease);
+}
+
+.vs-footer__bottom-row > a:hover {
+  color: var(--vs-primary);
 }
 
 .vs-footer__bottom-row > :last-child { justify-self: end; }
@@ -1121,7 +1130,7 @@ img.vs-logo__img {
 }
 
 .vs-footer__credit {
-  border-block-start: 1px solid var(--vs-border);
+  border-block-start: 1px solid var(--border-color);
 }
 
 .vs-footer__credit-row {
@@ -1130,7 +1139,7 @@ img.vs-logo__img {
   justify-content: center;
   gap: 10px;
   padding-block: 14px;
-  color: var(--vs-ink-4);
+  color: var(--footer-muted-text);
   direction: ltr;
   font-size: 12px;
 }

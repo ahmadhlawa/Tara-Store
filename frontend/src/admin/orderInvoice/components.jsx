@@ -47,7 +47,7 @@ export function OrderItemsEditor({ items, onChange, disabled = false, currencySy
           <output style={sx`grid-column:1 / -1;text-align:start;color:#766669;font-size:12px`}>إجمالي الصنف: {isMoney(item.unit_price) && isWholeQuantity(item.quantity) ? formatMoney(calculateOrderTotals({ items: [item] }).subtotal, currencySymbol) : "—"}</output>
         </fieldset>;
       })}
-      <button type="button" disabled={disabled} onClick={addManual} style={sx`align-self:flex-start;min-height:40px;padding-inline:12px;border:1px solid #7F568F;border-radius:8px;background:#fff;color:#7F568F;font:inherit;font-weight:700;cursor:pointer`}>إضافة صنف يدوي</button>
+      <button type="button" disabled={disabled} onClick={addManual} style={sx`align-self:flex-start;min-height:40px;padding-inline:12px;border:1px solid var(--admin-primary);border-radius:8px;background:#fff;color:var(--admin-primary);font:inherit;font-weight:700;cursor:pointer`}>إضافة صنف يدوي</button>
     </section>
   );
 }
@@ -112,7 +112,7 @@ export function CompleteOrderDialog({ isOpen, order, onClose, onComplete, busy =
       <label style={sx`display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700`}>المبلغ المدفوع<input inputMode="decimal" value={paidAmount} onChange={(event) => setPaidAmount(event.target.value)} aria-invalid={!isMoney(paidAmount)} style={sx`height:42px;box-sizing:border-box;border:1px solid #DFD2EC;border-radius:8px;padding-inline:10px;font:inherit`} /></label>
       <label style={sx`display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700`}>تفاصيل الدفع (اختياري)<textarea value={paymentDetails} onChange={(event) => setPaymentDetails(event.target.value)} rows="3" style={sx`box-sizing:border-box;border:1px solid #DFD2EC;border-radius:8px;padding:10px;font:inherit;resize:vertical`} /></label>
       <label style={sx`display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700`}>ملاحظات الفاتورة (اختياري)<textarea value={invoiceNotes} onChange={(event) => setInvoiceNotes(event.target.value)} rows="3" style={sx`box-sizing:border-box;border:1px solid #DFD2EC;border-radius:8px;padding:10px;font:inherit;resize:vertical`} /></label>
-      <div style={sx`display:flex;justify-content:flex-start;gap:10px;flex-wrap:wrap`}><button type="button" onClick={onClose} disabled={busy} style={sx`min-height:42px;padding-inline:14px;border:1px solid #DFD2EC;border-radius:8px;background:#fff;font:inherit;font-weight:700;cursor:pointer`}>إلغاء</button><button type="submit" disabled={busy || !isMoney(paidAmount)} style={sx`min-height:42px;padding-inline:14px;border:1px solid #7F568F;border-radius:8px;background:#7F568F;color:#fff;font:inherit;font-weight:700;cursor:pointer`}>{busy ? "جارٍ الإتمام…" : "إتمام الطلب وإصدار الفاتورة"}</button></div>
+      <div style={sx`display:flex;justify-content:flex-start;gap:10px;flex-wrap:wrap`}><button type="button" onClick={onClose} disabled={busy} style={sx`min-height:42px;padding-inline:14px;border:1px solid #DFD2EC;border-radius:8px;background:#fff;font:inherit;font-weight:700;cursor:pointer`}>إلغاء</button><button type="submit" disabled={busy || !isMoney(paidAmount)} style={sx`min-height:42px;padding-inline:14px;border:1px solid var(--admin-primary);border-radius:8px;background:var(--admin-primary);color:var(--brand-on-primary);font:inherit;font-weight:700;cursor:pointer`}>{busy ? "جارٍ الإتمام…" : "إتمام الطلب وإصدار الفاتورة"}</button></div>
     </form>
   </dialog>;
 }

@@ -8,8 +8,8 @@ export const textarea = sx`border:1px solid #DFD2EC;border-radius:10px;backgroun
 
 export function Button({ variant = "primary", children, style, ...rest }) {
   const variants = {
-    primary: "background:#7F568F;color:#fff;border:1px solid #7F568F",
-    secondary: "background:#fff;color:#7F568F;border:1px solid #7F568F",
+    primary: "background:var(--admin-primary);color:var(--brand-on-primary);border:1px solid var(--admin-primary)",
+    secondary: "background:var(--surface-background);color:var(--admin-primary);border:1px solid var(--admin-primary)",
     ghost: "background:#fff;color:#4B4155;border:1px solid #DFD2EC",
     danger: "background:#fff;color:#B4534A;border:1px solid #E5C4BE",
   };
@@ -53,7 +53,7 @@ export function Field({ title, hint, children }) {
 export function Notice({ kind = "info", children }) {
   if (!children) return null;
   const styles = {
-    info: "background:#F3EAFA;border-color:#DDCAEC;color:#7F568F",
+    info: "background:var(--brand-soft);border-color:var(--brand-primary-pale);color:var(--admin-primary)",
     error: "background:#FBEFEC;border-color:#EBD2CD;color:#8E3B34",
     success: "background:#EEF4EF;border-color:#CCDFD3;color:#3F6B54",
   };

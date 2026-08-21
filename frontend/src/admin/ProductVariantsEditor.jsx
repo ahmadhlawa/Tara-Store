@@ -265,7 +265,7 @@ export default function ProductVariantsEditor({
                   type="checkbox"
                   checked={editing.is_active}
                   onChange={(event) => setEditing({ ...editing, is_active: event.target.checked })}
-                  style={sx`width:18px;height:18px;accent-color:#7F568F`}
+                  style={sx`width:18px;height:18px;accent-color:var(--admin-primary)`}
                 />
                 فعّالة
               </label>

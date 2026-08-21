@@ -71,7 +71,7 @@ export default function ProductImageGallery({ images, onReorder, onDelete }) {
             setDragging(null);
           }}
           onDragEnd={() => setDragging(null)}
-          style={sx`width:140px;display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid ${index === 0 ? "#7F568F" : "#E7DCF2"};border-radius:12px;background:#fff;opacity:${dragging === index ? 0.5 : 1}`}
+          style={sx`width:140px;display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid ${index === 0 ? "var(--selection-border)" : "#E7DCF2"};border-radius:12px;background:#fff;opacity:${dragging === index ? 0.5 : 1}`}
         >
           <span
             title="اسحب لإعادة الترتيب"

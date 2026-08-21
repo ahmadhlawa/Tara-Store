@@ -308,7 +308,7 @@ export default function ProductEditorPage() {
             ["is_bestseller", "الأكثر مبيعاً"],
           ].map(([key, title]) => (
             <label key={key} style={sx`display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer`}>
-              <input type="checkbox" checked={!!form[key]} onChange={(e) => update({ [key]: e.target.checked })} style={sx`width:18px;height:18px;accent-color:#7F568F`} />
+              <input type="checkbox" checked={!!form[key]} onChange={(e) => update({ [key]: e.target.checked })} style={sx`width:18px;height:18px;accent-color:var(--admin-primary)`} />
               {title}
             </label>
           ))}

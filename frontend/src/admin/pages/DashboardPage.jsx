@@ -20,7 +20,7 @@ function Stat({ title, value, hint }) {
   return (
     <div style={{ ...card, ...sx`display:flex;flex-direction:column;gap:6px` }}>
       <span style={sx`font-size:12.5px;color:#766669`}>{title}</span>
-      <strong style={sx`font-size:26px;color:#7F568F`}>{value}</strong>
+      <strong style={sx`font-size:26px;color:var(--admin-primary)`}>{value}</strong>
       {hint && <span style={sx`font-size:12px;color:#8A7F95`}>{hint}</span>}
     </div>
   );

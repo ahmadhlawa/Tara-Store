@@ -104,19 +104,6 @@ export function StoreProvider({ children }) {
     };
   }, []);
 
-  // Store colours become CSS custom properties, so a client instance restyles
-  // itself from the admin area. The `--vs-*` aliases feed the public token
-  // system; the `--brand-*` names stay for anything already reading them.
-  useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty("--brand-primary", settings.primaryColor);
-    root.style.setProperty("--brand-secondary", settings.secondaryColor);
-    root.style.setProperty("--brand-accent", settings.accentColor);
-    root.style.setProperty("--vs-brand-primary", settings.primaryColor);
-    root.style.setProperty("--vs-brand-accent", settings.secondaryColor);
-    root.style.setProperty("--vs-brand-success", settings.accentColor);
-  }, [settings.primaryColor, settings.secondaryColor, settings.accentColor]);
-
   useEffect(() => {
     if (settings.seoTitle) document.title = settings.seoTitle;
   }, [settings.seoTitle]);

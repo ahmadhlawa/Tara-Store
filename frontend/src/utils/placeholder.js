@@ -2,22 +2,22 @@
 // storefront's own tone gradients, so the design looks finished before any media
 // has been uploaded. Once an image URL exists it takes over.
 
-// Ten tones, all inside Tara's own range: white and the palest lilacs through
-// to the client's #d8c2ea, with one gold pair kept as the rare highlight. A
+// Ten tones derive from the global brand tokens, with one secondary-colour pair
+// kept as the rare highlight. A
 // catalogue with no photography yet is the state this store actually launches
 // in, so these gradients are most of what a visitor sees. Every pair stays light
 // enough for the card's own dark title to sit over it.
 const TONES = {
-  ivory: ["#ffffff", "#e7d9f2"],
-  cream: ["#fbf8fe", "#dfcdee"],
-  blush: ["#faf6fd", "#e4d3f0"],
-  mauve: ["#f6f0fb", "#d8c2ea"],
-  dusty: ["#f2ebf8", "#cdb4e2"],
-  rose: ["#f8f2fc", "#e0cbee"],
-  linen: ["#f7f4fb", "#ddd0ea"],
-  clay: ["#f4eef9", "#d5c3e6"],
-  gold: ["#faf1e2", "#eecc94"],
-  stone: ["#f3f0f6", "#d6cede"],
+  ivory: ["var(--surface-background)", "var(--brand-soft-hover)"],
+  cream: ["var(--brand-soft)", "var(--brand-primary-pale)"],
+  blush: ["var(--brand-soft)", "var(--brand-primary-pale)"],
+  mauve: ["var(--brand-soft)", "var(--brand-primary-pale)"],
+  dusty: ["var(--brand-soft-hover)", "var(--brand-primary-pale)"],
+  rose: ["var(--brand-soft)", "var(--brand-primary-pale)"],
+  linen: ["var(--brand-soft)", "var(--brand-primary-pale)"],
+  clay: ["var(--brand-soft-hover)", "var(--brand-primary-pale)"],
+  gold: ["color-mix(in srgb,var(--brand-secondary) 16%,var(--surface-background))", "color-mix(in srgb,var(--brand-secondary) 58%,var(--surface-background))"],
+  stone: ["var(--brand-soft-hover)", "var(--brand-primary-pale)"],
 };
 
 const TONE_NAMES = Object.keys(TONES);

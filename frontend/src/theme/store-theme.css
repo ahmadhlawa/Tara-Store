@@ -1,0 +1,130 @@
+:root {
+
+  /* ========================================
+     EDIT THESE VALUES TO REBRAND THE STORE
+     ======================================== */
+
+  --brand-primary: #AE98CB;
+  --brand-primary-hover: #9E86BD;
+
+  --brand-secondary: #D7CAE8;
+  --brand-secondary-hover: #C8B7DC;
+
+  --brand-on-primary: #FFFFFF;
+  --brand-on-secondary: #181818;
+
+  --brand-soft: #FAF9FC;
+  --brand-soft-hover: #F6F6F8;
+
+
+  /* ========================================
+     BRAND SURFACES
+     ======================================== */
+
+  --brand-primary-light: #AF9DCB;
+  --brand-primary-pale: #D7CAE8;
+
+  --brand-primary-16: color-mix(
+    in srgb,
+    var(--brand-primary) 16%,
+    transparent
+  );
+
+  --brand-primary-20: color-mix(
+    in srgb,
+    var(--brand-primary) 20%,
+    transparent
+  );
+
+  --brand-primary-40: color-mix(
+    in srgb,
+    var(--brand-primary) 40%,
+    transparent
+  );
+
+
+  /* ========================================
+     COMPONENT MAPPING
+     ======================================== */
+
+
+  /* TOP ANNOUNCEMENT BAR */
+
+  --topbar-background: #D7CAE8;
+  --topbar-text: #181818;
+
+
+  /* NAVBAR */
+
+  --navbar-background: #FEFEFE;
+  --navbar-text: #181818;
+  --navbar-hover: var(--brand-primary);
+
+
+  /* FOOTER */
+
+  --footer-background: #F6F6F8;
+  --footer-text: #181818;
+  --footer-muted-text: #666666;
+
+
+  /* BUTTONS */
+
+  --button-primary-background: var(--brand-primary);
+  --button-primary-hover: var(--brand-primary-hover);
+  --button-primary-text: var(--brand-on-primary);
+
+  --button-secondary-background: var(--brand-secondary);
+  --button-secondary-hover: var(--brand-secondary-hover);
+  --button-secondary-text: var(--brand-on-secondary);
+
+
+  /* LINKS / INTERACTION */
+
+  --link-color: var(--brand-primary);
+  --link-hover-color: var(--brand-primary-hover);
+
+  --focus-ring: var(--brand-primary);
+
+
+  /* ADMIN */
+
+  --admin-primary: var(--brand-primary);
+  --admin-primary-hover: var(--brand-primary-hover);
+
+  --admin-sidebar-background: var(--brand-primary);
+  --admin-sidebar-text: var(--brand-on-primary);
+  --admin-sidebar-active: var(--brand-primary-hover);
+
+
+  /* SELECTION */
+
+  --selection-background: var(--brand-primary-pale);
+  --selection-border: var(--brand-primary);
+
+
+  /* ========================================
+     FIXED NEUTRAL UI COLORS
+     ======================================== */
+
+  --page-background: #FEFEFE;
+  --surface-background: #FFFFFF;
+
+  --text-primary: #181818;
+  --text-secondary: #4B4B4B;
+  --text-muted: #7A7A7A;
+
+  --border-color: #E9E9E9;
+  --border-color-strong: #D9D9D9;
+
+
+  /* ========================================
+     SEMANTIC COLORS
+     DON'T CHANGE FOR BRANDING
+     ======================================== */
+
+  --color-success: #3F6B54;
+  --color-warning: #8A6329;
+  --color-danger: #B4534A;
+  --color-info: #2563EB;
+}

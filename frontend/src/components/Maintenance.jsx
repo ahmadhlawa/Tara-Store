@@ -38,7 +38,7 @@ export default function MaintenanceScreen({ settings }) {
     >
       <main
         role="main"
-        style={sx`width:100%;max-width:560px;background:#fff;border:1px solid #E7DCF2;border-radius:20px;padding:38px 26px;text-align:center;box-shadow:0 18px 44px rgba(127,86,143,.09)`}
+        style={sx`width:100%;max-width:560px;background:#fff;border:1px solid #E7DCF2;border-radius:20px;padding:38px 26px;text-align:center;box-shadow:0 18px 44px var(--brand-primary-16)`}
       >
         {/* Mark and name together, as in the header: Tara's logo is a square
             lockup, and a page whose whole job is to reassure a visitor that they
@@ -52,7 +52,7 @@ export default function MaintenanceScreen({ settings }) {
           />
         )}
         <span
-          style={sx`display:block;font-family:'Marcellus','Cairo',serif;font-size:27px;letter-spacing:.05em;color:var(--brand-primary,#7F568F);margin-bottom:18px;word-break:break-word`}
+          style={sx`display:block;font-family:'Marcellus','Cairo',serif;font-size:27px;letter-spacing:.05em;color:var(--brand-primary);margin-bottom:18px;word-break:break-word`}
         >
           {settings.storeName}
         </span>
@@ -89,7 +89,7 @@ export default function MaintenanceScreen({ settings }) {
                 {contact.href ? (
                   <a
                     href={contact.href}
-                    style={sx`color:var(--brand-primary,#7F568F);text-decoration:none;word-break:break-word`}
+                    style={sx`color:var(--link-color);text-decoration:none;word-break:break-word`}
                   >
                     {contact.value}
                   </a>

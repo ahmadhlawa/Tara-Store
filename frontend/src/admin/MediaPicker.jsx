@@ -115,7 +115,7 @@ export function MediaPickerDialog({ onSelect, onClose, initialUrl = null }) {
                 aria-pressed={active}
                 onClick={() => setSelected(asset.url)}
                 onDoubleClick={() => onSelect(asset.url)}
-                style={sx`text-align:start;padding:0;background:#fff;cursor:pointer;border-radius:12px;overflow:hidden;font-family:inherit;display:flex;flex-direction:column;border:2px solid ${active ? "#7F568F" : "#E7DCF2"};box-shadow:${active ? "0 0 0 3px rgba(127,86,143,.16)" : "none"}`}
+                style={sx`text-align:start;padding:0;background:#fff;cursor:pointer;border-radius:12px;overflow:hidden;font-family:inherit;display:flex;flex-direction:column;border:2px solid ${active ? "var(--selection-border)" : "#E7DCF2"};box-shadow:${active ? "0 0 0 3px var(--brand-primary-16)" : "none"}`}
               >
                 <span style={sx`aspect-ratio:1 / 1;background:#F5EDE3 url("${asset.url}") center/cover no-repeat`}></span>
                 <span style={sx`padding:8px;font-size:11.5px;color:#4B4155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`}>

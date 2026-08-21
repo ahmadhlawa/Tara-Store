@@ -21,7 +21,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #ffffff;
+  background: var(--page-background);
   /* `clip`, not `hidden`: `overflow-x: hidden` makes the body a scroll
      container, which silently disables every `position: sticky` inside it —
      the storefront header included. `clip` keeps the same safety net against a
@@ -42,17 +42,17 @@ html {
 
 body {
   font-family: "Cairo", system-ui, sans-serif;
-  color: #3b3243;
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
 }
 
 a {
-  color: #7f568f;
+  color: var(--link-color);
   text-decoration: none;
 }
 
 a:hover {
-  color: #6a4478;
+  color: var(--link-hover-color);
 }
 
 button,
@@ -63,19 +63,19 @@ textarea {
 }
 
 :focus-visible {
-  outline: 2px solid #7f568f;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
   border-radius: 6px;
 }
 
 ::selection {
-  background: #d8c2ea;
-  color: #3b3243;
+  background: var(--selection-background);
+  color: var(--text-primary);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #8a7f95;
+  color: var(--text-muted);
 }
 
 ::-webkit-scrollbar {
@@ -84,7 +84,7 @@ textarea::placeholder {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d8c2ea;
+  background: var(--selection-background);
   border-radius: 8px;
 }
 

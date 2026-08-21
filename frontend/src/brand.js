@@ -5,10 +5,8 @@
 // before StoreSettings has answered. Everything the owner can edit in Admin
 // still wins — these are the values that fill the gap, not values that override.
 //
-// The colours are not here. They belong to the theme layer
-// (src/styles/public/tokens.css for the storefront, src/index.css for the
-// document) and are echoed into StoreSettings' defaults in services/storefront.js
-// so a fresh database boots on brand.
+// The colours are not here. They belong only to the global theme layer at
+// src/theme/store-theme.css.
 
 /** The owner's logo, served from public/branding/. Never cropped, recoloured or
  *  regenerated — the only edit is the one the client asked for: the supplied

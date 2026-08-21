@@ -82,7 +82,7 @@ export default function SettingsPage() {
                 <input type="url" value={form[`${key}_url`]} onChange={(event) => update(`${key}_url`, event.target.value)} style={input} />
               </Field>
               <label style={sx`display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;cursor:pointer`}>
-                <input type="checkbox" checked={form[`${key}_visible`]} onChange={(event) => update(`${key}_visible`, event.target.checked)} style={sx`width:18px;height:18px;accent-color:#7F568F`} />
+                <input type="checkbox" checked={form[`${key}_visible`]} onChange={(event) => update(`${key}_visible`, event.target.checked)} style={sx`width:18px;height:18px;accent-color:var(--admin-primary)`} />
                 إظهار في الموقع
               </label>
             </div>

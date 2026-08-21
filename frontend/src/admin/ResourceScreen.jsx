@@ -59,7 +59,7 @@ function FieldControl({ field, value, onChange }) {
           type="checkbox"
           checked={!!value}
           onChange={(event) => onChange(event.target.checked)}
-          style={sx`width:18px;height:18px;accent-color:#7F568F;cursor:pointer`}
+          style={sx`width:18px;height:18px;accent-color:var(--admin-primary);cursor:pointer`}
         />
         {field.title}
       </label>

@@ -17,9 +17,6 @@ import { formatDate, readingTime } from "../utils/format.js";
 export const FALLBACK_SETTINGS = {
   store_name: STORE_NAME_LATIN,
   currency_symbol: "₪",
-  primary_color: "#7F568F",
-  secondary_color: "#D19F57",
-  accent_color: "#4C7C63",
   maintenance_mode: false,
 };
 
@@ -56,9 +53,6 @@ export function normalizeSettings(raw) {
     youtubeVisible: settings.youtube_visible !== false,
     currency: settings.currency_symbol || "₪",
     currencyCode: settings.currency_code || "ILS",
-    primaryColor: settings.primary_color,
-    secondaryColor: settings.secondary_color,
-    accentColor: settings.accent_color,
     seoTitle: settings.seo_title || settings.store_name || STORE_NAME_LATIN,
     seoDescription: settings.seo_description || "",
     maintenanceMode: !!settings.maintenance_mode,
@@ -75,8 +69,8 @@ export function normalizeSettings(raw) {
 // in for artwork, never mistakable for the real promotional banners still to
 // come.
 const BANNER_FALLBACKS = [
-  "linear-gradient(150deg,#b38acf,#7f568f)",
-  "linear-gradient(150deg,#d8c2ea,#b38acf)",
+  "linear-gradient(150deg,var(--brand-primary-light),var(--brand-primary))",
+  "linear-gradient(150deg,var(--brand-primary-pale),var(--brand-primary-light))",
 ];
 
 export function normalizeHeroSlide(raw) {

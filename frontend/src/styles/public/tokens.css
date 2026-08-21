@@ -1,7 +1,7 @@
 /* Tara public storefront design tokens.
    Everything is scoped to `.vs-public`, the storefront shell root, so the admin
-   workspace under /admin never inherits a single storefront value. Brand colours
-   are overwritten at runtime by StoreProvider from StoreSettings.
+   workspace under /admin never inherits a single storefront rule. Brand colours
+   are supplied by the global store theme.
 
    The palette is the client's approved one and this is the one place it is
    stated: every surface, border, ink and accent below is either a stated value
@@ -63,9 +63,9 @@
   /* â”€â”€ lilac scale â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   /* The client's three approved lilacs, stated once and referenced everywhere
      else in this file. Nothing outside this block should carry a lilac hex. */
-  --vs-lilac-lite: #d8c2ea;
-  --vs-lilac: #b38acf;
-  --vs-lilac-deep: #7f568f;
+  --vs-lilac-lite: var(--brand-primary-pale);
+  --vs-lilac: var(--brand-primary-light);
+  --vs-lilac-deep: var(--brand-primary);
 
   /* â”€â”€ surfaces â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   /* Pure white is the page *and* the card: the client asked for a white site, so
@@ -74,8 +74,8 @@
      carry the tinted sections; `surface-deep` is the single dark tone the
      storefront owns â€” a deep lilac, not a black â€” and only the toast and the
      footer's own tinting reach for it. */
-  --vs-page: #ffffff;
-  --vs-surface: #ffffff;
+  --vs-page: var(--page-background);
+  --vs-surface: var(--surface-background);
   --vs-surface-2: color-mix(in srgb, var(--vs-lilac-lite) 28%, #fff);
   --vs-surface-3: color-mix(in srgb, var(--vs-lilac-lite) 58%, #fff);
   --vs-surface-deep: color-mix(in srgb, var(--vs-primary) 62%, #2b2032);
@@ -98,45 +98,41 @@
      Every step is checked against white: ink 11.4:1, ink-2 8.6:1, ink-3 5.6:1
      and ink-4 3.9:1 â€” so the muted step is still safe for the small meta text it
      is used for. */
-  --vs-ink: #3b3243;
-  --vs-ink-2: #4b4155;
+  --vs-ink: var(--text-primary);
+  --vs-ink-2: var(--text-secondary);
   --vs-ink-3: #6b6076;
-  --vs-ink-4: #8a7f95;
-  --vs-ink-invert: #ffffff;
+  --vs-ink-4: var(--text-muted);
+  --vs-ink-invert: var(--brand-on-primary);
 
   /* â”€â”€ brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   /* The client's lilac as the brand, gold kept back as a special accent.
-     StoreProvider writes `--vs-brand-*` from StoreSettings, so the owner
-     restyles the store from Admin; the values here are the fallback and are
-     mirrored by the instance profile so a fresh bootstrap agrees with them.
-
      Deep lilac rather than the main lilac is what carries `--vs-primary`,
      because this token is asked to do both jobs at once: it is a button fill
      under white text *and* a link colour on white. At #7f568f it clears 6.5:1
      both ways; #b38acf manages 3.1:1 and could do neither, so it lives on as
      `--vs-primary-lite` â€” the main brand accent, for fills, active states and
      decoration rather than for small text. */
-  --vs-primary: var(--vs-brand-primary, #7f568f);
-  --vs-primary-dark: color-mix(in srgb, var(--vs-primary) 82%, #000);
+  --vs-primary: var(--button-primary-background);
+  --vs-primary-dark: var(--button-primary-hover);
   --vs-primary-mid: color-mix(in srgb, var(--vs-primary) 62%, var(--vs-lilac));
   --vs-primary-lite: var(--vs-lilac);
-  --vs-primary-soft: color-mix(in srgb, var(--vs-lilac-lite) 24%, #fff);
+  --vs-primary-soft: var(--brand-soft);
   /* The two sanctioned gradients. Used sparingly â€” a hero wash, a promo band â€”
      never as a default fill. */
   --vs-grad-soft: linear-gradient(135deg, var(--vs-lilac-lite), var(--vs-lilac));
   --vs-grad-deep: linear-gradient(135deg, var(--vs-lilac), var(--vs-lilac-deep));
   --vs-grad-nav: linear-gradient(110deg, var(--vs-lilac-lite), var(--vs-lilac));
-  --vs-grad-footer: linear-gradient(135deg, #f3ecfa, var(--vs-lilac-lite));
-  --vs-accent: var(--vs-brand-accent, #d19f57);
+  --vs-grad-footer: linear-gradient(135deg, var(--brand-soft), var(--vs-lilac-lite));
+  --vs-accent: var(--button-secondary-background);
   /* Gold dark enough to be read as text on white (5.2:1). The bright gold above
      is for fills, rules and small marks; the section eyebrows and the package
      glyphs need a readable step, so this one is stated outright. */
-  --vs-accent-dark: #8a6329;
+  --vs-accent-dark: var(--button-secondary-hover);
   --vs-accent-soft: color-mix(in srgb, var(--vs-accent) 22%, #fff);
-  --vs-success: var(--vs-brand-success, #4c7c63);
-  --vs-danger: #b4534a;
+  --vs-success: var(--color-success);
+  --vs-danger: var(--color-danger);
   --vs-danger-soft: #fbefec;
-  --vs-warn: #8a6329;
+  --vs-warn: var(--color-warning);
 
   /* â”€â”€ radius â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --vs-r-sm: 8px;
@@ -149,11 +145,11 @@
   /* Tinted with the brand lilac rather than neutral black, and a step softer
      than the template's: on a white page a grey shadow reads as dirt, and a
      boutique card should look lifted, not dropped. */
-  --vs-shadow-1: 0 1px 2px rgba(127, 86, 143, 0.06);
-  --vs-shadow-2: 0 8px 24px rgba(127, 86, 143, 0.1);
-  --vs-shadow-3: 0 16px 40px rgba(127, 86, 143, 0.14);
+  --vs-shadow-1: 0 1px 2px color-mix(in srgb, var(--brand-primary) 6%, transparent);
+  --vs-shadow-2: 0 8px 24px color-mix(in srgb, var(--brand-primary) 10%, transparent);
+  --vs-shadow-3: 0 16px 40px color-mix(in srgb, var(--brand-primary) 14%, transparent);
   --vs-shadow-4: 0 0 60px rgba(59, 50, 67, 0.24);
-  --vs-shadow-header: 0 4px 18px rgba(127, 86, 143, 0.08);
+  --vs-shadow-header: 0 4px 18px color-mix(in srgb, var(--brand-primary) 8%, transparent);
 
   /* â”€â”€ motion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --vs-t-fast: 140ms;
