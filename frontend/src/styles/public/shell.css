@@ -423,8 +423,8 @@ img.vs-logo__img {
 .vs-nav {
   position: relative;
   height: var(--vs-nav-h);
-  background: var(--vs-grad-nav);
-  color: var(--vs-ink);
+  background: var(--nav-strip-background);
+  color: var(--nav-strip-text);
   border-block-end: 1px solid var(--vs-border-accent);
 }
 
@@ -445,7 +445,7 @@ img.vs-logo__img {
   border: 0;
   border-radius: var(--vs-r-pill);
   background: rgba(255, 255, 255, 0.42);
-  color: var(--vs-primary-dark);
+  color: var(--nav-strip-text);
   font-family: inherit;
   font-size: var(--vs-fs-sm);
   font-weight: 600;
@@ -453,9 +453,14 @@ img.vs-logo__img {
   transition: background var(--vs-t) var(--vs-ease), color var(--vs-t) var(--vs-ease), box-shadow var(--vs-t) var(--vs-ease);
 }
 
-.vs-nav__cats:hover,
+.vs-nav__cats:hover {
+  background: var(--nav-strip-hover);
+  color: var(--vs-ink-invert);
+  box-shadow: 0 2px 8px rgba(103, 68, 115, 0.2);
+}
+
 .vs-nav__cats[aria-expanded="true"] {
-  background: var(--vs-primary);
+  background: var(--nav-strip-active);
   color: var(--vs-ink-invert);
   box-shadow: 0 2px 8px rgba(103, 68, 115, 0.2);
 }
@@ -468,7 +473,7 @@ img.vs-logo__img {
   padding-inline: 12px;
   font-size: var(--vs-fs-sm);
   font-weight: 500;
-  color: var(--vs-primary-dark);
+  color: var(--nav-strip-text);
   transition: color var(--vs-t) var(--vs-ease), background var(--vs-t) var(--vs-ease);
 }
 
@@ -489,7 +494,7 @@ img.vs-logo__img {
   inset-block-end: 0;
   inset-inline: 12px;
   height: 2px;
-  background: var(--vs-primary-dark);
+  background: var(--nav-strip-active);
   transform: scaleX(0);
   transform-origin: right;
   transition: transform var(--vs-t-card) var(--vs-ease);

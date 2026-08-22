@@ -16,7 +16,6 @@
   --brand-soft: #FAF9FC;
   --brand-soft-hover: #F6F6F8;
 
-
   /* ========================================
      BRAND SURFACES
      ======================================== */
@@ -50,7 +49,7 @@
 
   /* TOP ANNOUNCEMENT BAR */
 
-  --topbar-background: #D7CAE8;
+  --topbar-background: #ececec;
   --topbar-text: #181818;
 
 
@@ -59,6 +58,14 @@
   --navbar-background: #FEFEFE;
   --navbar-text: #181818;
   --navbar-hover: var(--brand-primary);
+
+
+  /* NAVIGATION STRIP */
+
+  --nav-strip-background: #d7cae8;
+  --nav-strip-text: #181818;
+  --nav-strip-hover: var(--brand-primary);
+  --nav-strip-active: var(--brand-primary);
 
 
   /* FOOTER */
