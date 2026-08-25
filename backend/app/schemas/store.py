@@ -8,6 +8,13 @@ from pydantic import EmailStr, Field, field_validator
 
 from app.schemas.common import APIModel, Money, UTCDateTime
 
+THEME_COLOR_FIELDS = (
+    "theme_primary_color", "theme_secondary_color", "theme_soft_color",
+    "theme_nav_strip_background", "theme_nav_strip_text", "theme_footer_background",
+    "theme_footer_text", "theme_footer_muted_text", "theme_button_primary_background",
+    "theme_button_primary_text",
+)
+
 
 class StoreSettingsPublic(APIModel):
     """What the storefront is allowed to know about the store.
@@ -41,6 +48,16 @@ class StoreSettingsPublic(APIModel):
     primary_color: str
     secondary_color: str
     accent_color: str
+    theme_primary_color: str | None = None
+    theme_secondary_color: str | None = None
+    theme_soft_color: str | None = None
+    theme_nav_strip_background: str | None = None
+    theme_nav_strip_text: str | None = None
+    theme_footer_background: str | None = None
+    theme_footer_text: str | None = None
+    theme_footer_muted_text: str | None = None
+    theme_button_primary_background: str | None = None
+    theme_button_primary_text: str | None = None
     seo_title: str | None = None
     seo_description: str | None = None
     maintenance_mode: bool
@@ -91,6 +108,16 @@ class StoreSettingsUpdate(APIModel):
     primary_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     secondary_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     accent_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    theme_primary_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    theme_secondary_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    theme_soft_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    theme_nav_strip_background: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    theme_nav_strip_text: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    theme_footer_background: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    theme_footer_text: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    theme_footer_muted_text: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    theme_button_primary_background: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    theme_button_primary_text: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     seo_title: str | None = Field(default=None, max_length=200)
     seo_description: str | None = None
     maintenance_mode: bool | None = None
@@ -122,3 +149,8 @@ class StoreSettingsUpdate(APIModel):
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise ValueError("must be a valid http or https URL")
         return value
+
+    @field_validator(*THEME_COLOR_FIELDS)
+    @classmethod
+    def normalize_theme_color(cls, value: str | None) -> str | None:
+        return value.upper() if value else value

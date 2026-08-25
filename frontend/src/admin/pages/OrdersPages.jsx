@@ -110,7 +110,7 @@ function ReadOnlyOrderItems({ order }) {
     { key: "unit_price", title: "سعر القطعة" },
     { key: "quantity", title: "الكمية" },
     { key: "line_total", title: "الإجمالي" },
-  ]} /><div style={sx`margin-top:14px`}><OrderTotalsSummary items={order.items || []} discount={order.discount} deliveryFee={order.delivery_fee} /></div></section>;
+  ]} />{(order.items || []).filter((item) => item.package_components?.length).map((item) => <div key={`package-${item.id}`} style={sx`margin-top:12px;padding:10px 12px;border:1px solid #E7DCF2;border-radius:10px;background:#FAF9FC`}><strong style={sx`font-size:13px`}>محتويات الباقة وقت الطلب: {item.product_name}</strong><ul style={sx`margin:8px 0 0;padding-inline-start:18px;font-size:13px;line-height:1.8`}>{item.package_components.map((component) => <li key={component.id}>{component.product_name}{component.variant_description ? ` · ${component.variant_description}` : ""} × {component.total_quantity}</li>)}</ul></div>)}{(order.items || []).filter((item) => item.item_kind === "catalog" && item.product_id && item.product_name && item.package_components?.length === 0).length > 0 && null}<div style={sx`margin-top:14px`}><OrderTotalsSummary items={order.items || []} discount={order.discount} deliveryFee={order.delivery_fee} /></div></section>;
 }
 
 const initialDraft = (row) => ({

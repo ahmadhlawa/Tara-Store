@@ -84,6 +84,18 @@ class OrderItemOut(APIModel):
     line_total: Money
 
 
+class PackageComponentSnapshotOut(APIModel):
+    id: int
+    source_product_id: int | None = None
+    source_variant_id: int | None = None
+    product_name: str
+    variant_description: str | None = None
+    sku: str | None = None
+    quantity_per_package: int
+    package_quantity: int
+    total_quantity: int
+
+
 class OrderAdminItemOut(OrderItemOut):
     item_kind: str = "catalog"
     manual_description: str | None = None
@@ -91,6 +103,7 @@ class OrderAdminItemOut(OrderItemOut):
     original_sku: str | None = None
     original_variant_description: str | None = None
     original_unit_price: Money | None = None
+    package_components: list[PackageComponentSnapshotOut] = Field(default_factory=list)
 
 
 class OrderStatusHistoryOut(APIModel):

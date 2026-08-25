@@ -139,6 +139,7 @@ class ProductVariantOut(APIModel):
 
 class PackageItemIn(APIModel):
     included_product_id: int
+    included_variant_id: int | None = None
     quantity: int = Field(default=1, gt=0)
     display_note: str | None = Field(default=None, max_length=250)
     sort_order: int = 0
@@ -150,6 +151,8 @@ class PackageItemOut(APIModel):
     included_product_name: str | None = None
     included_product_slug: str | None = None
     included_product_image_url: str | None = None
+    included_variant_id: int | None = None
+    included_variant_title: str | None = None
     quantity: int
     display_note: str | None = None
     sort_order: int

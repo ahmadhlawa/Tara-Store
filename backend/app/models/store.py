@@ -70,6 +70,19 @@ class StoreSettings(TimestampMixin, Base):
     secondary_color: Mapped[str] = mapped_column(String(16), default="#D19F57", nullable=False)
     accent_color: Mapped[str] = mapped_column(String(16), default="#4C7C63", nullable=False)
 
+    # Storefront-only optional overrides. Null deliberately means the CSS theme owns
+    # the effective value; legacy identity colors above remain backward compatible.
+    theme_primary_color: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    theme_secondary_color: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    theme_soft_color: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    theme_nav_strip_background: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    theme_nav_strip_text: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    theme_footer_background: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    theme_footer_text: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    theme_footer_muted_text: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    theme_button_primary_background: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    theme_button_primary_text: Mapped[str | None] = mapped_column(String(7), nullable=True)
+
     seo_title: Mapped[str | None] = mapped_column(String(200), nullable=True)
     seo_description: Mapped[str | None] = mapped_column(Text, nullable=True)
 

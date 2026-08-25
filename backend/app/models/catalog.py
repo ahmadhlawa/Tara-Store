@@ -246,6 +246,9 @@ class PackageItem(Base):
     included_product_id: Mapped[int] = mapped_column(
         ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    included_variant_id: Mapped[int | None] = mapped_column(
+        ForeignKey("product_variants.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     display_note: Mapped[str | None] = mapped_column(String(250), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -254,6 +257,7 @@ class PackageItem(Base):
         back_populates="package_items", foreign_keys=[package_product_id]
     )
     included_product: Mapped[Product] = relationship(foreign_keys=[included_product_id])
+    included_variant: Mapped["ProductVariant | None"] = relationship(foreign_keys=[included_variant_id])
 
     __table_args__ = (
         UniqueConstraint(

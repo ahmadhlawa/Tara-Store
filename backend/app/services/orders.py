@@ -18,13 +18,14 @@ from typing import Any, Literal, Protocol
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.enums import AdminRole, OrderSource, OrderStatus, PaymentMethod
+from app.core.enums import AdminRole, OrderSource, OrderStatus, PaymentMethod, ProductType
 from app.db.base import utcnow
 from app.models import (
     AdminUser,
     Order,
     OrderActivity,
     OrderItem,
+    OrderItemPackageComponent,
     OrderStatusHistory,
     Product,
     ProductVariant,
@@ -427,6 +428,64 @@ def _apply_stock_delta(lines: Sequence[PricedLine], sign: int) -> None:
         line.product.stock_quantity = max(0, line.product.stock_quantity + delta)
 
 
+def _package_component_snapshots(priced_lines: Sequence[PricedLine]) -> dict[int, list[OrderItemPackageComponent]]:
+    """Capture package fulfillment metadata without consuming component inventory."""
+    snapshots: dict[int, list[OrderItemPackageComponent]] = {}
+    for line in priced_lines:
+        if line.product.product_type != ProductType.PACKAGE.value:
+            continue
+        components: list[OrderItemPackageComponent] = []
+        for item in line.product.package_items:
+            component = item.included_product
+            variant = item.included_variant
+            if component is None:
+                raise DomainError("Package component is unavailable.", code="package_component_unavailable")
+            if variant is not None and variant.product_id != component.id:
+                raise DomainError("Package component variant is invalid.", code="package_component_variant_unavailable")
+            total = item.quantity * line.quantity
+            components.append(
+                OrderItemPackageComponent(
+                    source_product_id=component.id,
+                    source_variant_id=variant.id if variant else None,
+                    product_name=component.name,
+                    variant_description=variant.title if variant else None,
+                    sku=(variant.sku if variant and variant.sku else component.sku),
+                    quantity_per_package=item.quantity,
+                    package_quantity=line.quantity,
+                    total_quantity=total,
+                    tracks_inventory=component.track_inventory,
+                )
+            )
+        snapshots[id(line)] = components
+    return snapshots
+
+
+def _validate_and_apply_stock(lines: Sequence[PricedLine], sign: int) -> None:
+    """Aggregate all inventory deltas before checking or mutating any source."""
+    totals: dict[tuple[int, int | None], tuple[Product, ProductVariant | None, int]] = {}
+    parent_totals: dict[int, tuple[Product, int]] = {}
+    for line in lines:
+        if not line.product.track_inventory:
+            continue
+        key = (line.product.id, line.variant.id if line.variant else None)
+        product, variant, quantity = totals.get(key, (line.product, line.variant, 0))
+        totals[key] = (product, variant, quantity + line.quantity)
+        parent, parent_quantity = parent_totals.get(line.product.id, (line.product, 0))
+        parent_totals[line.product.id] = (parent, parent_quantity + line.quantity)
+    if sign < 0:
+        for product, quantity in parent_totals.values():
+            if product.stock_quantity < quantity:
+                raise DomainError("Insufficient product stock.", code="insufficient_stock")
+        for product, variant, quantity in totals.values():
+            if variant is not None and variant.stock_quantity < quantity:
+                raise DomainError("Insufficient variant stock.", code="insufficient_stock")
+    for product, variant, quantity in totals.values():
+        delta = sign * quantity
+        if variant is not None:
+            variant.stock_quantity = max(0, variant.stock_quantity + delta)
+        product.stock_quantity = max(0, product.stock_quantity + delta)
+
+
 def create_order(db: Session, draft: OrderDraft) -> Order:
     if draft.client_reference:
         existing = get_by_client_reference(db, draft.client_reference)
@@ -442,6 +501,8 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
         coupon_code=draft.coupon_code,
         delivery_area_id=draft.delivery_area_id,
     )
+    package_snapshots = _package_component_snapshots(priced.lines)
+    _validate_and_apply_stock(priced.lines, sign=-1)
 
     totals = calculate_order_totals(
         priced.lines,
@@ -470,8 +531,7 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
     )
 
     for line, line_total in zip(priced.lines, totals.line_totals, strict=True):
-        order.items.append(
-            OrderItem(
+        order_item = OrderItem(
                 product_id=line.product.id,
                 variant_id=line.variant.id if line.variant else None,
                 item_kind="catalog",
@@ -484,9 +544,10 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
                 original_unit_price=line.unit_price,
                 unit_price=line.unit_price,
                 quantity=line.quantity,
-                line_total=line_total,
-            )
+            line_total=line_total,
         )
+        order_item.package_components.extend(package_snapshots.get(id(line), []))
+        order.items.append(order_item)
 
     order.status_history.append(
         OrderStatusHistory(
@@ -496,7 +557,6 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
         )
     )
 
-    _apply_stock_delta(priced.lines, sign=-1)
     if priced.coupon is not None:
         priced.coupon.used_count += 1
 
@@ -523,16 +583,13 @@ def get_by_client_reference(db: Session, client_reference: str) -> Order | None:
 
 def _restore_stock(db: Session, order: Order) -> None:
     for item in order.items:
-        if item.product_id is None:
-            continue
-        product = db.get(Product, item.product_id)
-        if product is None or not product.track_inventory:
-            continue
-        if item.variant_id is not None:
-            variant = db.get(ProductVariant, item.variant_id)
-            if variant is not None:
-                variant.stock_quantity += item.quantity
-        product.stock_quantity += item.quantity
+        product = db.get(Product, item.product_id) if item.product_id is not None else None
+        if product is not None and product.track_inventory:
+            if item.variant_id is not None:
+                variant = db.get(ProductVariant, item.variant_id)
+                if variant is not None:
+                    variant.stock_quantity += item.quantity
+            product.stock_quantity += item.quantity
 
 
 def change_status(

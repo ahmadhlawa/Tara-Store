@@ -18,6 +18,7 @@ import ManualOrderPage from "./pages/ManualOrderPage.jsx";
 import { InvoiceDetailPage, InvoicesPage } from "./pages/InvoicesPages.jsx";
 import MediaPage from "./pages/MediaPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
+import StoreColorsPage from "./pages/StoreColorsPage.jsx";
 import { AdminsPage, AuditLogPage } from "./pages/AccountScreens.jsx";
 import { Spinner } from "./ui.jsx";
 import sx from "../sx.js";
@@ -73,6 +74,7 @@ export default function AdminApp() {
           <Route path="pages" element={<StaticPagesPage />} />
           <Route path="media" element={<MediaPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="store-colors" element={<StoreColorsPage />} />
           <Route
             path="admins"
             element={

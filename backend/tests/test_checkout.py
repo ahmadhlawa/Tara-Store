@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.api.v1.endpoints import public_checkout
 from app.core.enums import DiscountType, OrderStatus
 from app.db.base import utcnow
-from app.models import Coupon, DeliveryArea, Order, Product
+from app.models import Coupon, DeliveryArea, Order, PackageItem, Product
 from app.schemas.orders import OrderCreate
 from app.services import orders as orders_service
 from app.services import pricing
@@ -45,6 +45,146 @@ def _order_payload(product: Product, **overrides) -> dict:
     }
     payload.update(overrides)
     return payload
+
+
+def test_package_order_snapshots_components_and_reserves_package_and_component_stock(
+    client: TestClient, db: Session
+) -> None:
+    """A package is one priced line, while its fulfillment contents are immutable metadata."""
+    component_a = make_product(db, slug="component-a", name="Component A", stock=0)
+    component_b = make_product(db, slug="component-b", name="Component B", stock=0)
+    package = make_product(
+        db,
+        slug="package-integrity",
+        name="Package Integrity",
+        price="150.00",
+        stock=10,
+        product_type="package",
+    )
+    db.add_all(
+        [
+            PackageItem(package_product_id=package.id, included_product_id=component_a.id, quantity=2),
+            PackageItem(package_product_id=package.id, included_product_id=component_b.id, quantity=1),
+        ]
+    )
+    db.commit()
+
+    response = client.post(
+        "/api/v1/orders",
+        json=_order_payload(package, items=[{"product_id": package.id, "quantity": 3}]),
+    )
+
+    assert response.status_code == 201, response.text
+    order = db.get(Order, response.json()["id"])
+    assert len(order.items) == 1
+    assert order.items[0].quantity == 3
+    assert order.items[0].unit_price == Decimal("150.00")
+    components = {item.product_name: item for item in order.items[0].package_components}
+    assert components["Component A"].quantity_per_package == 2
+    assert components["Component A"].package_quantity == 3
+    assert components["Component A"].total_quantity == 6
+    assert components["Component B"].total_quantity == 3
+    db.expire_all()
+    assert db.get(Product, package.id).stock_quantity == 7
+    assert db.get(Product, component_a.id).stock_quantity == 0
+    assert db.get(Product, component_b.id).stock_quantity == 0
+
+
+def test_direct_item_stock_is_independent_of_package_components(client: TestClient, db: Session) -> None:
+    component = make_product(db, slug="shared-component", stock=8)
+    package = make_product(db, slug="shared-package", stock=5, product_type="package")
+    db.add(PackageItem(package_product_id=package.id, included_product_id=component.id, quantity=2))
+    db.commit()
+    response = client.post("/api/v1/orders", json=_order_payload(package, items=[
+        {"product_id": component.id, "quantity": 2}, {"product_id": package.id, "quantity": 3},
+    ], client_reference="direct-package-stock"))
+    assert response.status_code == 201, response.text
+    db.expire_all()
+    assert db.get(Product, component.id).stock_quantity == 6
+    assert db.get(Product, package.id).stock_quantity == 2
+    order = db.get(Order, response.json()["id"])
+    assert order.items[1].package_components[0].total_quantity == 6
+
+
+def test_packages_sharing_a_component_do_not_consume_component_stock(client: TestClient, db: Session) -> None:
+    component = make_product(db, slug="shared", stock=0)
+    first = make_product(db, slug="package-a", stock=4, product_type="package")
+    second = make_product(db, slug="package-b", stock=3, product_type="package")
+    db.add_all([
+        PackageItem(package_product_id=first.id, included_product_id=component.id, quantity=1),
+        PackageItem(package_product_id=second.id, included_product_id=component.id, quantity=2),
+    ])
+    db.commit()
+    response = client.post("/api/v1/orders", json=_order_payload(first, items=[
+        {"product_id": first.id, "quantity": 2}, {"product_id": second.id, "quantity": 1},
+    ], client_reference="two-packages-shared"))
+    assert response.status_code == 201, response.text
+    db.expire_all()
+    assert db.get(Product, component.id).stock_quantity == 0
+    assert db.get(Product, first.id).stock_quantity == 2
+    assert db.get(Product, second.id).stock_quantity == 2
+
+
+def test_package_cancellation_restores_only_package_stock_once(client: TestClient, db: Session, admin_token: str) -> None:
+    component = make_product(db, slug="cancel-component", stock=0)
+    package = make_product(db, slug="cancel-package", stock=2, product_type="package")
+    db.add(PackageItem(package_product_id=package.id, included_product_id=component.id, quantity=2))
+    db.commit()
+    created = client.post("/api/v1/orders", json=_order_payload(package, items=[{"product_id": package.id, "quantity": 2}], client_reference="cancel-package-stock"))
+    order = db.get(Order, created.json()["id"])
+    for _ in range(2):
+        response = client.post(f"/api/v1/admin/orders/{order.id}/status", headers=auth(admin_token), json={"status": "cancelled"})
+        assert response.status_code == 200
+    db.expire_all()
+    assert db.get(Product, package.id).stock_quantity == 2
+    assert db.get(Product, component.id).stock_quantity == 0
+
+
+def test_variant_and_generic_package_components_are_snapshotted_without_stock_gates(client: TestClient, db: Session) -> None:
+    from app.models import ProductVariant
+    component = make_product(db, slug="variant-component", stock=0)
+    variant = ProductVariant(product_id=component.id, title="Lavender", sku="LAV", stock_quantity=0)
+    generic = make_product(db, slug="generic-component", stock=0)
+    generic_variant = ProductVariant(product_id=generic.id, title="Small", stock_quantity=0)
+    package = make_product(db, slug="variant-package", stock=2, product_type="package")
+    db.add_all([
+        variant, generic_variant, PackageItem(package_product_id=package.id, included_product_id=component.id, included_variant=variant, quantity=1),
+        PackageItem(package_product_id=package.id, included_product_id=generic.id, quantity=1),
+    ])
+    db.commit()
+    response = client.post("/api/v1/orders", json=_order_payload(package, items=[{"product_id": package.id, "quantity": 1}], client_reference="variant-package-snapshot"))
+    assert response.status_code == 201, response.text
+    db.expire_all()
+    snapshots = db.get(Order, response.json()["id"]).items[0].package_components
+    assert {(row.source_variant_id, row.variant_description, row.sku) for row in snapshots} == {(variant.id, "Lavender", "LAV"), (None, None, None)}
+    assert db.get(ProductVariant, variant.id).stock_quantity == 0
+
+
+def test_package_order_failure_after_snapshot_preparation_rolls_back_stock_and_rows(db: Session, monkeypatch) -> None:
+    component = make_product(db, slug="rollback-component", stock=0)
+    direct = make_product(db, slug="rollback-direct", stock=5)
+    package = make_product(db, slug="rollback-package", stock=3, product_type="package")
+    db.add(PackageItem(package_product_id=package.id, included_product_id=component.id, quantity=2))
+    db.commit()
+
+    def fail_activity(*_args, **_kwargs):
+        raise RuntimeError("controlled post-snapshot failure")
+
+    monkeypatch.setattr(orders_service, "record_order_activity", fail_activity)
+    with pytest.raises(RuntimeError, match="controlled post-snapshot failure"):
+        orders_service.create_order(db, orders_service.OrderDraft(
+            client_reference="rollback-package-order",
+            customer_name="Rollback Customer",
+            customer_phone="0591234567",
+            address="Rollback Address",
+            items=[(direct.id, None, 2), (package.id, None, 2)],
+        ))
+    db.rollback()
+    db.expire_all()
+    assert db.query(Order).count() == 0
+    assert db.get(Product, direct.id).stock_quantity == 5
+    assert db.get(Product, package.id).stock_quantity == 3
+    assert db.get(Product, component.id).stock_quantity == 0
 
 
 # ── coupons ──────────────────────────────────────────────────────────────────

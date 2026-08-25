@@ -9,6 +9,7 @@ import MobileTabBar from "./MobileTabBar.jsx";
 import CategoryRail from "../navigation/CategoryRail.jsx";
 import { CategoryHoverProvider } from "../navigation/CategoryHover.jsx";
 import ShellOverlays from "../overlays/ShellOverlays.jsx";
+import { buildStorefrontThemeVariables } from "../../../theme/storefrontTheme.js";
 
 /**
  * The public chrome. Everything storefront lives under `.vs-public`, which is
@@ -35,7 +36,7 @@ export default function PublicShell() {
   }
 
   return (
-    <div className="vs-public">
+    <div className="vs-public" style={buildStorefrontThemeVariables(store.settings.raw)}>
       <CategoryHoverProvider>
         <a className="vs-skip" href="#vs-content">
           تخطَّ إلى المحتوى

@@ -60,6 +60,49 @@ def test_settings_are_created_on_first_admin_read_and_can_be_updated(
     assert bad_colour.status_code == 422
 
 
+def test_theme_overrides_are_nullable_normalized_and_public(
+    client: TestClient, admin_token: str
+) -> None:
+    payload = {
+        "theme_primary_color": "#ff0000",
+        "theme_soft_color": "#ae98cb",
+        "theme_nav_strip_background": "#00ff00",
+        "theme_footer_background": "#0000ff",
+        "theme_footer_text": "#ffffff",
+    }
+    response = client.patch("/api/v1/admin/settings", headers=auth(admin_token), json=payload)
+    assert response.status_code == 200
+    assert response.json()["theme_primary_color"] == "#FF0000"
+    assert response.json()["theme_soft_color"] == "#AE98CB"
+    public = client.get("/api/v1/store/settings").json()
+    assert public["theme_nav_strip_background"] == "#00FF00"
+    assert public["theme_footer_background"] == "#0000FF"
+
+    assert client.patch("/api/v1/admin/settings", headers=auth(admin_token), json={"theme_primary_color": "var(--x)"}).status_code == 422
+    cleared = client.patch("/api/v1/admin/settings", headers=auth(admin_token), json={"theme_primary_color": None})
+    assert cleared.status_code == 200
+    assert cleared.json()["theme_primary_color"] is None
+
+    reset = client.patch(
+        "/api/v1/admin/settings",
+        headers=auth(admin_token),
+        json={
+            "theme_primary_color": None,
+            "theme_secondary_color": None,
+            "theme_soft_color": None,
+            "theme_nav_strip_background": None,
+            "theme_nav_strip_text": None,
+            "theme_footer_background": None,
+            "theme_footer_text": None,
+            "theme_footer_muted_text": None,
+            "theme_button_primary_background": None,
+            "theme_button_primary_text": None,
+        },
+    )
+    assert reset.status_code == 200
+    assert all(reset.json()[key] is None for key in reset.json() if key.startswith("theme_"))
+
+
 def test_social_links_and_visibility_round_trip_without_leaking_private_settings(
     client: TestClient, admin_token: str
 ) -> None:

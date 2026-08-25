@@ -20,6 +20,7 @@ const NAV = [
   { to: "/admin/pages", label: "الصفحات" },
   { to: "/admin/media", label: "الوسائط" },
   { to: "/admin/settings", label: "روابط المتجر" },
+  { to: "/admin/store-colors", label: "ألوان المتجر" },
   { to: "/admin/admins", label: "حسابات الإدارة", superOnly: true },
   { to: "/admin/audit", label: "سجل التغييرات", superOnly: true },
 ];

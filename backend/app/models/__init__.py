@@ -17,7 +17,7 @@ from app.models.instance import InstanceMetadata
 from app.models.invoices import Invoice, InvoiceItem, InvoiceSequence
 from app.models.marketing import Banner, Coupon, DeliveryArea, HeroSlide
 from app.models.media import MediaAsset
-from app.models.orders import Order, OrderActivity, OrderItem, OrderStatusHistory
+from app.models.orders import Order, OrderActivity, OrderItem, OrderItemPackageComponent, OrderStatusHistory
 from app.models.store import StoreSettings
 
 __all__ = [

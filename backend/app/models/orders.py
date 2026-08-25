@@ -150,8 +150,37 @@ class OrderItem(Base):
     line_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 
     order: Mapped[Order] = relationship(back_populates="items")
+    package_components: Mapped[list["OrderItemPackageComponent"]] = relationship(
+        back_populates="order_item", cascade="all, delete-orphan", order_by="OrderItemPackageComponent.id"
+    )
 
     __table_args__ = (CheckConstraint("quantity > 0", name="ck_order_item_quantity_positive"),)
+
+
+class OrderItemPackageComponent(Base):
+    """Immutable fulfillment snapshot for one component of a purchased package."""
+
+    __tablename__ = "order_item_package_components"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_item_id: Mapped[int] = mapped_column(ForeignKey("order_items.id", ondelete="CASCADE"), nullable=False, index=True)
+    source_product_id: Mapped[int | None] = mapped_column(ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
+    source_variant_id: Mapped[int | None] = mapped_column(ForeignKey("product_variants.id", ondelete="SET NULL"), nullable=True, index=True)
+    product_name: Mapped[str] = mapped_column(String(250), nullable=False)
+    variant_description: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    sku: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    quantity_per_package: Mapped[int] = mapped_column(Integer, nullable=False)
+    package_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    tracks_inventory: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    order_item: Mapped[OrderItem] = relationship(back_populates="package_components")
+
+    __table_args__ = (
+        CheckConstraint("quantity_per_package > 0", name="ck_package_component_quantity_positive"),
+        CheckConstraint("package_quantity > 0", name="ck_package_component_package_quantity_positive"),
+        CheckConstraint("total_quantity > 0", name="ck_package_component_total_quantity_positive"),
+    )
 
 
 class OrderStatusHistory(Base):

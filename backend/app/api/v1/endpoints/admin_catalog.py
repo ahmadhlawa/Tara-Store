@@ -624,6 +624,8 @@ def _package_payload(item: PackageItem) -> dict:
         "included_product_image_url": item.included_product.primary_image_url
         if item.included_product
         else None,
+        "included_variant_id": item.included_variant_id,
+        "included_variant_title": item.included_variant.title if item.included_variant else None,
         "quantity": item.quantity,
         "display_note": item.display_note,
         "sort_order": item.sort_order,
@@ -645,6 +647,10 @@ def add_package_item(
 ):
     package = _load_product(db, product_id)
     catalog_service.assert_package_is_valid(db, package, payload.included_product_id)
+    if payload.included_variant_id is not None:
+        variant = db.get(ProductVariant, payload.included_variant_id)
+        if variant is None or variant.product_id != payload.included_product_id:
+            raise DomainError("Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© Ù„Ø§ ØªÙ†ØªÙ…ÙŠ Ù„Ù„Ù…Ù†ØªØ¬.", code="package_component_variant_mismatch")
     if any(i.included_product_id == payload.included_product_id for i in package.package_items):
         raise ConflictError("المنتج مضاف مسبقاً إلى هذا البكج.", code="package_item_duplicate")
     item = PackageItem(package_product_id=package.id, **payload.model_dump())
