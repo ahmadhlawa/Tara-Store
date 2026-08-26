@@ -441,7 +441,7 @@ describe("storefront payment surface", () => {
     expect(document.querySelectorAll('input[name="pay"]').length).toBe(1);
   });
 
-  it("offers cash on delivery and manual transfer once details exist, with no card fields", async () => {
+  it("keeps checkout cash-on-delivery only when legacy transfer details exist", async () => {
     withCart();
     stubApi(withTransferInstructions());
     renderApp("/checkout");
@@ -449,10 +449,10 @@ describe("storefront payment surface", () => {
     const heading = await screen.findByText("طريقة الدفع");
     const panel = within(heading.parentElement);
     expect(panel.getByText("الدفع عند الاستلام")).toBeInTheDocument();
-    expect(panel.getByText("تحويل بنكي / يدوي")).toBeInTheDocument();
+    expect(panel.queryByText("تحويل بنكي / يدوي")).not.toBeInTheDocument();
 
-    // Exactly two payment options, and none of them is a card.
-    expect(document.querySelectorAll('input[name="pay"]').length).toBe(2);
+    // Exactly one payment option, and it is never a card or transfer flow.
+    expect(document.querySelectorAll('input[name="pay"]').length).toBe(1);
     expect(screen.queryByLabelText(/رقم البطاقة/)).not.toBeInTheDocument();
     expect(screen.queryByText(/CVV/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/تاريخ الانتهاء/)).not.toBeInTheDocument();
@@ -466,7 +466,7 @@ describe("storefront payment surface", () => {
     renderApp("/checkout");
 
     expect(
-      await screen.findByText(/لا يتم تحصيل أي مبلغ الآن، ولا يطلب المتجر بيانات بطاقات بنكية/),
+      await screen.findByText(/لا يتم تحصيل أي مبلغ الآن؛ يُدفع نقداً للمندوب عند التسليم/),
     ).toBeInTheDocument();
   });
 
@@ -479,15 +479,13 @@ describe("storefront payment surface", () => {
     expect(screen.queryByText(/حساب رقم/)).not.toBeInTheDocument();
   });
 
-  it("shows the owner's transfer instructions once they exist", async () => {
+  it("does not expose legacy transfer instructions", async () => {
     withCart();
     stubApi(withTransferInstructions());
     renderApp("/checkout");
 
-    const panel = (await screen.findByText("طريقة الدفع")).parentElement;
-    await userEvent.click(within(panel).getByText("تحويل بنكي / يدوي"));
-
-    expect(await screen.findByText("بنك فلسطين — حساب رقم 12345")).toBeInTheDocument();
+    await screen.findByText("طريقة الدفع");
+    expect(screen.queryByText("بنك فلسطين — حساب رقم 12345")).not.toBeInTheDocument();
   });
 
   it("prefers the Arabic store name when the owner has set one", async () => {

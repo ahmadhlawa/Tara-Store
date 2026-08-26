@@ -11,7 +11,7 @@ vi.mock("../api/adminApi.js", () => ({
 
 vi.mock("../theme/storefrontTheme.js", () => ({
   THEME_KEYS: ["theme_primary_color", "theme_secondary_color", "theme_soft_color", "theme_nav_strip_background", "theme_nav_strip_text", "theme_footer_background", "theme_footer_text", "theme_footer_muted_text", "theme_button_primary_background", "theme_button_primary_text"],
-  staticThemeDefaults: () => ({ theme_primary_color: "#AE98CB", theme_secondary_color: "#D7CAE8", theme_soft_color: "#FAF9FC", theme_nav_strip_background: "#FFFFFF", theme_nav_strip_text: "#181818", theme_footer_background: "#F6F6F8", theme_footer_text: "#181818", theme_footer_muted_text: "#666666", theme_button_primary_background: "#AE98CB", theme_button_primary_text: "#FFFFFF" }),
+  staticThemeDefaults: () => ({ theme_primary_color: "#AE98CB", theme_secondary_color: "#D7CAE8", theme_soft_color: "#FAF9FC", theme_nav_strip_background: "#FFFFFF", theme_nav_strip_text: "#181818", theme_footer_background: "#F6F6F8", theme_footer_text: "#181818", theme_footer_muted_text: "#666666", theme_button_primary_background: "#AE98CB", theme_button_primary_text: "#181818" }),
   buildStorefrontThemeVariables: () => ({}),
   contrastRatio: (first, second) => first === second ? 1 : 7,
 }));

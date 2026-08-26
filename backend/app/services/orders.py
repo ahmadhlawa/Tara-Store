@@ -1319,7 +1319,7 @@ def edit_incomplete_order(
 
 
 def dashboard_summary(db: Session) -> dict[str, object]:
-    from app.models import Article, Category, Coupon, Product
+    from app.models import Category, Coupon, Product
 
     def _count(model, *conditions):
         stmt = select(func.count()).select_from(model)
@@ -1353,7 +1353,6 @@ def dashboard_summary(db: Session) -> dict[str, object]:
         "products_total": _count(Product),
         "products_active": _count(Product, Product.is_active.is_(True)),
         "categories_total": _count(Category),
-        "articles_published": _count(Article, Article.is_published.is_(True)),
         "coupons_active": _count(Coupon, Coupon.is_active.is_(True)),
         "orders_total": _count(Order),
         "orders_by_status": by_status,

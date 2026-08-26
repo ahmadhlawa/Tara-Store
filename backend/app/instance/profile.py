@@ -24,7 +24,7 @@ from app.core.enums import HomeSectionType
 SUPPORTED_PROFILE_SCHEMA_VERSIONS = frozenset({1})
 
 # Fixed, explicit feature set — every one already implemented. Not a plugin system.
-SUPPORTED_FEATURES = ("packages", "silicone_molds", "articles", "coupons")
+SUPPORTED_FEATURES = ("packages", "silicone_molds", "coupons")
 
 SLUG_RE = re.compile(r"^[a-z0-9]([a-z0-9-]{1,38}[a-z0-9])$")
 COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")

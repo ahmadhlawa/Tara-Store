@@ -152,7 +152,7 @@ export default function ProductVariantsEditor({
       if (missing.length) {
         await onCreate(missing.map((ids) => defaults(variantTitle(options, ids), ids)));
       }
-      // Reported by the page, whose banner survives the reload this triggers.
+      // Reported by the page, whose notice survives the reload this triggers.
       onReport(`تم إنشاء ${missing.length} نسخة — موجودة مسبقاً ${combos.length - missing.length}`);
     } catch {
       // Say nothing rather than claim combinations that never landed.

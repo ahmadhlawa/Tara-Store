@@ -8,7 +8,6 @@ const PUBLIC_PAGES = [
   "/product/vfx-resin-clear-1l",
   "/cart",
   "/checkout",
-  "/blog",
   "/contact",
 ];
 
@@ -52,7 +51,7 @@ test.describe("public storefront layout", () => {
   }
 
   test("the hero shows the whole advertisement, not a cropped slice", async ({ page }, testInfo) => {
-    // A wide screen crops the banner top and bottom on purpose; this is about
+    // A wide screen crops the hero artwork top and bottom on purpose; this is about
     // the phone and tablet forms, where the crop was sideways.
     test.skip(
       (testInfo.project.use.viewport?.width ?? 1440) > 900,
@@ -62,7 +61,7 @@ test.describe("public storefront layout", () => {
     await page.waitForLoadState("networkidle");
 
     // How much of the artwork's own width survives the box it is drawn into.
-    // A phone is narrower than any banner, so covering a portrait box threw the
+    // A phone is narrower than the hero artwork, so covering a portrait box threw the
     // promotional text off both sides; whatever technique is used, the visible
     // fraction is what the reader actually gets.
     const visible = await page.evaluate(() => {

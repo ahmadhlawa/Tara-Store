@@ -6,16 +6,17 @@ export const label = sx`display:flex;flex-direction:column;gap:6px;font-size:13p
 export const input = sx`height:44px;border:1px solid #DFD2EC;border-radius:10px;background:#FAF7FD;padding:0 12px;font-size:14px;font-weight:400;font-family:inherit;width:100%;box-sizing:border-box`;
 export const textarea = sx`border:1px solid #DFD2EC;border-radius:10px;background:#FAF7FD;padding:10px 12px;font-size:14px;font-weight:400;font-family:inherit;width:100%;box-sizing:border-box;resize:vertical`;
 
-export function Button({ variant = "primary", children, style, ...rest }) {
+export function Button({ variant = "primary", children, style, className = "", ...rest }) {
   const variants = {
-    primary: "background:var(--admin-primary);color:var(--brand-on-primary);border:1px solid var(--admin-primary)",
-    secondary: "background:var(--surface-background);color:var(--admin-primary);border:1px solid var(--admin-primary)",
+    primary: "background:var(--admin-primary);color:var(--admin-on-primary);border:1px solid var(--admin-primary)",
+    secondary: "background:var(--admin-surface);color:var(--admin-primary);border:1px solid var(--admin-primary)",
     ghost: "background:#fff;color:#4B4155;border:1px solid #DFD2EC",
     danger: "background:#fff;color:#B4534A;border:1px solid #E5C4BE",
   };
   return (
     <button
       type="button"
+      className={`admin-button ${className}`.trim()}
       {...rest}
       style={{
         ...sx`min-height:44px;padding:0 18px;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;${variants[variant]}`,
@@ -53,7 +54,7 @@ export function Field({ title, hint, children }) {
 export function Notice({ kind = "info", children }) {
   if (!children) return null;
   const styles = {
-    info: "background:var(--brand-soft);border-color:var(--brand-primary-pale);color:var(--admin-primary)",
+    info: "background:var(--admin-soft);border-color:var(--admin-primary-pale);color:var(--admin-primary)",
     error: "background:#FBEFEC;border-color:#EBD2CD;color:#8E3B34",
     success: "background:#EEF4EF;border-color:#CCDFD3;color:#3F6B54",
   };

@@ -218,7 +218,7 @@ img.vs-logo__img {
   border: 0;
   border-radius: var(--vs-r-pill);
   background: var(--vs-primary);
-  color: var(--vs-ink-invert);
+  color: var(--vs-on-primary-action);
   font-family: inherit;
   font-size: var(--vs-fs-sm);
   font-weight: 500;
@@ -375,7 +375,7 @@ img.vs-logo__img {
   border: 1px solid var(--vs-primary);
   border-radius: var(--vs-r-md);
   background: var(--vs-primary);
-  color: var(--vs-ink-invert);
+  color: var(--vs-on-primary-action);
   font-family: inherit;
   font-size: var(--vs-fs-sm);
   font-weight: 500;
@@ -552,7 +552,7 @@ img.vs-logo__img {
   border: 0;
   border-radius: var(--vs-r-md);
   background: var(--vs-primary-dark);
-  color: var(--vs-ink-invert);
+  color: var(--vs-on-primary-action);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1026,7 +1026,7 @@ img.vs-logo__img {
 .vs-footer__social-row a:focus-visible {
   background: var(--vs-primary);
   border-color: var(--vs-primary);
-  color: var(--vs-ink-invert);
+  color: var(--vs-on-primary-action);
 }
 
 .vs-footer__social {
@@ -1054,7 +1054,7 @@ img.vs-logo__img {
 .vs-footer__social a:hover {
   background: var(--vs-primary);
   border-color: var(--vs-primary);
-  color: var(--vs-ink-invert);
+  color: var(--vs-on-primary-action);
 }
 
 .vs-footer__col {
@@ -1158,16 +1158,39 @@ img.vs-logo__img {
 @media (max-width: 767px) {
   .vs-footer__top {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px 20px;
+    gap: 18px 14px;
+    padding-block: 24px 16px;
   }
   .vs-footer__brand {
     grid-column: 1 / -1;
+    gap: 6px;
+  }
+  .vs-footer__desc {
+    line-height: 1.65;
+  }
+  .vs-footer__col {
+    gap: 5px;
+  }
+  .vs-footer__title {
+    padding-block-end: 4px;
+  }
+  .vs-footer__bottom-row {
+    gap: 10px;
+    padding-block: 10px;
+  }
+  .vs-footer__credit-row {
+    padding-block: 10px;
   }
 }
 
 @media (max-width: 419px) {
   .vs-footer__top {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vs-footer__logo {
+    --vs-logo-w: 112px;
+    --vs-logo-h: 112px;
   }
 
   .vs-footer__credit-row {

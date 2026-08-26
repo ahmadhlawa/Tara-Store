@@ -7,12 +7,7 @@ import ProductsPage from "./pages/ProductsPage.jsx";
 import ProductEditorPage from "./pages/ProductEditorPage.jsx";
 import { CategoriesPage } from "./pages/CatalogScreens.jsx";
 import { CouponsPage, DeliveryAreasPage } from "./pages/CommerceScreens.jsx";
-import {
-  ArticlesPage,
-  BannersPage,
-  HeroSlidesPage,
-  StaticPagesPage,
-} from "./pages/ContentScreens.jsx";
+import { HeroSlidesPage } from "./pages/ContentScreens.jsx";
 import { OrderDetailPage, OrdersPage } from "./pages/OrdersPages.jsx";
 import ManualOrderPage from "./pages/ManualOrderPage.jsx";
 import { InvoiceDetailPage, InvoicesPage } from "./pages/InvoicesPages.jsx";
@@ -47,8 +42,9 @@ function RequireSuperAdmin({ children }) {
 
 export default function AdminApp() {
   return (
-    <AdminAuthProvider>
-      <Routes>
+    <div className="admin-app">
+      <AdminAuthProvider>
+        <Routes>
         <Route path="login" element={<LoginPage />} />
         <Route
           element={
@@ -69,9 +65,6 @@ export default function AdminApp() {
           <Route path="coupons" element={<CouponsPage />} />
           <Route path="delivery" element={<DeliveryAreasPage />} />
           <Route path="hero" element={<HeroSlidesPage />} />
-          <Route path="banners" element={<BannersPage />} />
-          <Route path="articles" element={<ArticlesPage />} />
-          <Route path="pages" element={<StaticPagesPage />} />
           <Route path="media" element={<MediaPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="store-colors" element={<StoreColorsPage />} />
@@ -93,7 +86,8 @@ export default function AdminApp() {
           />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Route>
-      </Routes>
-    </AdminAuthProvider>
+        </Routes>
+      </AdminAuthProvider>
+    </div>
   );
 }

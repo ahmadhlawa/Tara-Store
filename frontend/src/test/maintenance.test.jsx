@@ -43,12 +43,11 @@ describe("maintenance mode", () => {
 
     expect(await screen.findByText(settingsFixture.store_name)).toBeInTheDocument();
     expect(screen.getByText(settingsFixture.store_tagline)).toBeInTheDocument();
-    expect(screen.getByText(settingsFixture.working_hours)).toBeInTheDocument();
     expect(screen.getAllByText(settingsFixture.whatsapp).length).toBeGreaterThan(0);
   });
 
   it("covers every public route without redirecting away from it", async () => {
-    for (const path of ["/", "/shop", "/cart", "/checkout", "/blog", "/no-such-page"]) {
+    for (const path of ["/", "/shop", "/cart", "/checkout", "/no-such-page"]) {
       stubApi(maintenanceRoutes);
       const view = renderApp(path);
       expect(await screen.findByRole("heading", { name: "المتجر في وضع الصيانة" })).toBeInTheDocument();

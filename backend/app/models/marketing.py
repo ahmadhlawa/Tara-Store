@@ -6,7 +6,7 @@ from decimal import Decimal
 from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.enums import BannerPlacement, DiscountType
+from app.core.enums import DiscountType
 from app.db.base import Base, TimestampMixin
 
 
@@ -20,23 +20,6 @@ class HeroSlide(TimestampMixin, Base):
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     button_label: Mapped[str | None] = mapped_column(String(100), nullable=True)
     button_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    starts_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    ends_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-
-
-class Banner(TimestampMixin, Base):
-    __tablename__ = "banners"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    placement: Mapped[str] = mapped_column(
-        String(32), default=BannerPlacement.HOME_SIDE.value, nullable=False, index=True
-    )
-    title: Mapped[str] = mapped_column(String(250), nullable=False)
-    subtitle: Mapped[str | None] = mapped_column(String(250), nullable=True)
-    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    link_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     starts_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

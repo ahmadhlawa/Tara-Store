@@ -44,11 +44,6 @@ export const adminApi = {
   updateHeroSlide: (id, payload) => api.patch(`/admin/hero-slides/${id}`, payload, authed),
   deleteHeroSlide: (id) => api.delete(`/admin/hero-slides/${id}`, authed),
 
-  listBanners: () => api.get("/admin/banners", authed),
-  createBanner: (payload) => api.post("/admin/banners", payload, authed),
-  updateBanner: (id, payload) => api.patch(`/admin/banners/${id}`, payload, authed),
-  deleteBanner: (id) => api.delete(`/admin/banners/${id}`, authed),
-
   listCoupons: (params) => api.get("/admin/coupons", withParams(params)),
   createCoupon: (payload) => api.post("/admin/coupons", payload, authed),
   updateCoupon: (id, payload) => api.patch(`/admin/coupons/${id}`, payload, authed),
@@ -79,16 +74,6 @@ export const adminApi = {
     api.patch(`/admin/invoices/${invoiceNumber}/payment`, payload, authed),
   cancelInvoice: (invoiceNumber, reason) =>
     api.post(`/admin/invoices/${invoiceNumber}/cancel`, { reason }, authed),
-
-  listArticles: (params) => api.get("/admin/articles", withParams(params)),
-  createArticle: (payload) => api.post("/admin/articles", payload, authed),
-  updateArticle: (id, payload) => api.patch(`/admin/articles/${id}`, payload, authed),
-  deleteArticle: (id) => api.delete(`/admin/articles/${id}`, authed),
-
-  listPages: () => api.get("/admin/pages", authed),
-  createPage: (payload) => api.post("/admin/pages", payload, authed),
-  updatePage: (id, payload) => api.patch(`/admin/pages/${id}`, payload, authed),
-  deletePage: (id) => api.delete(`/admin/pages/${id}`, authed),
 
   listMedia: (params) => api.get("/admin/media", withParams(params)),
   uploadMedia: (file) => {

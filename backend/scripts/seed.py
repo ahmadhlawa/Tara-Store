@@ -1,7 +1,7 @@
 """DEMO SEED — development and demonstration only. Never run against a client store.
 
 Creates enough content to demonstrate every part of the storefront and the admin
-area: sample categories, products, variants, packages, coupons, articles, a demo
+area: sample categories, products, variants, packages, coupons, a demo
 order and demo store identity. Re-running it updates the same rows instead of
 duplicating them — every entity is matched on its natural key (slug, code, name or
 section key) — and it deliberately rewrites its own seeded content, including
@@ -36,7 +36,6 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.enums import (
     AdminRole,
-    BannerPlacement,
     DiscountType,
     HomeSectionType,
     ProductType,
@@ -46,8 +45,6 @@ from app.db.base import utcnow
 from app.db.session import SessionLocal
 from app.initial_data import upsert_admin
 from app.models import (
-    Article,
-    Banner,
     Category,
     Coupon,
     DeliveryArea,
@@ -249,21 +246,14 @@ HERO_SLIDES = [
     ),
 ]
 
-BANNERS = [
-    (BannerPlacement.HOME_MAIN, "أكبر تشكيلة قوالب سيليكون في المنطقة", "تشكيلة ٢٠٢٦", "/molds", "hero-teal", 0),
-    (BannerPlacement.HOME_SIDE, "منتجات جديدة", "وصل حديثاً هذا الأسبوع", "/shop?sort=newest", "hero-clay", 0),
-    (BannerPlacement.HOME_SIDE, "عروض محدودة", "خصومات تصل إلى ٣٠٪", "/offers", "hero-slate", 1),
-]
-
 HOME_SECTIONS = [
-    ("hero", HomeSectionType.PROMO_BANNER, "الشريط الرئيسي", "شرائح العرض وبانرات الصفحة الأولى.", 0, {}),
     ("categories", HomeSectionType.CATEGORIES, "أقسام منتجاتنا", "تسوّق حسب القسم", 1, {"limit": 12}),
     ("packages", HomeSectionType.PACKAGES, "بكجات المبتدئين", "ابدأ من هنا", 2, {"limit": 8}),
     ("molds", HomeSectionType.SILICONE_MOLDS, "قوالب سيليكون", "أكبر تشكيلة قوالب سيليكون", 3, {"limit": 4}),
     ("featured", HomeSectionType.FEATURED_PRODUCTS, "منتجات مختارة", "اختيارات فريق الورشة", 4, {"limit": 8}),
     ("new-and-best", HomeSectionType.NEW_PRODUCTS, "منتجات جديدة", "وصل حديثاً", 5, {"limit": 8}),
     ("bestsellers", HomeSectionType.BESTSELLERS, "الأكثر مبيعاً", "ما يطلبه الحرفيون أكثر", 6, {"limit": 8}),
-    ("workshop-note", HomeSectionType.CUSTOM_TEXT, "من الورشة", "نختبر كل منتج قبل إضافته إلى المتجر.", 7, {"body": "أدلة حرفية، منتجات جديدة، وعروض خاصة."}),
+    ("workshop-note", HomeSectionType.CUSTOM_TEXT, "من الورشة", "نختبر كل منتج قبل إضافته إلى المتجر.", 7, {"body": "منتجات جديدة، وعروض خاصة."}),
 ]
 
 COUPONS = [
@@ -278,47 +268,6 @@ DELIVERY_AREAS = [
     ("القدس", "30.00", "900.00", "٢–٤ أيام عمل", 3),
     ("غزة", "35.00", None, "٣–٥ أيام عمل", 4),
 ]
-
-ARTICLES = [
-    (
-        "candle-making-starter",
-        "صناعة الشموع… كيف تبدأ رحلتك؟",
-        "صناعة الشموع",
-        "دليل عملي يشرح المواد الأساسية، النسب الصحيحة، وأول خمس خطوات لصناعة شمعة ناجحة.",
-        "cream",
-    ),
-    (
-        "resin-without-bubbles",
-        "دليل المبتدئين لصب الريزن بدون فقاعات",
-        "إيبوكسي ريزن",
-        "خمس خطوات عملية تضمن نتيجة صافية من المحاولة الأولى، من ضبط الحرارة إلى وقت الخلط.",
-        "teal",
-    ),
-    (
-        "silicone-mold-care",
-        "كيف تحافظ على قوالب السيليكون سنوات",
-        "قوالب سيليكون",
-        "التنظيف، التخزين، والأخطاء الشائعة التي تُتلف سطح القالب اللامع.",
-        "clay",
-    ),
-    (
-        "mica-vs-liquid-dyes",
-        "الفرق بين المايكا والأصباغ السائلة",
-        "صبغات وملونات",
-        "متى تستخدم كل نوع، وكيف تحصل على تدرجات نظيفة دون ترسيب.",
-        "rose",
-    ),
-]
-
-ARTICLE_BODY = (
-    "النتيجة النهائية تعتمد على ثلاثة عوامل: دقة القياس، درجة حرارة الغرفة، وطريقة الخلط. "
-    "عندما تضبط هذه العوامل الثلاثة تصبح النتائج قابلة للتكرار في كل مرة.\n\n"
-    "اضبط الميزان على دقة ٠.٠١ غم وقس المكونات بالوزن لا بالحجم.\n"
-    "اخلط ببطء لمدة ثلاث دقائق مع كشط الجوانب والقاع.\n"
-    "اترك الخليط دقيقتين قبل الصب لتصعد الفقاعات.\n"
-    "مرّر المسدس الحراري على السطح من مسافة ٢٠ سم.\n\n"
-    "إذا ظهرت فقاعات دقيقة بعد الجفاف فالسبب غالباً برودة الغرفة أو خلط سريع أدخل هواء في الخليط."
-)
 
 STATIC_PAGES = [
     (
@@ -629,23 +578,6 @@ def ensure_hero_slides(db: Session, images: dict[str, str]) -> None:
     _log(f"hero slides: {len(HERO_SLIDES)}")
 
 
-def ensure_banners(db: Session, images: dict[str, str]) -> None:
-    for placement, title, subtitle, link, tone, order in BANNERS:
-        banner = db.execute(
-            select(Banner).where(Banner.title == title, Banner.placement == placement.value)
-        ).scalar_one_or_none()
-        if banner is None:
-            banner = Banner(title=title, placement=placement.value)
-            db.add(banner)
-        banner.subtitle = subtitle
-        banner.link_url = link
-        banner.image_url = images.get(tone)
-        banner.is_active = True
-        banner.sort_order = order
-    db.flush()
-    _log(f"banners: {len(BANNERS)}")
-
-
 def ensure_home_sections(db: Session) -> None:
     for key, section_type, title, description, order, config in HOME_SECTIONS:
         section = db.execute(
@@ -700,27 +632,6 @@ def ensure_delivery_areas(db: Session) -> None:
         area.sort_order = order
     db.flush()
     _log(f"delivery areas: {len(DELIVERY_AREAS)}")
-
-
-def ensure_articles(db: Session, images: dict[str, str]) -> None:
-    now = utcnow()
-    for order, (slug, title, label, excerpt, tone) in enumerate(ARTICLES):
-        article = db.execute(select(Article).where(Article.slug == slug)).scalar_one_or_none()
-        if article is None:
-            article = Article(slug=slug)
-            db.add(article)
-        article.title = title
-        article.category_label = label
-        article.excerpt = excerpt
-        article.content = ARTICLE_BODY
-        article.featured_image_url = images.get(tone)
-        article.author_name = "فريق التحرير"
-        article.is_published = True
-        article.published_at = article.published_at or (now - timedelta(days=order * 7 + 2))
-        article.seo_title = title
-        article.seo_description = excerpt[:150]
-    db.flush()
-    _log(f"articles: {len(ARTICLES)}")
 
 
 def ensure_pages(db: Session) -> None:
@@ -792,11 +703,9 @@ def seed(db: Session, *, admin_email: str, admin_password: str, admin_name: str)
     ensure_options_and_variants(db, products)
     ensure_packages(db, products)
     ensure_hero_slides(db, images)
-    ensure_banners(db, images)
     ensure_home_sections(db)
     ensure_coupons(db)
     ensure_delivery_areas(db)
-    ensure_articles(db, images)
     ensure_pages(db)
     ensure_demo_order(db, products)
     maybe_create_admin(db, admin_email, admin_password, admin_name)

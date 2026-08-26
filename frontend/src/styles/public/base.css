@@ -181,7 +181,7 @@
   .vs-sec-head__more:hover {
     background: var(--vs-primary);
     border-color: var(--vs-primary);
-    color: var(--vs-ink-invert);
+    color: var(--vs-on-primary-action);
   }
 }
 
@@ -204,6 +204,21 @@
 .vs-grid--packages {
   grid-template-columns: repeat(var(--vs-cols-pkg), minmax(0, 1fr));
   --vs-ar-package: 4 / 5;
+}
+
+@media (max-width: 599px) {
+  .vs-home {
+    --vs-ar-product: 3 / 2;
+    --vs-ar-package: 8 / 5;
+  }
+
+  .vs-home .vs-grid--packages {
+    --vs-ar-package: 8 / 5;
+  }
+
+  .vs-home .vs-sec-head {
+    margin-block-end: 12px;
+  }
 }
 
 /* Horizontal rail: same cards, scrolled instead of wrapped. */
@@ -257,7 +272,7 @@
 .vs-btn--primary {
   background: var(--vs-primary);
   border-color: var(--vs-primary);
-  color: var(--vs-ink-invert);
+  color: var(--vs-on-primary-action);
 }
 
 /* Secondary is a warm neutral card with a mauve label, not a second filled
@@ -302,7 +317,7 @@
   }
   .vs-btn--outline:not(:disabled):hover {
     background: var(--vs-primary);
-    color: var(--vs-ink-invert);
+    color: var(--vs-on-primary-action);
   }
   .vs-btn--quiet:not(:disabled):hover {
     color: var(--vs-primary);
@@ -367,7 +382,7 @@
 .vs-chip--active {
   background: var(--vs-primary);
   border-color: var(--vs-primary);
-  color: var(--vs-ink-invert);
+  color: var(--vs-on-primary-action);
 }
 
 @media (hover: hover) {
@@ -395,7 +410,7 @@
 }
 .vs-badge--new {
   background: var(--vs-primary);
-  color: var(--vs-ink-invert);
+  color: var(--vs-on-primary-action);
 }
 /* The one badge that is allowed to be gold, and it is gold as an outline on a
    light card rather than as a fill â€” a bronze label inside a thin gold border. */
@@ -412,7 +427,7 @@
 /* Tied to the brand token like every other badge. */
 .vs-badge--package {
   background: color-mix(in srgb, var(--vs-primary) 92%, transparent);
-  color: var(--vs-ink-invert);
+  color: var(--vs-on-primary-action);
 }
 
 /* â”€â”€ breadcrumb â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */

@@ -6,7 +6,6 @@ import { catalogService } from "../services/catalog.js";
 import { storefrontService } from "../services/storefront.js";
 import { productView } from "../utils/productView.js";
 import Hero from "../components/public/home/Hero.jsx";
-import { StripBanner } from "../components/public/home/Banners.jsx";
 import TrustStrip from "../components/public/home/TrustStrip.jsx";
 import SectionHead from "../components/public/shell/SectionHead.jsx";
 import CategoryCard from "../components/public/catalog/CategoryCard.jsx";
@@ -16,7 +15,7 @@ import { useViewportReveal } from "../hooks/useViewportReveal.js";
 
 /**
  * Each admin-managed section type is rendered by exactly one composition, and
- * every composition is different — a grid, a rail, a package grid, a banner, a
+ * every composition is different — a grid, a rail, a package grid, or a
  * split editorial block — so the page has rhythm instead of eight identical rows.
  */
 const SECTIONS = {
@@ -61,7 +60,6 @@ const SECTIONS = {
     more: "/molds",
     limit: 4,
   },
-  promo_banner: { kind: "banner", fallbackTitle: "" },
   custom_text: { kind: "text", fallbackTitle: "" },
 };
 
@@ -146,18 +144,8 @@ export default function HomePage() {
     };
   }, [needed]);
 
-  // Nothing is rendered beside the hero any more, so every admin banner — not
-  // only the ones placed as strips — queues up for the promo sections instead.
-  // The records are untouched; only where they render has changed.
-  const stripBanners = [
-    ...store.banners.filter((banner) => banner.placement === "home_strip"),
-    ...store.banners.filter((banner) => banner.placement !== "home_strip"),
-  ];
-
   const views = (source) =>
     (lists[source]?.items || []).map((product) => productView(product, money));
-
-  let stripIndex = 0;
 
   const rendered = sections.list
     .map((section) => {
@@ -180,17 +168,6 @@ export default function HomePage() {
                 <CategoryCard key={category.slug} category={category} eager={index < 4} revealDelay={Math.min(index * 70, 280)} />
               ))}
             </div>
-          </section>
-        );
-      }
-
-      if (spec.kind === "banner") {
-        const banner = stripBanners[stripIndex] || null;
-        stripIndex += 1;
-        if (!banner) return null;
-        return (
-          <section key={section.id} className="vs-container vs-section--tight">
-            <StripBanner banner={banner} />
           </section>
         );
       }

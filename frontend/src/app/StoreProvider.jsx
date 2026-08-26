@@ -29,8 +29,6 @@ export function StoreProvider({ children }) {
   const [settings, setSettings] = useState(() => normalizeSettings(FALLBACK_SETTINGS));
   const [categories, setCategories] = useState([]);
   const [deliveryAreas, setDeliveryAreas] = useState([]);
-  // All placements in one request; the homepage picks the ones it needs.
-  const [banners, setBanners] = useState([]);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(null);
 
@@ -84,14 +82,12 @@ export function StoreProvider({ children }) {
         storefrontService.settings(),
         catalogService.categories(),
         storefrontService.deliveryAreas(),
-        storefrontService.banners(),
       ]);
       if (cancelled) return;
-      const [settingsResult, categoriesResult, areasResult, bannersResult] = results;
+        const [settingsResult, categoriesResult, areasResult] = results;
       if (settingsResult.status === "fulfilled") setSettings(settingsResult.value);
       if (categoriesResult.status === "fulfilled") setCategories(categoriesResult.value);
       if (areasResult.status === "fulfilled") setDeliveryAreas(areasResult.value);
-      if (bannersResult.status === "fulfilled") setBanners(bannersResult.value);
 
       const failure = results.find((result) => result.status === "rejected");
       // A failed bootstrap must not blank the storefront: defaults stay in place
@@ -248,7 +244,6 @@ export function StoreProvider({ children }) {
       settings,
       categories,
       deliveryAreas,
-      banners,
       cart,
       bump,
       addToCart,
@@ -281,7 +276,7 @@ export function StoreProvider({ children }) {
       setCheckoutForm,
     }),
     [
-      ready, loadError, settings, categories, deliveryAreas, banners, cart, bump,
+       ready, loadError, settings, categories, deliveryAreas, cart, bump,
       addToCart, setLineQty, removeLine, clearCart, toast, showToast, overlay, quickSlug,
       openOverlay, closeAll, navOpenCat, announce, scrolled, query,
       suggestions, suggestTried, runSuggest, recentSearches, rememberSearch,

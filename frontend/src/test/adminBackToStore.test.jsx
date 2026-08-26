@@ -17,7 +17,6 @@ const DASHBOARD = {
   products_total: 0,
   products_active: 0,
   categories_total: 0,
-  articles_published: 0,
   coupons_active: 0,
   orders_total: 0,
   orders_pending: 0,

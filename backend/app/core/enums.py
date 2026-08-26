@@ -72,13 +72,6 @@ class DiscountType(StrEnum):
     FIXED = "fixed"
 
 
-class BannerPlacement(StrEnum):
-    HOME_MAIN = "home_main"
-    HOME_SIDE = "home_side"
-    HOME_STRIP = "home_strip"
-    CATEGORY_TOP = "category_top"
-
-
 class HomeSectionType(StrEnum):
     FEATURED_PRODUCTS = "featured_products"
     NEW_PRODUCTS = "new_products"
@@ -86,7 +79,6 @@ class HomeSectionType(StrEnum):
     PACKAGES = "packages"
     SILICONE_MOLDS = "silicone_molds"
     CATEGORIES = "categories"
-    PROMO_BANNER = "promo_banner"
     CUSTOM_TEXT = "custom_text"
 
 

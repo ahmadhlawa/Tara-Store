@@ -38,7 +38,7 @@ export default function LoginPage() {
       {/* One gold hairline across the top of the card and the logo above the
           heading: enough for the page to belong to Tara without turning a
           credentials form into a brand showcase. */}
-      <form onSubmit={submit} style={sx`background:#fff;border:1px solid #E7DCF2;border-top:2px solid var(--brand-secondary);border-radius:16px;padding:28px;width:min(420px,100%);display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 50px var(--brand-primary-16)`}>
+      <form onSubmit={submit} style={sx`background:#fff;border:1px solid #E7DCF2;border-top:2px solid var(--admin-secondary);border-radius:16px;padding:28px;width:min(420px,100%);display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 50px var(--admin-primary-16)`}>
         <div style={sx`display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center`}>
           <img
             src={LOGO_URL}

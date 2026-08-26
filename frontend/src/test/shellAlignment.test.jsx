@@ -16,7 +16,7 @@ const parentCategory = {
   name: "مطبوعات المناسبات",
   slug: "event-print",
   children: [
-    { id: 8, name: "بنرات", slug: "banners", product_count: 4 },
+    { id: 8, name: "لافتات", slug: "signs", product_count: 4 },
     { id: 9, name: "ستاندات", slug: "stands", product_count: 2 },
   ],
 };
@@ -42,12 +42,6 @@ const heroSlides = [
     image_url: "/media/preview/two.png",
     sort_order: 1,
   },
-];
-
-/** A banner in every hero-side placement the old layout used to render. */
-const banners = [
-  { id: 1, placement: "home_main", title: "بانر رئيسي", subtitle: "", link_url: "/shop", image_url: null, sort_order: 0 },
-  { id: 2, placement: "home_side", title: "بانر جانبي", subtitle: "", link_url: "/shop", image_url: null, sort_order: 1 },
 ];
 
 const rail = () => document.querySelector(".vs-catbar");
@@ -137,7 +131,7 @@ describe("category rail", () => {
     await userEvent.click(within(rail()).getByRole("button", { name: "تصنيفات المنتجات" }));
 
     const panel = drawer();
-    expect(within(panel).queryByRole("link", { name: "بنرات" })).not.toBeInTheDocument();
+    expect(within(panel).queryByRole("link", { name: "لافتات" })).not.toBeInTheDocument();
 
     const toggle = within(panel).getByRole("button", {
       name: `الأقسام الفرعية لـ ${parentCategory.name}`,
@@ -146,9 +140,9 @@ describe("category rail", () => {
 
     await userEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(within(panel).getByRole("link", { name: "بنرات" })).toHaveAttribute(
+    expect(within(panel).getByRole("link", { name: "لافتات" })).toHaveAttribute(
       "href",
-      "/category/banners",
+      "/category/signs",
     );
     expect(within(panel).getByRole("link", { name: "ستاندات" })).toBeInTheDocument();
   });
@@ -167,7 +161,6 @@ describe("homepage hero", () => {
   const heroRoutes = {
     ...storefrontRoutes,
     "/api/v1/hero-slides": heroSlides,
-    "/api/v1/banners": banners,
     "/api/v1/home-sections": [],
   };
 
@@ -188,10 +181,8 @@ describe("homepage hero", () => {
     renderApp("/");
 
     await waitFor(() => expect(document.querySelector(".vs-hero")).not.toBeNull());
-    // Both banners exist in the payload; neither may appear as a hero-side tile.
     expect(document.querySelector(".vs-promocol")).toBeNull();
     expect(document.querySelectorAll(".vs-promo")).toHaveLength(0);
-    expect(screen.queryByText("بانر جانبي")).not.toBeInTheDocument();
   });
 
   it("leaves the hero empty when the database has no slides", async () => {

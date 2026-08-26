@@ -1,8 +1,6 @@
 // Store identity, homepage composition and editorial content.
 import { LOGO_URL, STORE_NAME_AR, STORE_NAME_LATIN, STORE_TAGLINE } from "../brand.js";
 import { publicApi } from "../api/publicApi.js";
-import { backgroundFor } from "../utils/placeholder.js";
-import { formatDate, readingTime } from "../utils/format.js";
 
 // Tara's own identity and colours, sampled from the owner's logo, so the
 // storefront is on brand from the first paint. The API's StoreSettings still
@@ -62,17 +60,6 @@ export function normalizeSettings(raw) {
   };
 }
 
-// Artwork-less records fall back to a Tara tone gradient rather than a blank
-// panel; the components render a real <img> whenever a URL exists so the
-// browser can lazy-load and size it. The client's two sanctioned lilac gradients
-// with one gold variant held back for a highlight — considered enough to stand
-// in for artwork, never mistakable for the real promotional banners still to
-// come.
-const BANNER_FALLBACKS = [
-  "linear-gradient(150deg,var(--brand-primary-light),var(--brand-primary))",
-  "linear-gradient(150deg,var(--brand-primary-pale),var(--brand-primary-light))",
-];
-
 export function normalizeHeroSlide(raw) {
   // What decides whether copy is printed over the artwork: an eyebrow, a
   // paragraph or a button — the fields an owner fills in *in addition to*
@@ -84,37 +71,6 @@ export function normalizeHeroSlide(raw) {
   return {
     id: raw.id,
     imageUrl: raw.image_url,
-  };
-}
-
-export function normalizeBanner(raw, index) {
-  return {
-    id: raw.id,
-    title: raw.title,
-    desc: raw.subtitle || "",
-    cta: raw.subtitle ? "اكتشف المزيد" : "تصفّح",
-    href: raw.link_url || "/shop",
-    placement: raw.placement,
-    imageUrl: raw.image_url || null,
-    fallback: BANNER_FALLBACKS[index % BANNER_FALLBACKS.length],
-  };
-}
-
-export function normalizeArticle(raw) {
-  return {
-    id: raw.id,
-    slug: raw.slug,
-    title: raw.title,
-    excerpt: raw.excerpt || "",
-    content: raw.content || "",
-    cat: raw.category_label || "",
-    author: raw.author_name || "",
-    date: formatDate(raw.published_at),
-    read: readingTime(raw.content || raw.excerpt),
-    imageUrl: raw.featured_image_url || null,
-    bg: backgroundFor(raw.featured_image_url, raw.slug),
-    seoTitle: raw.seo_title || raw.title,
-    seoDescription: raw.seo_description || raw.excerpt || "",
   };
 }
 
@@ -167,26 +123,12 @@ export const storefrontService = {
     const rows = await publicApi.heroSlides();
     return rows.filter((row) => row.image_url).map(normalizeHeroSlide);
   },
-  async banners(placement) {
-    const rows = await publicApi.banners(placement);
-    return rows.map(normalizeBanner);
-  },
   async homeSections() {
     return normalizeHomeSections(await publicApi.homeSections());
   },
   async deliveryAreas() {
     const rows = await publicApi.deliveryAreas();
     return rows.map(normalizeDeliveryArea);
-  },
-  async articles(params) {
-    const response = await publicApi.articles(params);
-    return {
-      items: (response?.items || []).map(normalizeArticle),
-      total: response?.total ?? 0,
-    };
-  },
-  async article(slug) {
-    return normalizeArticle(await publicApi.article(slug));
   },
   async page(slug) {
     return normalizePage(await publicApi.page(slug));

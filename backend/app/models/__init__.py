@@ -11,20 +11,18 @@ from app.models.catalog import (
     ProductVariant,
     ProductVariantOptionValue,
 )
-from app.models.content import Article, HomeSection, StaticPage
+from app.models.content import HomeSection, StaticPage
 from app.models.imports import ImportBatch, ImportBatchRecord
 from app.models.instance import InstanceMetadata
 from app.models.invoices import Invoice, InvoiceItem, InvoiceSequence
-from app.models.marketing import Banner, Coupon, DeliveryArea, HeroSlide
+from app.models.marketing import Coupon, DeliveryArea, HeroSlide
 from app.models.media import MediaAsset
 from app.models.orders import Order, OrderActivity, OrderItem, OrderItemPackageComponent, OrderStatusHistory
 from app.models.store import StoreSettings
 
 __all__ = [
     "AdminUser",
-    "Article",
     "AuditLog",
-    "Banner",
     "Category",
     "Coupon",
     "DeliveryArea",

@@ -175,7 +175,7 @@ const STATUS_COLOR = {
 };
 
 const dropzone = (active) =>
-  sx`display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:22px 14px;border:2px dashed ${active ? "var(--admin-primary)" : "#DFD2EC"};border-radius:14px;background:${active ? "var(--brand-soft)" : "#FAF7FD"}`;
+  sx`display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:22px 14px;border:2px dashed ${active ? "var(--admin-primary)" : "#DFD2EC"};border-radius:14px;background:${active ? "var(--admin-soft)" : "#FAF7FD"}`;
 
 /**
  * Drop zone + queue. The parent hears about finished uploads through `onUploaded`

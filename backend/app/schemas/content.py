@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import Field, field_validator, model_validator
 
-from app.core.enums import BannerPlacement, HomeSectionType
+from app.core.enums import HomeSectionType
 from app.schemas.common import APIModel, UTCDateTime
 
 _MAX_CONFIG_KEYS = 20
@@ -74,58 +74,6 @@ class HeroSlideAdminOut(HeroSlideOut):
     updated_at: UTCDateTime
 
 
-# ── Banners ───────────────────────────────────────────────────────────────────
-class BannerBase(APIModel):
-    placement: BannerPlacement = BannerPlacement.HOME_SIDE
-    title: str = Field(min_length=1, max_length=250)
-    subtitle: str | None = Field(default=None, max_length=250)
-    image_url: str | None = Field(default=None, max_length=500)
-    link_url: str | None = Field(default=None, max_length=500)
-    is_active: bool = True
-    sort_order: int = 0
-    starts_at: datetime | None = None
-    ends_at: datetime | None = None
-
-    @model_validator(mode="after")
-    def _window_is_ordered(self):
-        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
-            raise ValueError("ends_at must be after starts_at")
-        return self
-
-
-class BannerCreate(BannerBase):
-    pass
-
-
-class BannerUpdate(APIModel):
-    placement: BannerPlacement | None = None
-    title: str | None = Field(default=None, min_length=1, max_length=250)
-    subtitle: str | None = Field(default=None, max_length=250)
-    image_url: str | None = Field(default=None, max_length=500)
-    link_url: str | None = Field(default=None, max_length=500)
-    is_active: bool | None = None
-    sort_order: int | None = None
-    starts_at: datetime | None = None
-    ends_at: datetime | None = None
-
-
-class BannerOut(APIModel):
-    id: int
-    placement: BannerPlacement
-    title: str
-    subtitle: str | None = None
-    image_url: str | None = None
-    link_url: str | None = None
-    sort_order: int
-
-
-class BannerAdminOut(BannerOut):
-    is_active: bool
-    starts_at: UTCDateTime | None = None
-    ends_at: UTCDateTime | None = None
-    updated_at: UTCDateTime
-
-
 # ── Home sections ─────────────────────────────────────────────────────────────
 class HomeSectionBase(APIModel):
     section_type: HomeSectionType
@@ -183,85 +131,7 @@ class HomeSectionAdminOut(HomeSectionOut):
     updated_at: UTCDateTime
 
 
-# ── Articles ──────────────────────────────────────────────────────────────────
-class ArticleBase(APIModel):
-    title: str = Field(min_length=1, max_length=250)
-    excerpt: str | None = None
-    content: str = ""
-    featured_image_url: str | None = Field(default=None, max_length=500)
-    category_label: str | None = Field(default=None, max_length=100)
-    author_name: str | None = Field(default=None, max_length=150)
-    is_published: bool = False
-    published_at: datetime | None = None
-    seo_title: str | None = Field(default=None, max_length=200)
-    seo_description: str | None = None
-
-
-class ArticleCreate(ArticleBase):
-    slug: str | None = Field(default=None, max_length=260)
-
-
-class ArticleUpdate(APIModel):
-    title: str | None = Field(default=None, min_length=1, max_length=250)
-    slug: str | None = Field(default=None, max_length=260)
-    excerpt: str | None = None
-    content: str | None = None
-    featured_image_url: str | None = Field(default=None, max_length=500)
-    category_label: str | None = Field(default=None, max_length=100)
-    author_name: str | None = Field(default=None, max_length=150)
-    is_published: bool | None = None
-    published_at: datetime | None = None
-    seo_title: str | None = Field(default=None, max_length=200)
-    seo_description: str | None = None
-
-
-class ArticleListOut(APIModel):
-    id: int
-    title: str
-    slug: str
-    excerpt: str | None = None
-    featured_image_url: str | None = None
-    category_label: str | None = None
-    author_name: str | None = None
-    published_at: UTCDateTime | None = None
-
-
-class ArticleOut(ArticleListOut):
-    content: str
-    seo_title: str | None = None
-    seo_description: str | None = None
-
-
-class ArticleAdminOut(ArticleOut):
-    is_published: bool
-    created_at: UTCDateTime
-    updated_at: UTCDateTime
-
-
 # ── Static pages ──────────────────────────────────────────────────────────────
-class StaticPageBase(APIModel):
-    title: str = Field(min_length=1, max_length=250)
-    lead: str | None = None
-    content: str = ""
-    is_published: bool = True
-    seo_title: str | None = Field(default=None, max_length=200)
-    seo_description: str | None = None
-
-
-class StaticPageCreate(StaticPageBase):
-    slug: str | None = Field(default=None, max_length=160)
-
-
-class StaticPageUpdate(APIModel):
-    title: str | None = Field(default=None, min_length=1, max_length=250)
-    slug: str | None = Field(default=None, max_length=160)
-    lead: str | None = None
-    content: str | None = None
-    is_published: bool | None = None
-    seo_title: str | None = Field(default=None, max_length=200)
-    seo_description: str | None = None
-
-
 class StaticPageOut(APIModel):
     id: int
     title: str
@@ -270,8 +140,3 @@ class StaticPageOut(APIModel):
     content: str
     seo_title: str | None = None
     seo_description: str | None = None
-
-
-class StaticPageAdminOut(StaticPageOut):
-    is_published: bool
-    updated_at: UTCDateTime

@@ -15,7 +15,7 @@ const parentCategory = {
   id: 7,
   name: "مطبوعات المناسبات",
   slug: "event-print",
-  children: [{ id: 8, name: "بنرات", slug: "banners", product_count: 4 }],
+  children: [{ id: 8, name: "لافتات", slug: "signs", product_count: 4 }],
 };
 
 const rail = () => document.querySelector(".vs-catbar");

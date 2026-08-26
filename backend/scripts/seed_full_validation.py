@@ -38,7 +38,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
-from sqlalchemy import select  # noqa: E402
+from sqlalchemy import delete, select, update  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 
 # ── fixture namespace ────────────────────────────────────────────────────────
@@ -324,11 +324,43 @@ def seed_catalog(db: Session) -> dict[str, int]:
     }
 
 
-def seed_content(db: Session) -> None:
-    from app.core.enums import BannerPlacement
-    from app.models import Article, Banner, HeroSlide, StaticPage
+def seed_media(db: Session) -> None:
+    """Generate disposable files for the acceptance catalog's local media URLs."""
+    from app.core.config import settings
+    from app.models import MediaAsset
+    from app.services.placeholder_image import gradient_png
 
-    now = datetime.utcnow()
+    palette = {
+        "seed-cream.png": ((248, 238, 218), (214, 178, 133)),
+        "seed-clay.png": ((214, 178, 133), (129, 88, 64)),
+        "seed-hero-teal.png": ((63, 118, 112), (20, 61, 58)),
+        "seed-hero-clay.png": ((214, 178, 133), (108, 67, 50)),
+    }
+    root = settings.media_root
+    root.mkdir(parents=True, exist_ok=True)
+    for filename, (start, end) in palette.items():
+        content = gradient_png(640, 480, start, end)
+        (root / filename).write_bytes(content)
+        db.add(MediaAsset(original_filename=filename, stored_key=filename, content_type="image/png", size_bytes=len(content), url=f"/media/{filename}"))
+    db.commit()
+
+    # The disposable copy includes historical demo rows that point at R2.  Keep the
+    # validation storefront self-contained: every image it can render is local.
+    from app.models.catalog import ProductImage
+    from app.models.marketing import HeroSlide
+
+    db.execute(update(ProductImage).where(ProductImage.url.like("http%")).values(url="/media/seed-cream.png"))
+    db.execute(update(HeroSlide).where(HeroSlide.image_url.like("http%")).values(image_url="/media/seed-hero-teal.png"))
+    db.execute(update(MediaAsset).where(MediaAsset.url.like("http%")).values(url="/media/seed-cream.png"))
+    db.commit()
+
+
+def seed_content(db: Session) -> None:
+    from app.models import HeroSlide, HomeSection, StaticPage
+
+    # The copied development database can carry obsolete homepage rows. The
+    # disposable acceptance fixture owns its deterministic current section set.
+    db.execute(delete(HomeSection))
 
     db.add_all(
         [
@@ -361,54 +393,6 @@ def seed_content(db: Session) -> None:
 
     db.add_all(
         [
-            Banner(
-                placement=BannerPlacement.HOME_MAIN.value,
-                title="[vfx] بانر رئيسي",
-                subtitle="توصيل مجاني فوق ٥٠٠ شيكل",
-                image_url="/media/seed-hero-slate.png",
-                link_url="/offers",
-                is_active=True,
-                sort_order=1,
-            ),
-            Banner(
-                placement=BannerPlacement.HOME_STRIP.value,
-                title="[vfx] شريط جانبي",
-                is_active=True,
-                sort_order=2,
-            ),
-            Banner(
-                placement=BannerPlacement.CATEGORY_TOP.value,
-                title="[vfx] بانر معطل",
-                is_active=False,
-                sort_order=3,
-            ),
-        ]
-    )
-
-    db.add_all(
-        [
-            Article(
-                title="كيف تختار الريزن المناسب",
-                slug=f"{SLUG_PREFIX}choose-resin",
-                excerpt="دليل مختصر للمبتدئين",
-                content="<p>الريزن الإيبوكسي نوعان رئيسيان…</p>",
-                featured_image_url="/media/seed-clay.png",
-                category_label="أدلة",
-                author_name="فريق فيستا",
-                is_published=True,
-                published_at=now - timedelta(days=5),
-            ),
-            Article(
-                title="مقال غير منشور",
-                slug=f"{SLUG_PREFIX}draft-article",
-                content="<p>مسودة</p>",
-                is_published=False,
-            ),
-        ]
-    )
-
-    db.add_all(
-        [
             StaticPage(
                 title="صفحة تحقق ثابتة",
                 slug=f"{SLUG_PREFIX}validation-page",
@@ -422,6 +406,13 @@ def seed_content(db: Session) -> None:
                 content="<p>يجب ألا تظهر</p>",
                 is_published=False,
             ),
+        ]
+    )
+    db.add_all(
+        [
+            HomeSection(section_key="featured", section_type="featured_products", is_visible=True, sort_order=1, config={}),
+            HomeSection(section_key="packages", section_type="packages", is_visible=True, sort_order=2, config={}),
+            HomeSection(section_key="categories", section_type="categories", is_visible=True, sort_order=3, config={}),
         ]
     )
     db.commit()
@@ -529,6 +520,11 @@ def seed_store_settings(db: Session) -> None:
     row.address = "رام الله - فلسطين"
     row.working_hours = "٩ صباحاً - ٧ مساءً"
     row.maintenance_mode = False
+    row.location_url = ""
+    row.instagram_url = ""
+    row.facebook_url = ""
+    row.tiktok_url = ""
+    row.youtube_url = ""
     db.commit()
 
 
@@ -961,6 +957,7 @@ def main(argv: list[str] | None = None) -> int:
         guard_not_already_seeded(db)
         seed_store_settings(db)
         seed_admins(db)
+        seed_media(db)
         ids = seed_catalog(db)
         seed_content(db)
         ids.update(seed_promotions(db))

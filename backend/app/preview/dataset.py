@@ -21,7 +21,7 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-from app.core.enums import BannerPlacement, DiscountType, HomeSectionType, ProductType
+from app.core.enums import DiscountType, HomeSectionType, ProductType
 from app.instance.profile import ProfileError, assert_no_secret_like_keys
 
 SUPPORTED_PREVIEW_SCHEMA_VERSIONS = frozenset({1})
@@ -281,30 +281,6 @@ class PreviewHeroSlide(_Strict):
         return _slug(value)
 
 
-class PreviewBanner(_Strict):
-    key: str
-    placement: str = BannerPlacement.HOME_SIDE.value
-    title: str = Field(min_length=1, max_length=250)
-    subtitle: str | None = Field(default=None, max_length=250)
-    link_url: str | None = Field(default=None, max_length=500)
-    image: str | None = None
-    sort_order: int = 0
-    origin: Origin
-
-    @field_validator("key")
-    @classmethod
-    def _check_key(cls, value: str) -> str:
-        return _slug(value)
-
-    @field_validator("placement")
-    @classmethod
-    def _check_placement(cls, value: str) -> str:
-        allowed = {member.value for member in BannerPlacement}
-        if value not in allowed:
-            raise ValueError(f"unknown banner placement {value!r}; allowed: {sorted(allowed)}")
-        return value
-
-
 class PreviewHomeSection(_Strict):
     key: str = Field(max_length=64)
     section_type: str
@@ -355,7 +331,6 @@ class PreviewDataset(_Strict):
     products: list[PreviewProduct] = Field(default_factory=list)
     delivery_areas: list[PreviewDeliveryArea] = Field(default_factory=list)
     hero_slides: list[PreviewHeroSlide] = Field(default_factory=list)
-    banners: list[PreviewBanner] = Field(default_factory=list)
     home_sections: list[PreviewHomeSection] = Field(default_factory=list)
     coupons: list[PreviewCoupon] = Field(default_factory=list)
 
@@ -401,7 +376,6 @@ class PreviewDataset(_Strict):
             ("product slug", [item.slug for item in self.products]),
             ("delivery area key", [item.key for item in self.delivery_areas]),
             ("hero slide key", [item.key for item in self.hero_slides]),
-            ("banner key", [item.key for item in self.banners]),
             ("home section key", [item.key for item in self.home_sections]),
             ("coupon code", [item.code for item in self.coupons]),
         ):
@@ -442,8 +416,6 @@ class PreviewDataset(_Strict):
                     )
         for slide in self.hero_slides:
             check_image(f"hero slide {slide.key!r}", slide.image)
-        for banner in self.banners:
-            check_image(f"banner {banner.key!r}", banner.image)
 
         self._check_category_cycles()
 
@@ -512,7 +484,6 @@ class PreviewDataset(_Strict):
             "products": len(self.products),
             "delivery_areas": len(self.delivery_areas),
             "hero_slides": len(self.hero_slides),
-            "banners": len(self.banners),
             "home_sections": len(self.home_sections),
             "coupons": len(self.coupons),
         }
@@ -525,7 +496,6 @@ class PreviewDataset(_Strict):
             self.products,
             self.delivery_areas,
             self.hero_slides,
-            self.banners,
             self.coupons,
         ):
             for item in group:

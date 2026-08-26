@@ -24,9 +24,9 @@ test("a valid coupon plus a delivery zone uses the server price in checkout", as
   await page.getByLabel("منطقة التوصيل").selectOption("2");
   await page.getByRole("checkbox").check();
 
-  // 120.00 product - 20% fixture coupon + 20.00 Ramallah delivery = 116.00.
+  // 120.00 product - 20% fixture coupon + 35.00 Jerusalem delivery = 131.00.
   await expect(page.locator(".vs-summary__row--good")).toContainText("24");
-  await expect(page.locator(".vs-summary__row").filter({ hasText: "التوصيل" })).toContainText("20");
-  await expect(page.locator(".vs-summary__total")).toContainText("116");
+  await expect(page.locator(".vs-summary__row").filter({ hasText: "التوصيل" })).toContainText("35");
+  await expect(page.locator(".vs-summary__total")).toContainText("131");
 
 });

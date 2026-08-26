@@ -105,7 +105,7 @@ export function MediaPickerDialog({ onSelect, onClose, initialUrl = null }) {
           {query ? "لا توجد وسائط مطابقة." : "لا توجد صور في المكتبة بعد — ارفع صورة جديدة."}
         </p>
       ) : (
-        <div style={sx`max-height:min(52vh,420px);overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;padding:2px`}>
+        <div className="admin-media-picker-grid" style={sx`max-height:var(--admin-media-picker-max-height,min(52vh,420px));overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--admin-media-picker-card-min,130px),1fr));gap:var(--admin-media-picker-grid-gap,12px);padding:2px`}>
           {items.map((asset) => {
             const active = selected === asset.url;
             return (
@@ -115,7 +115,7 @@ export function MediaPickerDialog({ onSelect, onClose, initialUrl = null }) {
                 aria-pressed={active}
                 onClick={() => setSelected(asset.url)}
                 onDoubleClick={() => onSelect(asset.url)}
-                style={sx`text-align:start;padding:0;background:#fff;cursor:pointer;border-radius:12px;overflow:hidden;font-family:inherit;display:flex;flex-direction:column;border:2px solid ${active ? "var(--selection-border)" : "#E7DCF2"};box-shadow:${active ? "0 0 0 3px var(--brand-primary-16)" : "none"}`}
+                style={sx`text-align:start;padding:0;background:#fff;cursor:pointer;border-radius:12px;overflow:hidden;font-family:inherit;display:flex;flex-direction:column;border:2px solid ${active ? "var(--admin-selection-border)" : "#E7DCF2"};box-shadow:${active ? "0 0 0 3px var(--admin-primary-16)" : "none"}`}
               >
                 <span style={sx`aspect-ratio:1 / 1;background:#F5EDE3 url("${asset.url}") center/cover no-repeat`}></span>
                 <span style={sx`padding:8px;font-size:11.5px;color:#4B4155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`}>

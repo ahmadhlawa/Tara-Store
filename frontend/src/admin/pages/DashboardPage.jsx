@@ -18,7 +18,7 @@ const STATUS_TONE = {
 
 function Stat({ title, value, hint }) {
   return (
-    <div style={{ ...card, ...sx`display:flex;flex-direction:column;gap:6px` }}>
+    <div className="admin-dashboard-stat" style={{ ...card, ...sx`display:flex;flex-direction:column;gap:6px` }}>
       <span style={sx`font-size:12.5px;color:#766669`}>{title}</span>
       <strong style={sx`font-size:26px;color:var(--admin-primary)`}>{value}</strong>
       {hint && <span style={sx`font-size:12px;color:#8A7F95`}>{hint}</span>}
@@ -43,7 +43,7 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader title="لوحة التحكم" description="ملخّص سريع لحالة المتجر." />
-      <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px`}>
+      <div className="admin-dashboard-stats" style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px`}>
         <Stat title="إجمالي الطلبات" value={data.orders_total} hint={`${data.orders_pending} بانتظار المراجعة`} />
         <Stat title="إجمالي المبيعات" value={Math.round(data.revenue_total)} hint="الطلبات غير الملغاة" />
         <Stat title="المنتجات الفعّالة" value={data.products_active} hint={`من ${data.products_total} منتجاً`} />
@@ -52,9 +52,10 @@ export default function DashboardPage() {
         <Stat title="أكواد خصم فعّالة" value={data.coupons_active} />
       </div>
 
-      <div style={card}>
+      <div className="admin-dashboard-orders" style={card}>
         <h2 style={sx`margin:0 0 12px;font-size:16px;font-weight:800`}>أحدث الطلبات</h2>
-        <Table
+        <div className="admin-dashboard-orders-table">
+          <Table
           columns={[
             {
               key: "order_number",
@@ -74,9 +75,19 @@ export default function DashboardPage() {
             { key: "total", title: "الإجمالي", render: (row) => Math.round(row.total) },
             { key: "created_at", title: "التاريخ", render: (row) => formatDateTime(row.created_at) },
           ]}
-          rows={data.recent_orders}
-          empty="لا توجد طلبات بعد."
-        />
+            rows={data.recent_orders}
+            empty="لا توجد طلبات بعد."
+          />
+        </div>
+        <div className="admin-dashboard-orders-mobile">
+          {data.recent_orders.length ? data.recent_orders.map((row) => (
+            <Link key={row.id} to={`/admin/orders/${row.id}`} className="admin-dashboard-order-row">
+              <span className="admin-dashboard-order-row__number">{row.order_number}</span>
+              <span className="admin-dashboard-order-row__customer">{row.customer_name}</span>
+              <Badge tone={STATUS_TONE[row.status]}>{orderStatusLabels[row.status] || row.status}</Badge>
+            </Link>
+          )) : <div className="admin-dashboard-order-empty">لا توجد طلبات بعد.</div>}
+        </div>
       </div>
     </>
   );

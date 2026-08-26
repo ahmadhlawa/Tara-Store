@@ -124,11 +124,11 @@ export default function MediaPage() {
             {query ? "لا توجد وسائط مطابقة." : "لم تُرفع أي ملفات بعد."}
           </p>
         ) : (
-          <div style={sx`display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px`}>
+          <div className="admin-media-grid" style={sx`display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--admin-media-card-min,160px),1fr));gap:var(--admin-media-grid-gap,14px)`}>
             {items.map((asset) => (
-              <div key={asset.id} style={sx`border:1px solid #E7DCF2;border-radius:12px;overflow:hidden;display:flex;flex-direction:column`}>
+              <div className="admin-media-card" key={asset.id} style={sx`border:1px solid #E7DCF2;border-radius:12px;overflow:hidden;display:flex;flex-direction:column`}>
                 <span style={sx`aspect-ratio:1 / 1;background:url("${asset.url}") center/cover no-repeat;background-color:#F5EDE3`}></span>
-                <div style={sx`padding:10px;display:flex;flex-direction:column;gap:8px`}>
+                <div className="admin-media-card__body" style={sx`padding:10px;display:flex;flex-direction:column;gap:8px`}>
                   <span style={sx`font-size:12px;color:#766669;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`}>{asset.original_filename}</span>
                   <span style={sx`font-size:11.5px;color:#8A7F95`}>{Math.round(asset.size_bytes / 1024)} كيلوبايت</span>
                   {editing === asset.id ? (

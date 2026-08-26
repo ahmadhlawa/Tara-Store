@@ -103,6 +103,7 @@
   --vs-ink-3: #6b6076;
   --vs-ink-4: var(--text-muted);
   --vs-ink-invert: var(--brand-on-primary);
+  --vs-on-primary-action: var(--button-primary-text);
 
   /* â”€â”€ brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   /* The client's lilac as the brand, gold kept back as a special accent.
@@ -184,14 +185,13 @@
   /* Square by default so a package sitting in a mixed catalogue grid lines up
      with the products around it; the dedicated package grid widens it. */
   --vs-ar-package: 1 / 1;
-  /* A wide advertising banner. The ratio â€” not a pixel height â€” is what the
+  /* Wide hero artwork. The ratio â€” not a pixel height â€” is what the
      hero reserves, so the box is correct before the image decodes. The cap
      stops the same ratio from turning a 1852px-wide band into a 700px wall on
      a large monitor; the artwork covers, so a shorter box only crops. */
   --vs-ar-hero: 21 / 8;
   --vs-hero-max-h: 520px;
 }
-
 @media (max-width: 1279px) {
   .vs-public {
     --vs-cols: 3;
@@ -226,7 +226,7 @@
     --vs-tabbar-h: 64px;
     --vs-fs-h1: 26px;
     --vs-fs-h2: 20px;
-    /* A tablet still reads a landscape banner; the portrait crop is for phones
+    /* A tablet still reads landscape artwork; the portrait crop is for phones
        only, and starts at 600 (below). At 768 a 5/6 hero was 878px tall â€” most
        of the screen for one advertisement. */
     --vs-ar-hero: 16 / 9;
@@ -247,12 +247,12 @@
 @media (max-width: 599px) {
   .vs-public {
     --vs-cols-cat: 2;
-    --vs-cols-pkg: 1;
+    --vs-cols-pkg: 2;
     --vs-gutter: 16px;
     --vs-grid-gap: 12px;
     --vs-fs-h1: 23px;
     --vs-fs-h2: 18.5px;
-    /* A phone shows the whole advertisement, not a slice of it. Banner artwork
+    /* A phone shows the whole advertisement, not a slice of it. Hero artwork
        is landscape (the shipped hero is 1672Ã—941), so a portrait phone box plus
        `cover` threw away more than half the image width â€” the Arabic promo text
        and the branding were cropped straight out of the viewport. The box keeps
@@ -260,12 +260,7 @@
        covers below 600 (see home.css), so nothing is cut sideways. */
     --vs-ar-hero: 16 / 9;
     --vs-hero-max-h: 360px;
-  }
-}
-
-@media (max-width: 359px) {
-  .vs-public {
-    --vs-cols: 1;
-    --vs-cols-cat: 2;
+    --vs-section: 30px;
+    --vs-section-tight: 20px;
   }
 }

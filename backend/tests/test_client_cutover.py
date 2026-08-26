@@ -14,9 +14,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.models import (
-    Article,
     AuditLog,
-    Banner,
     Category,
     Coupon,
     DeliveryArea,
@@ -78,15 +76,6 @@ DOCUMENT = {
     "hero_slides": [
         {"key": "hero", "title": "شريحة العميل", "image": "hero-art", "origin": "confirmed"},
         {"key": "demo", "title": "شريحة تجريبية", "image": "tile", "origin": "inferred"},
-    ],
-    "banners": [
-        {
-            "key": "banner",
-            "placement": "home_main",
-            "title": "لافتة تجريبية",
-            "image": "tile",
-            "origin": "inferred",
-        }
     ],
     "coupons": [{"code": "CUTOVER10", "discount_value": "10.00", "origin": "placeholder"}],
 }
@@ -366,30 +355,6 @@ def test_preserve_by_entity_id_carries_the_same_media(
     )
 
 
-def test_an_id_never_promotes_a_row_of_another_type(
-    importer: PreviewImporter, db: Session
-) -> None:
-    """A numeric id is meaningless without its table; it must not cross tables.
-
-    Row ids restart per table, so a hero slide and a banner routinely share one. The
-    id is therefore only ever looked up under the entity type it was given with.
-    """
-    importer.seed()
-    banner_ids = {row.id for row in db.query(Banner).all()}
-    slide = next(row for row in db.query(HeroSlide).all() if row.id not in banner_ids)
-
-    results = preserve(db, "cutover-preview", [Selector("banner", entity_id=slide.id)], apply=True)
-
-    assert [r.outcome for r in results] == ["unknown"]
-    assert db.query(HeroSlide).filter_by(id=slide.id).count() == 1
-    assert (
-        db.query(ImportBatchRecord)
-        .filter_by(entity_type="hero_slide", entity_id=slide.id)
-        .count()
-        == 1
-    )
-
-
 def test_preserve_by_an_id_that_does_not_exist(importer: PreviewImporter, db: Session) -> None:
     importer.seed()
 
@@ -523,7 +488,6 @@ def test_purge_removes_the_preview_records_that_were_not_preserved(
     assert db.query(HeroSlide).filter_by(title="شريحة تجريبية").count() == 0
     assert db.query(Product).count() == 0
     assert db.query(Category).count() == 0
-    assert db.query(Banner).count() == 0
     assert db.query(Coupon).count() == 0
 
 
@@ -549,8 +513,8 @@ def test_media_still_shown_by_surviving_content_is_never_deleted(
     """The shared-picture case: one asset, one preserved user and several doomed ones."""
     importer.seed()
     tile = db.query(MediaAsset).filter_by(original_filename="tile-v1.png").one()
-    # An owner article, made in Admin, happens to use a picture the preview batch owns.
-    db.add(Article(slug="news", title="خبر", content="...", featured_image_url=tile.url))
+    # An owner category happens to use a picture the preview batch owns.
+    db.add(Category(slug="owner-image-holder", name="صورة المالك", image_url=tile.url))
     db.commit()
 
     plan = importer.purge(apply=True)
@@ -566,7 +530,7 @@ def test_the_plan_reports_that_shared_picture_before_anything_is_deleted(
 ) -> None:
     importer.seed()
     tile = db.query(MediaAsset).filter_by(original_filename="tile-v1.png").one()
-    db.add(Article(slug="news", title="خبر", content="...", featured_image_url=tile.url))
+    db.add(Category(slug="owner-image-holder", name="صورة المالك", image_url=tile.url))
     db.commit()
 
     report = build_cutover_plan(importer)

@@ -7,7 +7,6 @@ import ProductDetailPage from "./pages/ProductDetailPage.jsx";
 import CartRoutePage from "./pages/CartRoutePage.jsx";
 import CheckoutRoutePage from "./pages/CheckoutRoutePage.jsx";
 import OrderSuccessRoutePage from "./pages/OrderSuccessRoutePage.jsx";
-import { ArticleDetailPage, BlogListPage } from "./pages/BlogRoutePages.jsx";
 import StaticContentPage from "./pages/StaticContentPage.jsx";
 import ContactRoutePage from "./pages/ContactRoutePage.jsx";
 import NotFoundRoutePage from "./pages/NotFoundRoutePage.jsx";
@@ -40,8 +39,6 @@ export default function App() {
         <Route path="cart" element={<CartRoutePage />} />
         <Route path="checkout" element={<CheckoutRoutePage />} />
         <Route path="order-success/:orderNumber" element={<OrderSuccessRoutePage />} />
-        <Route path="blog" element={<BlogListPage />} />
-        <Route path="blog/:slug" element={<ArticleDetailPage />} />
         <Route path="page/:slug" element={<StaticContentPage />} />
         {/* Paths the original storefront used, kept working as direct links. */}
         <Route path="about" element={<StaticContentPage slug="about" />} />

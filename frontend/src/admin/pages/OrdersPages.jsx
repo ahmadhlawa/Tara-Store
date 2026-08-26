@@ -84,14 +84,14 @@ function CatalogItemsEditor({ items, products, onChange, disabled }) {
     onChange([...items, { kind: "catalog", product_id: product.id, product_name: product.name, sku: product.sku, quantity: 1, unit_price: asText(product.price) }]); setProductId("");
   };
   return <section aria-label="أصناف الطلب" style={sx`display:flex;flex-direction:column;gap:10px`}>
-    {items.map((item, index) => item.kind === "manual" ? <fieldset key={item.order_item_id || `manual-${index}`} disabled={disabled} style={sx`border:1px solid #E7DCF2;border-radius:10px;padding:12px;display:grid;grid-template-columns:minmax(130px,1fr) minmax(130px,1fr) 90px 120px auto;gap:10px;align-items:end`}>
+    {items.map((item, index) => item.kind === "manual" ? <fieldset className="admin-order-item-editor-row" key={item.order_item_id || `manual-${index}`} disabled={disabled} style={sx`border:1px solid #E7DCF2;border-radius:10px;padding:12px;display:grid;grid-template-columns:var(--admin-order-item-editor-grid,minmax(130px,1fr) minmax(130px,1fr) 90px 120px auto);gap:10px;align-items:end`}>
       <legend style={sx`font-size:13px;font-weight:800;padding-inline:4px`}>صنف يدوي</legend>
       <label style={filterStyle}>الاسم<input aria-label={`اسم ${item.name}`} value={item.name} onChange={(event) => update(index, "name", event.target.value)} style={input} /></label>
       <label style={filterStyle}>الوصف<input aria-label={`وصف ${item.name}`} value={item.description} onChange={(event) => update(index, "description", event.target.value)} style={input} /></label>
       <label style={filterStyle}>الكمية<input aria-label={`كمية ${item.name}`} inputMode="numeric" value={item.quantity} onChange={(event) => update(index, "quantity", event.target.value)} style={input} /></label>
       <label style={filterStyle}>سعر الطلب<input aria-label={`سعر ${item.name}`} inputMode="decimal" value={item.unit_price} onChange={(event) => update(index, "unit_price", event.target.value)} style={input} /></label>
       <Button variant="danger" aria-label={`حذف ${item.name}`} disabled={disabled || items.length === 1} onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))}>حذف</Button>
-    </fieldset> : <fieldset key={`${item.product_id}-${item.variant_id || "base"}`} disabled={disabled} style={sx`border:1px solid #E7DCF2;border-radius:10px;padding:12px;display:grid;grid-template-columns:minmax(130px,1fr) 90px 120px auto;gap:10px;align-items:end`}>
+    </fieldset> : <fieldset className="admin-order-item-editor-row" key={`${item.product_id}-${item.variant_id || "base"}`} disabled={disabled} style={sx`border:1px solid #E7DCF2;border-radius:10px;padding:12px;display:grid;grid-template-columns:var(--admin-order-item-editor-grid,minmax(130px,1fr) 90px 120px auto);gap:10px;align-items:end`}>
       <legend style={sx`font-size:13px;font-weight:800;padding-inline:4px`}>{item.product_name}{item.variant_description ? ` · ${item.variant_description}` : ""}</legend>
       <span style={sx`font-size:12px;color:#766669`}>{item.sku || "بدون SKU"}</span>
       <label style={filterStyle}>الكمية<input aria-label={`كمية ${item.product_name}`} inputMode="numeric" value={item.quantity} onChange={(event) => update(index, "quantity", event.target.value)} style={input} /></label>

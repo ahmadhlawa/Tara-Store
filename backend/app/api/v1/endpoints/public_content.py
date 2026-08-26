@@ -2,26 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import Select, or_, select
 
-from app.api.deps import DbSession, PageParams
+from app.api.deps import DbSession
+from app.core.enums import HomeSectionType
 from app.db.base import utcnow
-from app.models import Article, Banner, DeliveryArea, HeroSlide, HomeSection, StaticPage
-from app.schemas.common import Page
+from app.models import DeliveryArea, HeroSlide, HomeSection, StaticPage
 from app.schemas.content import (
-    ArticleListOut,
-    ArticleOut,
-    BannerOut,
     HeroSlideOut,
     HomeSectionOut,
     StaticPageOut,
 )
 from app.schemas.marketing import DeliveryAreaOut
 from app.schemas.store import StoreSettingsPublic
-from app.services import catalog as catalog_service
 from app.services import store_settings as settings_service
 
 router = APIRouter(tags=["public-content"])
@@ -59,20 +53,14 @@ def hero_slides(db: DbSession):
     return list(db.execute(stmt).scalars().all())
 
 
-@router.get("/banners", response_model=list[BannerOut])
-def banners(db: DbSession, placement: Annotated[str | None, Query(max_length=32)] = None):
-    stmt = _within_window(select(Banner), Banner)
-    if placement:
-        stmt = stmt.where(Banner.placement == placement)
-    stmt = stmt.order_by(Banner.sort_order.asc(), Banner.id.asc())
-    return list(db.execute(stmt).scalars().all())
-
-
 @router.get("/home-sections", response_model=list[HomeSectionOut])
 def home_sections(db: DbSession):
     stmt = (
         select(HomeSection)
-        .where(HomeSection.is_visible.is_(True))
+        .where(
+            HomeSection.is_visible.is_(True),
+            HomeSection.section_type.in_([section.value for section in HomeSectionType]),
+        )
         .order_by(HomeSection.sort_order.asc(), HomeSection.id.asc())
     )
     return list(db.execute(stmt).scalars().all())
@@ -86,30 +74,6 @@ def delivery_areas(db: DbSession):
         .order_by(DeliveryArea.sort_order.asc(), DeliveryArea.id.asc())
     )
     return list(db.execute(stmt).scalars().all())
-
-
-@router.get("/articles", response_model=Page[ArticleListOut])
-def list_articles(db: DbSession, pagination: PageParams) -> Page[ArticleListOut]:
-    stmt = (
-        select(Article)
-        .where(Article.is_published.is_(True))
-        .order_by(Article.published_at.desc().nulls_last(), Article.id.desc())
-    )
-    rows, total = catalog_service.paginate(
-        db, stmt, offset=pagination.offset, limit=pagination.page_size
-    )
-    items = [ArticleListOut.model_validate(row) for row in rows]
-    return Page.build(items, total, pagination.page, pagination.page_size)
-
-
-@router.get("/articles/{slug}", response_model=ArticleOut)
-def get_article(slug: str, db: DbSession):
-    article = db.execute(
-        select(Article).where(Article.slug == slug, Article.is_published.is_(True))
-    ).scalar_one_or_none()
-    if article is None:
-        raise _NOT_FOUND
-    return article
 
 
 @router.get("/pages/{slug}", response_model=StaticPageOut)

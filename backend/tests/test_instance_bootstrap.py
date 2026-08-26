@@ -43,7 +43,7 @@ PROFILE = {
     },
     "contact": {"phone": "0591234567", "email": "hello@example.com"},
     "theme": {"primary_color": "#112233"},
-    "features": {"packages": True, "silicone_molds": False, "articles": True, "coupons": True},
+    "features": {"packages": True, "silicone_molds": False, "coupons": True},
     "home_sections": [
         {"key": "categories", "type": "categories", "title": "Categories", "sort_order": 1},
         {
@@ -117,7 +117,7 @@ def test_first_apply_initializes_the_instance(db: Session, profile) -> None:
     assert metadata.instance_slug == "acme-store"
     assert metadata.profile_schema_version == 1
     assert metadata.profile_hash == profile.profile_hash()
-    assert metadata.enabled_features == ["packages", "articles", "coupons"]
+    assert metadata.enabled_features == ["packages", "coupons"]
 
     settings_row = db.execute(select(StoreSettings)).scalar_one()
     assert settings_row.store_name == "Acme Supplies"
@@ -331,7 +331,7 @@ def test_manifest_contains_the_required_metadata(db: Session, profile) -> None:
     assert REQUIRED_MANIFEST_KEYS <= set(manifest)
     assert manifest["instance_slug"] == "acme-store"
     assert manifest["profile_schema_version"] == 1
-    assert manifest["enabled_features"] == ["packages", "articles", "coupons"]
+    assert manifest["enabled_features"] == ["packages", "coupons"]
     assert manifest["initialized"] is True
     assert manifest["template_version"]
 

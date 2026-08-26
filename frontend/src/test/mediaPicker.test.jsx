@@ -17,7 +17,7 @@ const asset = (id, name) => ({
   created_at: "2026-07-01T00:00:00Z",
 });
 
-const LIBRARY = page([asset(1, "hero.png"), asset(2, "banner.png")]);
+const LIBRARY = page([asset(1, "hero.png"), asset(2, "promo.png")]);
 
 /** Mirrors how ResourceScreen/Settings own the value and hand it to the field. */
 function Harness({ initial = "", onValue }) {
@@ -46,13 +46,13 @@ describe("media picker", () => {
   it("searches media by filename", async () => {
     stubApi({
       "/api/v1/admin/media": ({ path }) =>
-        path.includes("q=banner") ? page([asset(2, "banner.png")]) : LIBRARY,
+        path.includes("q=promo") ? page([asset(2, "promo.png")]) : LIBRARY,
     });
     render(<Harness />);
 
     const dialog = await openPicker();
-    await userEvent.type(within(dialog).getByLabelText("بحث باسم الملف"), "banner");
-    expect(await within(dialog).findByText("banner.png")).toBeInTheDocument();
+    await userEvent.type(within(dialog).getByLabelText("بحث باسم الملف"), "promo");
+    expect(await within(dialog).findByText("promo.png")).toBeInTheDocument();
     expect(within(dialog).queryByText("hero.png")).not.toBeInTheDocument();
   });
 
@@ -62,7 +62,7 @@ describe("media picker", () => {
 
     const dialog = await openPicker();
     expect(await within(dialog).findByText("hero.png")).toBeInTheDocument();
-    expect(within(dialog).getByText("banner.png")).toBeInTheDocument();
+    expect(within(dialog).getByText("promo.png")).toBeInTheDocument();
   });
 
   it("returns the selected asset url to the field and previews it", async () => {
@@ -71,11 +71,11 @@ describe("media picker", () => {
     render(<Harness onValue={onValue} />);
 
     const dialog = await openPicker();
-    await userEvent.click(await within(dialog).findByText("banner.png"));
+    await userEvent.click(await within(dialog).findByText("promo.png"));
     await userEvent.click(within(dialog).getByRole("button", { name: "اختيار" }));
 
-    expect(onValue).toHaveBeenCalledWith("/uploads/banner.png");
-    expect(screen.getByTestId("value")).toHaveTextContent("/uploads/banner.png");
+    expect(onValue).toHaveBeenCalledWith("/uploads/promo.png");
+    expect(screen.getByTestId("value")).toHaveTextContent("/uploads/promo.png");
     expect(screen.queryByRole("dialog", { name: "مكتبة الوسائط" })).not.toBeInTheDocument();
   });
 
@@ -215,17 +215,12 @@ describe("product images", () => {
       </MemoryRouter>,
     );
 
-    await userEvent.click(await screen.findByRole("button", { name: "إضافة صورة من مكتبة الوسائط" }));
+    await userEvent.click((await screen.findAllByRole("button", { name: "اختيار من مكتبة الوسائط" }))[0]);
     const dialog = await screen.findByRole("dialog", { name: "مكتبة الوسائط" });
     await userEvent.click(await within(dialog).findByText("hero.png"));
     await userEvent.click(within(dialog).getByRole("button", { name: "اختيار" }));
 
-    await waitFor(() =>
-      expect(
-        calls.find((call) => call.method === "POST" && call.path === "/api/v1/admin/products/7/images"),
-      ).toBeTruthy(),
-    );
-    const posted = calls.find((call) => call.method === "POST" && call.path === "/api/v1/admin/products/7/images");
-    expect(JSON.parse(posted.body).url).toBe("/uploads/hero.png");
+    expect(await screen.findByText("صورة رئيسية جديدة")).toBeVisible();
+    expect(calls.find((call) => call.method === "POST" && call.path === "/api/v1/admin/products/7/images")).toBeUndefined();
   });
 });

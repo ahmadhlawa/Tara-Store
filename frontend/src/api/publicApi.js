@@ -17,12 +17,9 @@ export const publicApi = {
   molds: (params) => api.get("/products/molds", { params }),
 
   heroSlides: () => api.get("/hero-slides"),
-  banners: (placement) => api.get("/banners", { params: { placement } }),
   homeSections: () => api.get("/home-sections"),
   deliveryAreas: () => api.get("/delivery-areas"),
 
-  articles: (params) => api.get("/articles", { params }),
-  article: (slug) => api.get(`/articles/${encodeURIComponent(slug)}`),
   page: (slug) => api.get(`/pages/${encodeURIComponent(slug)}`),
 
   validateCoupon: (code, subtotal) => api.post("/coupons/validate", { code, subtotal }),

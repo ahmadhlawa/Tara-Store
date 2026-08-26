@@ -367,7 +367,6 @@ class DashboardSummary(APIModel):
     products_total: int
     products_active: int
     categories_total: int
-    articles_published: int
     coupons_active: int
     orders_total: int
     orders_pending: int

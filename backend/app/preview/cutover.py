@@ -3,7 +3,7 @@
 A preview batch is a loan of demonstration content. The moment real client data arrives
 it has to be handed back — but by then the owner has usually been working inside the
 instance, and something genuinely theirs may have arrived *through* the batch: a hero
-slide they asked us to load, a banner that turned out to be their real artwork, an image
+slide they asked us to load, or an image
 they now depend on. A blind `purge --confirm` would take those with it.
 
 Three capabilities, deliberately separate operator actions:
@@ -31,8 +31,6 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     AdminUser,
-    Article,
-    Banner,
     Category,
     Coupon,
     DeliveryArea,
@@ -150,7 +148,6 @@ def _surviving_counts(db: Session, batch: ImportBatch | None) -> dict[str, int]:
         ("product", Product),
         ("delivery_area", DeliveryArea),
         ("hero_slide", HeroSlide),
-        ("banner", Banner),
         ("home_section", HomeSection),
         ("coupon", Coupon),
         ("media_asset", MediaAsset),
@@ -169,7 +166,6 @@ def _bootstrap_counts(db: Session) -> dict[str, int]:
             select(func.count()).select_from(StoreSettings)
         ).scalar_one(),
         "static_page": db.execute(select(func.count()).select_from(StaticPage)).scalar_one(),
-        "article": db.execute(select(func.count()).select_from(Article)).scalar_one(),
         "admin_user": db.execute(select(func.count()).select_from(AdminUser)).scalar_one(),
     }
 
@@ -506,8 +502,6 @@ def _broken_media_references(db: Session, base: str) -> list[str]:
     for model, column in (
         (Category, "image_url"),
         (HeroSlide, "image_url"),
-        (Banner, "image_url"),
-        (Article, "featured_image_url"),
         (StoreSettings, "logo_url"),
         (StoreSettings, "favicon_url"),
     ):

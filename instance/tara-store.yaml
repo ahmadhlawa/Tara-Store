@@ -85,7 +85,6 @@ theme:
 features:
   packages: true
   silicone_molds: true
-  articles: true
   coupons: true
 
 # Home page structure created on first bootstrap. Sections that already exist are left
@@ -97,10 +96,6 @@ features:
 # does render should not be the one English heading on the page. They match the
 # storefront's own fallback headings, and the owner can rename any of them in Admin.
 home_sections:
-  - key: "hero"
-    type: "promo_banner"
-    title: "عروض المتجر"
-    sort_order: 0
   - key: "categories"
     type: "categories"
     title: "تسوق حسب القسم"

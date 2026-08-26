@@ -273,7 +273,7 @@
 .vs-option[aria-pressed="true"] {
   border-color: var(--vs-primary);
   background: var(--vs-primary);
-  color: var(--vs-ink-invert);
+  color: var(--vs-on-primary-action);
 }
 
 .vs-option[data-out="true"] {
@@ -304,7 +304,7 @@
 }
 
 .vs-qty button {
-  width: 40px;
+  width: 44px;
   height: 44px;
   border: 0;
   background: transparent;

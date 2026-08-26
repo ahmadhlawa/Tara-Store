@@ -13,7 +13,7 @@
 }
 
 /* The ratio reserves the box before the image decodes, so the page never jumps.
-   It is a token, so a wide desktop banner, a squarer tablet crop and a portrait
+   It is a token, so wide desktop artwork, a squarer tablet crop and a portrait
    mobile crop are all one decision (see tokens.css). The cap keeps a very wide
    monitor from turning the same ratio into a wall of advertisement. */
 .vs-hero {
@@ -170,7 +170,7 @@
   margin-block-start: 6px;
   background: var(--vs-primary);
   border-color: var(--vs-primary);
-  color: var(--vs-ink-invert);
+  color: var(--vs-on-primary-action);
 }
 
 .vs-split__cta:hover {

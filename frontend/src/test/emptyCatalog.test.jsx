@@ -41,6 +41,14 @@ describe("storefront with no catalog", () => {
     expect(screen.queryByText("تعذّر تحميل بيانات المتجر")).not.toBeInTheDocument();
   });
 
+  it("does not request removed content endpoints", async () => {
+    const calls = stubApi(EMPTY_CATALOG);
+    renderApp("/");
+
+    await screen.findAllByText(settingsFixture.store_name);
+    expect(calls.some(({ path }) => /\/api\/v1\/(banners|articles)/.test(path))).toBe(false);
+  });
+
   it("never claims a stocked store is being prepared", async () => {
     // The baseline fixture has a category and a product but no home sections at
     // all: an unarranged homepage, not an empty store.

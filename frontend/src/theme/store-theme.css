@@ -79,7 +79,7 @@
 
   --button-primary-background: var(--brand-primary);
   --button-primary-hover: var(--brand-primary-hover);
-  --button-primary-text: var(--brand-on-primary);
+  --button-primary-text: #181818;
 
   --button-secondary-background: var(--brand-secondary);
   --button-secondary-hover: var(--brand-secondary-hover);
@@ -92,16 +92,6 @@
   --link-hover-color: var(--brand-primary-hover);
 
   --focus-ring: var(--brand-primary);
-
-
-  /* ADMIN */
-
-  --admin-primary: var(--brand-primary);
-  --admin-primary-hover: var(--brand-primary-hover);
-
-  --admin-sidebar-background: var(--brand-primary);
-  --admin-sidebar-text: var(--brand-on-primary);
-  --admin-sidebar-active: var(--brand-primary-hover);
 
 
   /* SELECTION */

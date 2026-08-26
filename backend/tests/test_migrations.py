@@ -18,9 +18,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 EXPECTED_TABLES = {
     "admin_users",
-    "articles",
     "audit_logs",
-    "banners",
     "categories",
     "coupons",
     "delivery_areas",

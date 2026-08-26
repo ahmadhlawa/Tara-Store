@@ -86,7 +86,6 @@ def test_a_dataset_round_trips_through_the_file_loader(tmp_path: Path) -> None:
         "products": 1,
         "delivery_areas": 0,
         "hero_slides": 0,
-        "banners": 0,
         "home_sections": 0,
         "coupons": 0,
     }

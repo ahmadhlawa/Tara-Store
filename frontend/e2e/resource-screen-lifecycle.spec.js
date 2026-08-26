@@ -16,16 +16,6 @@ const RESOURCES = [
     rowAfterEdit: (value) => value,
   },
   { path: "/admin/delivery", value: (stamp) => `E2E ${stamp}` },
-  { path: "/admin/hero", value: (stamp) => `E2E ${stamp}` },
-  { path: "/admin/banners", value: (stamp) => `E2E ${stamp}` },
-  {
-    path: "/admin/home",
-    value: (stamp) => `e2e-${stamp}`,
-    editIndex: 1,
-    rowAfterEdit: (value) => value,
-  },
-  { path: "/admin/articles", value: (stamp) => `E2E ${stamp}` },
-  { path: "/admin/pages", value: (stamp) => `E2E ${stamp}` },
   {
     path: "/admin/admins",
     value: (stamp) => `e2e-${stamp}@example.com`,
@@ -51,7 +41,7 @@ for (const resource of RESOURCES) {
     await page.locator("h1").locator("xpath=../..").getByRole("button").click();
     const editor = page.getByRole("dialog");
     await expect(editor).toBeVisible();
-    await editor.locator('input:not([type="checkbox"]):not([type="color"])').first().fill(value);
+    await editor.locator('input[type="text"], input:not([type])').first().fill(value);
     await resource.fillCreate?.(editor, stamp);
     await editor.locator("button").last().click();
     await expect(editor).toHaveCount(0);
@@ -60,7 +50,7 @@ for (const resource of RESOURCES) {
     await expect(created).toHaveCount(1);
     await created.getByRole("button").first().click();
     const editDialog = page.getByRole("dialog");
-    await editDialog.locator('input:not([type="checkbox"]):not([type="color"])').nth(resource.editIndex ?? 0).fill(renamed);
+    await editDialog.locator('input[type="text"], input:not([type])').nth(resource.editIndex ?? 0).fill(renamed);
     await editDialog.locator("button").last().click();
     const rowAfterEdit = resource.rowAfterEdit?.(value, renamed) ?? renamed;
     await expect(page.locator("tr", { hasText: rowAfterEdit })).toHaveCount(1);
@@ -80,3 +70,27 @@ for (const resource of RESOURCES) {
     await expect(page.locator("tr", { hasText: rowAfterEdit })).toHaveCount(0);
   });
 }
+
+test("/admin/hero creates, edits, and deletes through its exact media field", async ({ page }) => {
+  const chooseImage = async (editor, filename) => {
+    await editor.getByRole("button", { name: /اختيار من مكتبة الوسائط/ }).click();
+    const picker = page.getByRole("dialog", { name: "مكتبة الوسائط" });
+    await picker.getByRole("button", { name: filename }).click();
+    await picker.getByRole("button", { name: "اختيار", exact: true }).click();
+  };
+
+  await login(page, MANAGER);
+  await page.goto("/admin/hero");
+  await page.locator("h1").locator("xpath=../..").getByRole("button").click();
+  const editor = page.getByRole("dialog");
+  await chooseImage(editor, "seed-hero-teal.png");
+  await editor.locator("button").last().click();
+
+  const row = page.locator("tr").last();
+  await row.getByRole("button").first().click();
+  await chooseImage(page.getByRole("dialog"), "seed-hero-clay.png");
+  await page.getByRole("dialog").locator("button").last().click();
+
+  await row.getByRole("button").last().click();
+  await page.getByRole("dialog").locator("button").last().click();
+});

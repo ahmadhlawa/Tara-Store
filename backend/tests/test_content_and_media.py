@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import app.api.v1.endpoints.admin_media as admin_media
-from app.models import Article, AuditLog, MediaAsset, StaticPage, StoreSettings
+from app.models import AuditLog, MediaAsset, StaticPage, StoreSettings
 from app.services.placeholder_image import gradient_png, vista_preview_png
 from app.storage.base import StoredFile
 from tests.conftest import auth
@@ -154,42 +154,6 @@ def test_location_url_can_be_cleared_and_restored_through_store_settings(
     assert client.get("/api/v1/store/settings").json()["location_url"] == location
 
 
-# ── articles and pages ───────────────────────────────────────────────────────
-def test_only_published_articles_are_public(
-    client: TestClient, db: Session, admin_token: str
-) -> None:
-    db.add(Article(title="منشور", slug="published", content="نص", is_published=True))
-    db.add(Article(title="مسودة", slug="draft", content="نص", is_published=False))
-    db.commit()
-
-    listed = client.get("/api/v1/articles").json()
-    assert listed["total"] == 1
-    assert listed["items"][0]["slug"] == "published"
-    assert client.get("/api/v1/articles/draft").status_code == 404
-
-    admin_list = client.get("/api/v1/admin/articles", headers=auth(admin_token)).json()
-    assert admin_list["total"] == 2
-
-
-def test_publishing_an_article_stamps_published_at(
-    client: TestClient, admin_token: str
-) -> None:
-    created = client.post(
-        "/api/v1/admin/articles",
-        headers=auth(admin_token),
-        json={"title": "مقال جديد", "content": "نص المقال", "is_published": False},
-    )
-    assert created.status_code == 201
-    assert created.json()["published_at"] is None
-
-    published = client.patch(
-        f"/api/v1/admin/articles/{created.json()['id']}",
-        headers=auth(admin_token),
-        json={"is_published": True},
-    )
-    assert published.json()["published_at"] is not None
-
-
 def test_only_published_static_pages_are_public(client: TestClient, db: Session) -> None:
     db.add(StaticPage(title="من نحن", slug="about", content="نص", is_published=True))
     db.add(StaticPage(title="مسودة", slug="hidden", content="نص", is_published=False))
@@ -206,7 +170,7 @@ def test_home_sections_are_not_an_admin_builder(client: TestClient, admin_token:
     assert client.post("/api/v1/admin/home-sections", headers=headers, json={}).status_code == 404
 
 
-def test_hero_slides_and_banners_respect_their_schedule(
+def test_hero_slides_respect_their_schedule(
     client: TestClient, admin_token: str
 ) -> None:
     assert client.post(
@@ -232,16 +196,6 @@ def test_hero_slides_and_banners_respect_their_schedule(
     public = client.get("/api/v1/hero-slides").json()
     assert [slide["image_url"] for slide in public] == ["/media/hero-live.png"]
 
-    bad_window = client.post(
-        "/api/v1/admin/banners",
-        headers=auth(admin_token),
-        json={
-            "title": "بانر",
-            "starts_at": "2026-02-01T00:00:00",
-            "ends_at": "2026-01-01T00:00:00",
-        },
-    )
-    assert bad_window.status_code == 422
 
 
 # ── media ────────────────────────────────────────────────────────────────────

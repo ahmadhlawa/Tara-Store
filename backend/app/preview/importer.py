@@ -32,7 +32,6 @@ from sqlalchemy.orm import Session
 from app.core.enums import ProductType
 from app.db.base import utcnow
 from app.models import (
-    Banner,
     Category,
     Coupon,
     DeliveryArea,
@@ -53,7 +52,6 @@ from app.models import (
 from app.preview.dataset import PreviewDataset
 from app.preview.media_library import resolve_one
 from app.preview.references import (  # noqa: F401  (re-exported: the entity vocabulary)
-    BANNER,
     CATEGORY,
     COUPON,
     CREATION_ORDER,
@@ -206,16 +204,6 @@ def managed_values(entity_type: str, row: Any) -> dict[str, Any]:
             "is_active": row.is_active,
             "sort_order": row.sort_order,
         }
-    if entity_type == BANNER:
-        return {
-            "placement": row.placement,
-            "title": row.title,
-            "subtitle": row.subtitle,
-            "image_url": row.image_url,
-            "link_url": row.link_url,
-            "is_active": row.is_active,
-            "sort_order": row.sort_order,
-        }
     if entity_type == HOME_SECTION:
         return {
             "section_type": row.section_type,
@@ -302,16 +290,6 @@ def desired_values(
             "image_url": image_url,
             "button_label": item.button_label,
             "button_url": item.button_url,
-            "is_active": True,
-            "sort_order": item.sort_order,
-        }
-    if entity_type == BANNER:
-        return {
-            "placement": item.placement,
-            "title": item.title,
-            "subtitle": item.subtitle,
-            "image_url": image_url,
-            "link_url": item.link_url,
             "is_active": True,
             "sort_order": item.sort_order,
         }
@@ -484,7 +462,6 @@ class PreviewImporter:
         self._seed_products(plan, batch, index, categories, media_urls, apply=apply, force=force)
         self._seed_delivery_areas(plan, batch, index, apply=apply, force=force)
         self._seed_hero_slides(plan, batch, index, media_urls, apply=apply, force=force)
-        self._seed_banners(plan, batch, index, media_urls, apply=apply, force=force)
         self._seed_home_sections(plan, batch, index, apply=apply, force=force)
         self._seed_coupons(plan, batch, index, apply=apply, force=force)
 
@@ -628,7 +605,7 @@ class PreviewImporter:
         """Confirm the object behind an owned, unedited media row — and rebuild it if gone.
 
         The repair writes back to the **recorded key**, so no second `MediaAsset` row is
-        created and no URL already published in a category, product, slide or banner
+        created and no URL already published in a category, product, or slide
         changes. Three refusals keep it inside its own namespace:
 
         * a key outside the batch's media prefix is never even probed;
@@ -1028,33 +1005,6 @@ class PreviewImporter:
             create=lambda item: HeroSlide(title=item.title),
             write=write,
             image_for=lambda item: item.image_url or (media_urls.get(item.image) if item.image else None),
-            apply=apply,
-            force=force,
-        )
-
-    def _seed_banners(self, plan, batch, index, media_urls, *, apply: bool, force: bool) -> None:
-        def write(row: Banner, item: Any) -> None:
-            row.placement = item.placement
-            row.title = item.title
-            row.subtitle = item.subtitle
-            row.image_url = media_urls.get(item.image) if item.image else None
-            row.link_url = item.link_url
-            row.is_active = True
-            row.sort_order = item.sort_order
-
-        self._seed_simple(
-            plan,
-            batch,
-            index,
-            entity_type=BANNER,
-            model=Banner,
-            lookup_column=Banner.title,
-            items=self.dataset.banners,
-            natural_key=lambda item: item.title,
-            label=lambda item: f"{item.placement}",
-            create=lambda item: Banner(title=item.title, placement=item.placement),
-            write=write,
-            image_for=lambda item: media_urls.get(item.image) if item.image else None,
             apply=apply,
             force=force,
         )

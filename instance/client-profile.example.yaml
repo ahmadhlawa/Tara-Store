@@ -66,17 +66,12 @@ theme:
 features:
   packages: true
   silicone_molds: true
-  articles: true
   coupons: true
 
 # Home page structure created on first bootstrap. Sections that already exist are left
 # alone, so owner edits survive. A section with `requires_feature` is skipped when that
 # feature is disabled.
 home_sections:
-  - key: "hero"
-    type: "promo_banner"
-    title: "Featured"
-    sort_order: 0
   - key: "categories"
     type: "categories"
     title: "Shop by category"

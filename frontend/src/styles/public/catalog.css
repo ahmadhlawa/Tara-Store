@@ -177,6 +177,70 @@
   }
 }
 
+@media (max-width: 599px) {
+  .vs-card__panel,
+  .vs-pkg__panel {
+    gap: 5px;
+    padding: 8px;
+  }
+
+  .vs-card__badges,
+  .vs-pkg__badges {
+    inset-block-start: 6px;
+    inset-inline-start: 6px;
+    gap: 4px;
+  }
+
+  .vs-card__title,
+  .vs-pkg__title {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .vs-card__stock,
+  .vs-pkg__contents,
+  .vs-card__quick,
+  .vs-pkg__acts > .vs-btn--quiet {
+    display: none;
+  }
+
+  .vs-card__acts,
+  .vs-pkg__acts {
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .vs-card__cta,
+  .vs-pkg__cta {
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .vs-card__cta svg,
+  .vs-pkg__cta svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .vs-card__cta:not(:has(svg))::before,
+  .vs-pkg__cta:not(:has(svg))::before {
+    content: "←";
+    font-size: 19px;
+    line-height: 1;
+  }
+
+  .vs-price__now {
+    font-size: 15px;
+  }
+
+  .vs-price__was {
+    font-size: 11px;
+  }
+}
+
 /* â”€â”€ product card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-card__title {
@@ -215,7 +279,7 @@
 .vs-card__cta {
   flex: 1 1 auto;
   min-width: 0;
-  height: 40px;
+  min-height: 44px;
 }
 
 .vs-card__quick {
@@ -292,7 +356,7 @@
 
 .vs-pkg__cta {
   flex: 1 1 150px;
-  height: 40px;
+  min-height: 44px;
 }
 
 /* â”€â”€ category card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */

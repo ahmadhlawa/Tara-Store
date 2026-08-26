@@ -20,8 +20,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import (
-    Article,
-    Banner,
     Category,
     Coupon,
     DeliveryArea,
@@ -41,7 +39,6 @@ CATEGORY = "category"
 PRODUCT = "product"
 DELIVERY_AREA = "delivery_area"
 HERO_SLIDE = "hero_slide"
-BANNER = "banner"
 HOME_SECTION = "home_section"
 COUPON = "coupon"
 
@@ -51,7 +48,6 @@ CREATION_ORDER = (
     PRODUCT,
     DELIVERY_AREA,
     HERO_SLIDE,
-    BANNER,
     HOME_SECTION,
     COUPON,
 )
@@ -62,7 +58,6 @@ MODEL_FOR_TYPE: dict[str, Any] = {
     PRODUCT: Product,
     DELIVERY_AREA: DeliveryArea,
     HERO_SLIDE: HeroSlide,
-    BANNER: Banner,
     HOME_SECTION: HomeSection,
     COUPON: Coupon,
 }
@@ -74,7 +69,6 @@ LABEL_FIELD_FOR_TYPE: dict[str, str] = {
     PRODUCT: "name",
     DELIVERY_AREA: "name",
     HERO_SLIDE: "title",
-    BANNER: "title",
     HOME_SECTION: "title",
     COUPON: "code",
 }
@@ -100,7 +94,7 @@ def media_urls_of(entity_type: str, row: Any) -> list[str]:
         return []
     if entity_type == PRODUCT:
         return [image.url for image in row.images if image.url]
-    if entity_type in (CATEGORY, HERO_SLIDE, BANNER):
+    if entity_type in (CATEGORY, HERO_SLIDE):
         return [row.image_url] if row.image_url else []
     return []
 
@@ -109,10 +103,8 @@ def media_urls_of(entity_type: str, row: Any) -> list[str]:
 _REFERENCE_COLUMNS: tuple[tuple[Any, str, str | None], ...] = (
     (Category, "image_url", CATEGORY),
     (HeroSlide, "image_url", HERO_SLIDE),
-    (Banner, "image_url", BANNER),
-    # Articles, static pages and the store's own logo are owner/system content. Nothing
+    # Static pages and the store's own logo are owner/system content. Nothing
     # in a preview batch owns them, so they can only ever keep a picture alive.
-    (Article, "featured_image_url", None),
     (StoreSettings, "logo_url", None),
     (StoreSettings, "favicon_url", None),
 )

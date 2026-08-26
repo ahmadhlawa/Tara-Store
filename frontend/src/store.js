@@ -1,7 +1,7 @@
 // Presentation constants only.
 //
-// Every piece of commercial content (products, categories, prices, banners,
-// articles, delivery areas, coupons, store identity) now comes from the API via
+// Every piece of commercial content (products, categories, prices, delivery areas,
+// coupons, store identity) now comes from the API via
 // src/services/*. What is left here is navigation structure and static copy that
 // belongs to the storefront layout itself.
 
@@ -23,7 +23,6 @@ export const footerLinks = {
       ["العروض", "/offers"],
       ["البكجات", "/packages"],
       ["قوالب سيليكون", "/molds"],
-      ["المدونة", "/blog"],
     ],
   },
   service: {

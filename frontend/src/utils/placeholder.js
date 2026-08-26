@@ -1,4 +1,4 @@
-// Products, categories and articles without an uploaded image fall back to the
+// Products and categories without an uploaded image fall back to the
 // storefront's own tone gradients, so the design looks finished before any media
 // has been uploaded. Once an image URL exists it takes over.
 

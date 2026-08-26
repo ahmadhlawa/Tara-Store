@@ -94,7 +94,7 @@ export function AuditLogPage() {
       <div style={{ ...card, ...sx`margin-bottom:14px` }}>
         <select value={entityType} onChange={(event) => { setPage(1); setEntityType(event.target.value); }} style={{ ...input, ...sx`width:auto` }}>
           <option value="">كل العناصر</option>
-          {["product", "category", "order", "coupon", "delivery_area", "store_settings", "article", "static_page", "media_asset", "admin_user", "hero_slide", "banner", "home_section"].map((value) => (
+          {["product", "category", "order", "coupon", "delivery_area", "store_settings", "static_page", "media_asset", "admin_user", "hero_slide", "home_section"].map((value) => (
             <option key={value} value={value}>{value}</option>
           ))}
         </select>

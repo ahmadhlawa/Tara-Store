@@ -116,10 +116,8 @@ export const storefrontRoutes = {
   "/api/v1/delivery-areas": [
     { id: 1, name: "رام الله", delivery_fee: 20, free_delivery_threshold: 500, estimated_days: "يومان", sort_order: 0 },
   ],
-  "/api/v1/banners": [],
   "/api/v1/hero-slides": [],
   "/api/v1/home-sections": [],
-  "/api/v1/articles": page([]),
   "/api/v1/products/featured": page([productFixture]),
   "/api/v1/products/new": page([]),
   "/api/v1/products/bestsellers": page([]),
