@@ -244,9 +244,9 @@
 /* â”€â”€ product card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-card__title {
-  font-size: 14.5px;
-  font-weight: 500;
-  line-height: 1.5;
+  font-size: var(--vs-fs-product);
+  font-weight: var(--vs-fw-product);
+  line-height: 1.4;
   color: var(--vs-ink);
   transition: color var(--vs-t) var(--vs-ease);
 }
@@ -303,8 +303,9 @@
 }
 
 .vs-price__now {
-  font-size: 17px;
-  font-weight: 600;
+  font-size: var(--vs-fs-price);
+  font-weight: var(--vs-fw-price);
+  line-height: 1.4;
   color: var(--vs-primary);
   font-feature-settings: "tnum";
 }

@@ -11,10 +11,36 @@
    these tokens are spent, and the rule that keeps it true is simple: gold is a
    border, a rule or a small mark, never a body colour and never a large fill. */
 
+/* Cairo is the storefront's Arabic typeface. It is exposed under a Tara-only
+   family name so loading it cannot change the Admin application's typography. */
+@font-face {
+  font-family: "Tara Cairo";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("https://fonts.gstatic.com/s/cairo/v31/SLXgc1nY6HkvangtZmpQdkhzfH5lkSs2SgRjCAGMQ1z0hOA-W1Q.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Tara Cairo";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("https://fonts.gstatic.com/s/cairo/v31/SLXgc1nY6HkvangtZmpQdkhzfH5lkSs2SgRjCAGMQ1z0hNI-W1Q.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Tara Cairo";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("https://fonts.gstatic.com/s/cairo/v31/SLXgc1nY6HkvangtZmpQdkhzfH5lkSs2SgRjCAGMQ1z0hD45W1Q.ttf") format("truetype");
+}
+
 .vs-public {
   /* â”€â”€ layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --vs-container: 1400px;
-  --vs-font: "Alexandria", system-ui, sans-serif;
+  --vs-font: "Tara Cairo", Arial, Helvetica, sans-serif;
   --vs-container-narrow: 1080px;
   --vs-gutter: 20px;
   --vs-section: 56px;
@@ -162,13 +188,23 @@
   --vs-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* â”€â”€ type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-  --vs-fs-h1: 34px;
-  --vs-fs-h2: 24px;
+  --vs-fs-h1: 28px;
+  --vs-fs-h2: 26px;
   --vs-fs-h3: 18px;
-  --vs-fs-body: 14.5px;
+  --vs-fs-body: 15px;
   --vs-fs-sm: 13px;
   --vs-fs-xs: 11.5px;
-  --vs-lh: 1.75;
+  --vs-fs-nav: 14px;
+  --vs-fs-product: 15px;
+  --vs-fs-price: 15px;
+  --vs-fw-body: 400;
+  --vs-fw-support: 500;
+  --vs-fw-heading: 500;
+  --vs-fw-nav: 600;
+  --vs-fw-product: 500;
+  --vs-fw-price: 600;
+  --vs-fw-button: 600;
+  --vs-lh: 1.6;
 
   /* â”€â”€ z layers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   --vs-z-rail: 40;
@@ -198,7 +234,7 @@
     --vs-cols-cat: 3;
     --vs-cols-pkg: 3;
     --vs-grid-gap: 18px;
-    --vs-fs-h1: 30px;
+    --vs-fs-h1: 28px;
     --vs-rail-w: 58px;
     --vs-ar-hero: 2 / 1;
     --vs-hero-max-h: 440px;
@@ -251,7 +287,7 @@
     --vs-gutter: 16px;
     --vs-grid-gap: 12px;
     --vs-fs-h1: 23px;
-    --vs-fs-h2: 18.5px;
+    --vs-fs-h2: 20px;
     /* A phone shows the whole advertisement, not a slice of it. Hero artwork
        is landscape (the shipped hero is 1672Ã—941), so a portrait phone box plus
        `cover` threw away more than half the image width â€” the Arabic promo text

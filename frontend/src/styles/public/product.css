@@ -105,9 +105,9 @@
 }
 
 .vs-pdp__title {
-  font-size: clamp(21px, 2.4vw, 30px);
-  font-weight: 600;
-  line-height: 1.42;
+  font-size: clamp(21px, 2.4vw, 28px);
+  font-weight: var(--vs-fw-nav);
+  line-height: 1.2;
 }
 
 .vs-pdp__sku {
@@ -132,7 +132,8 @@
 
 .vs-pdp__short {
   font-size: var(--vs-fs-body);
-  line-height: 1.9;
+  font-weight: var(--vs-fw-support);
+  line-height: var(--vs-lh);
   color: var(--vs-ink-2);
 }
 

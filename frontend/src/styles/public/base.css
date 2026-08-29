@@ -148,7 +148,7 @@
 
 .vs-sec-head__title {
   font-size: var(--vs-fs-h2);
-  font-weight: 600;
+  font-weight: var(--vs-fw-heading);
   line-height: 1.4;
   color: var(--vs-ink);
 }
@@ -254,7 +254,7 @@
   background: transparent;
   font-family: inherit;
   font-size: var(--vs-fs-sm);
-  font-weight: 500;
+  font-weight: var(--vs-fw-button);
   line-height: 1;
   color: var(--vs-ink);
   cursor: pointer;
@@ -438,6 +438,8 @@
   gap: 8px;
   flex-wrap: wrap;
   font-size: var(--vs-fs-sm);
+  font-weight: var(--vs-fw-body);
+  line-height: var(--vs-lh);
   color: var(--vs-ink-4);
 }
 
@@ -454,7 +456,7 @@
 
 .vs-crumbs__here {
   color: var(--vs-ink);
-  font-weight: 600;
+  font-weight: var(--vs-fw-nav);
 }
 
 /* â”€â”€ skeleton / empty / error â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */

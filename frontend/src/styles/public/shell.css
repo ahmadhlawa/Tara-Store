@@ -145,7 +145,7 @@ img.vs-logo__img {
    template's 0.13em tracking is a latin display trick that pulls Arabic letters
    apart at their joins, so it is dialled back to something both scripts wear. */
 .vs-logo__name {
-  font-family: "Marcellus", "Alexandria", serif;
+  font-family: "Marcellus", var(--vs-font);
   font-size: 25px;
   line-height: 1.05;
   letter-spacing: 0.04em;
@@ -158,7 +158,7 @@ img.vs-logo__img {
 /* The strapline is the one place a small serif is worth spending on: it is
    latin, it is decorative, and it is the line that says handmade. */
 .vs-logo__tag {
-  font-family: "Marcellus", "Alexandria", serif;
+  font-family: "Marcellus", var(--vs-font);
   font-size: 11.5px;
   line-height: 1.3;
   letter-spacing: 0.07em;
@@ -471,8 +471,8 @@ img.vs-logo__img {
   align-items: center;
   height: var(--vs-nav-h);
   padding-inline: 12px;
-  font-size: var(--vs-fs-sm);
-  font-weight: 500;
+  font-size: var(--vs-fs-nav);
+  font-weight: var(--vs-fw-nav);
   color: var(--nav-strip-text);
   transition: color var(--vs-t) var(--vs-ease), background var(--vs-t) var(--vs-ease);
 }
@@ -484,7 +484,7 @@ img.vs-logo__img {
 
 .vs-nav__link[aria-current="page"] {
   color: var(--vs-ink);
-  font-weight: 600;
+  font-weight: var(--vs-fw-nav);
   background: rgba(255, 255, 255, 0.48);
 }
 
@@ -960,7 +960,7 @@ img.vs-logo__img {
 }
 
 .vs-footer__name {
-  font-family: "Marcellus", "Cairo", serif;
+  font-family: "Marcellus", var(--vs-font);
   font-size: 26px;
   letter-spacing: 0.05em;
   color: var(--footer-text);
