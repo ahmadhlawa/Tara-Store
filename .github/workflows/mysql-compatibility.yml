@@ -81,9 +81,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Scan repository for secrets
-        uses: gitleaks/gitleaks-action@v2
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -145,11 +142,33 @@ jobs:
       - name: MySQL integration suite
         run: pytest tests_mysql -v
 
+  sqlite:
+    name: SQLite backend gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install backend dependencies
+        run: pip install -e ".[dev]"
       - name: The SQLite suite still passes unchanged
         env:
           DATABASE_URL: sqlite+pysqlite:///./data/ci_sqlite.db
         run: pytest
 
+  frontend:
+    name: Frontend gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -163,8 +182,17 @@ jobs:
           npm test
           npm run build
 
+  hygiene:
+    name: Secret and repository hygiene gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan repository for secrets
+        uses: gitleaks/gitleaks-action@v2
       - name: Confirm no runtime artefact was committed
-        working-directory: .
         # The previous pattern anchored databases on `.db$` and environment files on
         # `.env$`. Both were too narrow: four backups named `<name>.db.<stamp>.bak`
         # and a `.env.mysql.local` would all have passed it. `.env.example` is the

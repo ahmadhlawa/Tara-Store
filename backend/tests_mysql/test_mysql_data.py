@@ -236,6 +236,7 @@ def test_guest_order_creation_and_inventory_update(client, db: Session) -> None:
     response = client.post(
         "/api/v1/orders",
         json={
+            "client_reference": unique("mysql-order"),
             "customer_name": "سارة أحمد",
             "customer_phone": "0591234567",
             "address": "رام الله، شارع الإرسال",

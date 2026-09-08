@@ -288,7 +288,9 @@ def test_the_new_chain_downgrades_and_re_upgrades_on_mysql(migration_url: str) -
     assert foreign_keys_on(migration_url, "invoices", "order_id")
 
     run_ok(migration_url, "upgrade", "head")
-    assert revision(migration_url) == "0010_unique_media_filename"
+    current = revision(migration_url)
+    heads = run_ok(migration_url, "heads").stdout
+    assert current in heads, f"database at {current}, heads: {heads}"
 
 
 # ── 0010: unique media_assets.original_filename ──────────────────────────────
