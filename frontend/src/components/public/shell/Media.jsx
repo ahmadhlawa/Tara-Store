@@ -11,6 +11,7 @@ export default function Media({
   fallback,
   ratio,
   eager = false,
+  fetchPriority,
   className = "",
   imgClass = "",
   children,
@@ -24,6 +25,7 @@ export default function Media({
           src={src}
           alt={alt}
           loading={eager ? "eager" : "lazy"}
+          fetchPriority={fetchPriority}
           decoding="async"
         />
       ) : (

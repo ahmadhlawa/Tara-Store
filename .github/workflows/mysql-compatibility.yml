@@ -203,7 +203,7 @@ jobs:
         run: |
           if git ls-files \
             | grep -Ev '(^|/)\.env\.example$' \
-            | grep -Ei '(^|/)\.env(\..+)?$|\.(db|sqlite|sqlite3|bak|dump)$|(^|/)(node_modules|dist|build|htmlcov)/'; then
+            | grep -Ei '(^|/)\.env(\..+)?$|\.(db|sqlite|sqlite3|bak|dump)$|(^|/)(node_modules|dist|build|htmlcov|tmp)/|^backend/data/vista_validation_uploads_[^/]+/'; then
             echo "a runtime artefact is tracked"
             exit 1
           fi

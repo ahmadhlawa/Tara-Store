@@ -6,6 +6,7 @@ const INTERVAL_MS = 6000;
 /** The uploaded artwork is the complete Hero; the application adds no copy or chrome. */
 export default function Hero({ slides }) {
   const [index, setIndex] = useState(0);
+  const [loadedIndexes, setLoadedIndexes] = useState(() => new Set([0]));
   const [hidden, setHidden] = useState(false);
   const count = slides.length;
 
@@ -14,6 +15,10 @@ export default function Hero({ slides }) {
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
+
+  useEffect(() => {
+    setLoadedIndexes((loaded) => (loaded.has(index) ? loaded : new Set(loaded).add(index)));
+  }, [index]);
 
   useEffect(() => {
     if (count < 2 || hidden) return undefined;
@@ -33,7 +38,13 @@ export default function Hero({ slides }) {
           data-active={slideIndex === index}
           aria-hidden={slideIndex !== index}
         >
-          <Media className="vs-hero__media" src={slide.imageUrl} alt="" eager={slideIndex === 0} />
+          <Media
+            className="vs-hero__media"
+            src={slideIndex === index || loadedIndexes.has(slideIndex) ? slide.imageUrl : undefined}
+            alt=""
+            eager={slideIndex === 0}
+            fetchPriority={slideIndex === 0 ? "high" : undefined}
+          />
         </div>
       ))}
     </section>

@@ -174,6 +174,10 @@ describe("homepage hero", () => {
       "src",
       "/media/preview/one.png",
     );
+    const images = document.querySelectorAll(".vs-hero__slide img");
+    expect(images).toHaveLength(1);
+    expect(images[0]).toHaveAttribute("loading", "eager");
+    expect(images[0]).toHaveAttribute("fetchpriority", "high");
   });
 
   it("renders no promotional cards beside the hero", async () => {

@@ -32,7 +32,8 @@ ENV_ALLOWED = re.compile(r"(^|/)\.env\.example$", re.IGNORECASE)
 
 # Build output and installed dependencies.
 GENERATED_PATTERN = re.compile(
-    r"(^|/)(node_modules|dist|build|htmlcov|__pycache__|\.venv|\.pytest_cache)/",
+    r"(^|/)(node_modules|dist|build|htmlcov|__pycache__|\.venv|\.pytest_cache|tmp)/"
+    r"|^backend/data/vista_validation_uploads_[^/]+/",
     re.IGNORECASE,
 )
 SECRET_OR_TEMP_PATTERN = re.compile(

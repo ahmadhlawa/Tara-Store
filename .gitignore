@@ -17,6 +17,8 @@ venv/
 
 # Browser acceptance artefacts: screenshots and traces are captured only on failure
 # and are evidence for one run, never source.
+tmp/
+backend/data/vista_validation_uploads_*/
 frontend/e2e/.artifacts/
 frontend/playwright-report/
 frontend/test-results/

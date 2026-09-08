@@ -1,6 +1,10 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
+
+// Dynamic route imports can take longer than the DOM default while Vitest workers
+// transform the large Admin module in parallel.
+configure({ asyncUtilTimeout: 10000 });
 
 /** Minimal in-memory Storage; jsdom's implementation is not reset between tests. */
 function memoryStorage() {
