@@ -35,6 +35,9 @@ htmlcov/
 *.sqlite3
 *.bak
 *.dump
+*.sql-journal
+*.orig
+*.swp
 # Timestamped copies taken before a migration, e.g.
 # vista_preview.db.20260805-212228.pre-0009.bak — covered by *.bak above, and
 # named here so the intent survives an edit to these rules.
@@ -44,6 +47,9 @@ backend/data/*.bak
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*credentials*.json
 
 # IDE and OS
 .vscode/

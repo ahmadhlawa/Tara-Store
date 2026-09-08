@@ -10,15 +10,17 @@ name: MySQL 8 compatibility
 
 on:
   push:
-    branches: [main, "feat/**"]
+    branches: [master, "feat/**"]
     paths:
       - "backend/**"
+      - "frontend/**"
       - "instance/**"
       - "VERSION"
       - ".github/workflows/mysql-compatibility.yml"
   pull_request:
     paths:
       - "backend/**"
+      - "frontend/**"
       - "instance/**"
       - "VERSION"
       - ".github/workflows/mysql-compatibility.yml"
@@ -78,6 +80,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Scan repository for secrets
+        uses: gitleaks/gitleaks-action@v2
 
       - uses: actions/setup-python@v5
         with:
@@ -144,6 +149,19 @@ jobs:
         env:
           DATABASE_URL: sqlite+pysqlite:///./data/ci_sqlite.db
         run: pytest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend unit tests and production build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test
+          npm run build
 
       - name: Confirm no runtime artefact was committed
         working-directory: .

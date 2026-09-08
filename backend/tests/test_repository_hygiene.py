@@ -35,6 +35,10 @@ GENERATED_PATTERN = re.compile(
     r"(^|/)(node_modules|dist|build|htmlcov|__pycache__|\.venv|\.pytest_cache)/",
     re.IGNORECASE,
 )
+SECRET_OR_TEMP_PATTERN = re.compile(
+    r"(^|/)(?:[^/]*credentials[^/]*\.json|[^/]+\.(?:pem|key|orig|swp))$",
+    re.IGNORECASE,
+)
 
 
 def tracked_files() -> list[str]:
@@ -79,6 +83,11 @@ def test_no_real_environment_file_is_tracked(tracked: list[str]) -> None:
 def test_no_generated_directory_is_tracked(tracked: list[str]) -> None:
     offenders = [path for path in tracked if GENERATED_PATTERN.search(path)]
     assert not offenders, f"generated directories are tracked by Git: {offenders}"
+
+
+def test_no_secret_or_editor_temporary_file_is_tracked(tracked: list[str]) -> None:
+    offenders = [path for path in tracked if SECRET_OR_TEMP_PATTERN.search(path)]
+    assert not offenders, f"secret or temporary files are tracked by Git: {offenders}"
 
 
 def test_the_matcher_recognises_the_files_that_actually_leaked() -> None:

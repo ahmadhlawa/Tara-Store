@@ -256,6 +256,8 @@ describe("public storefront", () => {
     expect(cartStorage.load()).toHaveLength(0);
     const orderRequest = calls.find((call) => call.path === "/api/v1/orders");
     expect(JSON.parse(orderRequest.body).client_reference).toMatch(/^[-\w]{8,}$/);
+    const lookupRequest = calls.find((call) => call.path === "/api/v1/orders/ORD-260731-1234");
+    expect(lookupRequest.headers["X-Order-Token"]).toBe("token-value-123456");
     expect(open).toHaveBeenCalledTimes(1);
     const message = decodeURIComponent(open.mock.calls[0][0].split("?text=")[1]);
     expect(message).toContain("ORD-260731-1234");

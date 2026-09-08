@@ -26,5 +26,5 @@ export const publicApi = {
   priceCart: (payload) => api.post("/cart/price", payload),
   createOrder: (payload) => api.post("/orders", payload),
   order: (orderNumber, token) =>
-    api.get(`/orders/${encodeURIComponent(orderNumber)}`, { params: { token } }),
+    api.get(`/orders/${encodeURIComponent(orderNumber)}`, { headers: { "X-Order-Token": token } }),
 };

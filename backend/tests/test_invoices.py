@@ -716,7 +716,7 @@ def test_the_public_order_view_leaks_nothing_about_the_invoice(
 
     public = client.get(
         f"/api/v1/orders/{order.order_number}",
-        params={"token": created["public_token"]},
+        headers={"X-Order-Token": created["public_token"]},
     )
     assert public.status_code == 200
     body = public.json()

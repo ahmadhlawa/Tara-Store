@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
 
-from pydantic import field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
 
     SECRET_KEY: str = "development-only-secret-change-me"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 720
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60, ge=1)
     JWT_ALGORITHM: str = "HS256"
 
     DATABASE_URL: str = "sqlite+pysqlite:///./data/tara_store_dev.db"
@@ -38,6 +38,12 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
+
+    LOGIN_RATE_LIMIT: int = Field(default=0, ge=0)
+    ORDER_CREATE_RATE_LIMIT: int = Field(default=0, ge=0)
+    ORDER_LOOKUP_RATE_LIMIT: int = Field(default=0, ge=0)
+    RATE_LIMIT_WINDOW_SECONDS: int = Field(default=60, ge=1)
+    TRUSTED_PROXY_IPS: Annotated[list[str], NoDecode] = ["127.0.0.1", "::1"]
 
     STORAGE_PROVIDER: str = "local"
     LOCAL_MEDIA_ROOT: str = "./data/uploads"
@@ -60,7 +66,7 @@ class Settings(BaseSettings):
     INITIAL_ADMIN_PASSWORD: str = ""
     INITIAL_ADMIN_NAME: str = "Store Owner"
 
-    @field_validator("CORS_ORIGINS", mode="before")
+    @field_validator("CORS_ORIGINS", "TRUSTED_PROXY_IPS", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:
         """Accept the documented comma-separated form, and a JSON list as a courtesy."""
@@ -73,6 +79,30 @@ class Settings(BaseSettings):
                     pass
             return [origin.strip() for origin in text.split(",") if origin.strip()]
         return value
+
+    @model_validator(mode="after")
+    def _validate_production_safety(self) -> "Settings":
+        self.APP_ENV = self.APP_ENV.strip().lower()
+        if self.APP_ENV != "production":
+            return self
+        secret = self.SECRET_KEY.strip()
+        unsafe_secrets = {"development-only-secret-change-me", "replace-with-a-secure-random-value"}
+        if len(secret) < 32 or len(set(secret)) < 12 or secret in unsafe_secrets:
+            raise ValueError("production SECRET_KEY must be a unique secret of at least 32 characters")
+        if not self.CORS_ORIGINS or any(
+            origin == "*" or "localhost" in origin.lower() or "127.0.0.1" in origin
+            or not origin.lower().startswith("https://")
+            for origin in self.CORS_ORIGINS
+        ):
+            raise ValueError("production CORS_ORIGINS must contain only explicit HTTPS origins")
+        if self.is_sqlite:
+            raise ValueError("production DATABASE_URL must not use the development SQLite database")
+        if not 1 <= self.ACCESS_TOKEN_EXPIRE_MINUTES <= 60:
+            raise ValueError("production access tokens must expire within 60 minutes")
+        self.LOGIN_RATE_LIMIT = self.LOGIN_RATE_LIMIT or 10
+        self.ORDER_CREATE_RATE_LIMIT = self.ORDER_CREATE_RATE_LIMIT or 10
+        self.ORDER_LOOKUP_RATE_LIMIT = self.ORDER_LOOKUP_RATE_LIMIT or 60
+        return self
 
     @property
     def is_sqlite(self) -> bool:

@@ -15,6 +15,8 @@ from app.cli.reset_admin_password import (
     reset_password,
 )
 from app.core.security import verify_password
+from app.core.config import settings
+from app.core.rate_limit import login_rate_limit
 from tests.conftest import ADMIN_EMAIL, TEST_PASSWORD, auth, login, make_admin
 
 
@@ -109,6 +111,19 @@ def test_disabled_admin_cannot_log_in(client: TestClient, db: Session) -> None:
     )
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "invalid_credentials"
+
+
+def test_login_is_rate_limited(client: TestClient, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "LOGIN_RATE_LIMIT", 2)
+    login_rate_limit._hits.clear()
+    payload = {"email": "nobody@example.com", "password": TEST_PASSWORD}
+    assert client.post("/api/v1/auth/login", json=payload).status_code == 401
+    assert client.post("/api/v1/auth/login", json=payload).status_code == 401
+    limited = client.post("/api/v1/auth/login", json=payload)
+    assert limited.status_code == 429
+    assert limited.json()["error"]["code"] == "rate_limited"
+    assert limited.headers["Retry-After"] == str(settings.RATE_LIMIT_WINDOW_SECONDS)
+    login_rate_limit._hits.clear()
 
 
 def test_a_token_stops_working_once_the_admin_is_deactivated(

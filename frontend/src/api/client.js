@@ -59,8 +59,8 @@ async function parseError(response) {
   });
 }
 
-export async function request(path, { method = "GET", body, params, auth = false, signal } = {}) {
-  const headers = {};
+export async function request(path, { method = "GET", body, params, auth = false, signal, headers: extraHeaders } = {}) {
+  const headers = { ...extraHeaders };
   const init = { method, headers, signal };
 
   if (body instanceof FormData) {

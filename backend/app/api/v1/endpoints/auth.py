@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 
 from app.api.deps import CurrentAdmin, DbSession
 from app.core.config import settings
 from app.core.security import create_access_token, verify_password
+from app.core.rate_limit import login_rate_limit
 from app.db.base import utcnow
 from app.models import AdminUser
 from app.schemas.auth import AdminUserOut, LoginRequest, TokenResponse
@@ -26,7 +27,7 @@ _INVALID_LOGIN = HTTPException(
 )
 
 
-@router.post("/auth/login", response_model=TokenResponse)
+@router.post("/auth/login", response_model=TokenResponse, dependencies=[Depends(login_rate_limit)])
 def login(payload: LoginRequest, db: DbSession) -> TokenResponse:
     admin = db.execute(
         select(AdminUser).where(func.lower(AdminUser.email) == payload.email.lower())

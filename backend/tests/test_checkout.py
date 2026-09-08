@@ -4,6 +4,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 import pytest
+from fastapi import Response
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -562,20 +563,34 @@ def test_order_lookup_requires_the_public_token(client: TestClient, db: Session)
     product = make_product(db, stock=5)
     created = client.post("/api/v1/orders", json=_order_payload(product)).json()
 
-    ok = client.get(
-        f"/api/v1/orders/{created['order_number']}", params={"token": created["public_token"]}
-    )
+    ok = client.get(f"/api/v1/orders/{created['order_number']}", headers={"X-Order-Token": created["public_token"]})
     assert ok.status_code == 200
     assert ok.json()["order_number"] == created["order_number"]
     assert "admin_notes" not in ok.json()
+    assert ok.headers["Cache-Control"] == "no-store"
 
     wrong = client.get(
-        f"/api/v1/orders/{created['order_number']}", params={"token": "wrong-token-value"}
+        f"/api/v1/orders/{created['order_number']}", headers={"X-Order-Token": "wrong-token-value"}
     )
     assert wrong.status_code == 404
 
     missing = client.get(f"/api/v1/orders/{created['order_number']}")
     assert missing.status_code == 422
+    assert "token=" not in str(ok.request.url)
+
+
+def test_order_creation_is_rate_limited(client: TestClient, db: Session, monkeypatch) -> None:
+    from app.core.config import settings
+    from app.core.rate_limit import order_create_rate_limit
+
+    monkeypatch.setattr(settings, "ORDER_CREATE_RATE_LIMIT", 1)
+    order_create_rate_limit._hits.clear()
+    product = make_product(db, stock=5)
+    assert client.post("/api/v1/orders", json=_order_payload(product)).status_code == 201
+    limited = client.post("/api/v1/orders", json=_order_payload(product))
+    assert limited.status_code == 429
+    assert limited.json()["error"]["code"] == "rate_limited"
+    order_create_rate_limit._hits.clear()
 
 
 def test_unknown_status_is_rejected_by_the_service(db: Session) -> None:
@@ -657,7 +672,7 @@ def test_public_checkout_recovers_from_a_concurrent_client_reference_conflict(
         raise IntegrityError("INSERT INTO orders", {}, Exception("unique client reference"))
 
     monkeypatch.setattr(public_checkout.orders_service, "create_order", concurrent_conflict)
-    recovered = public_checkout.create_order(OrderCreate.model_validate(payload), db)
+    recovered = public_checkout.create_order(OrderCreate.model_validate(payload), db, Response())
 
     assert recovered.id == created["id"]
     assert recovered.order_number == created["order_number"]

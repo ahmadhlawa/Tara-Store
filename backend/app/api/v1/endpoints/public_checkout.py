@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import DbSession
 from app.core.enums import DiscountType
+from app.core.rate_limit import order_create_rate_limit, order_lookup_rate_limit
 from app.schemas.marketing import CouponValidateRequest, CouponValidateResponse
 from app.schemas.orders import (
     CartPricingLine,
@@ -77,8 +79,8 @@ def price_cart(payload: CartPricingRequest, db: DbSession) -> CartPricingRespons
     )
 
 
-@router.post("/orders", response_model=OrderCreatedOut, status_code=status.HTTP_201_CREATED)
-def create_order(payload: OrderCreate, db: DbSession) -> OrderCreatedOut:
+@router.post("/orders", response_model=OrderCreatedOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(order_create_rate_limit)])
+def create_order(payload: OrderCreate, db: DbSession, response: Response) -> OrderCreatedOut:
     draft = orders_service.OrderDraft(
         client_reference=payload.client_reference,
         customer_name=payload.customer_name,
@@ -100,20 +102,23 @@ def create_order(payload: OrderCreate, db: DbSession) -> OrderCreatedOut:
         if order is None:
             raise
     db.refresh(order)
+    response.headers["Cache-Control"] = "no-store"
     return OrderCreatedOut.model_validate(order)
 
 
-@router.get("/orders/{order_number}", response_model=OrderPublicOut)
+@router.get("/orders/{order_number}", response_model=OrderPublicOut, dependencies=[Depends(order_lookup_rate_limit)])
 def get_order(
     order_number: str,
     db: DbSession,
-    token: Annotated[str, Query(min_length=8, max_length=64)],
+    response: Response,
+    token: Annotated[str, Header(alias="X-Order-Token", min_length=8, max_length=64)],
 ) -> OrderPublicOut:
     """Confirmation lookup. The order number alone is never enough."""
     order = orders_service.get_by_number(db, order_number)
-    if not order.public_token or token != order.public_token:
+    if not order.public_token or not secrets.compare_digest(token, order.public_token):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "order_not_found", "message": "الطلب غير موجود."},
         )
+    response.headers["Cache-Control"] = "no-store"
     return OrderPublicOut.model_validate(order)
