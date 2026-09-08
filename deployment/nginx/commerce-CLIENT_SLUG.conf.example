@@ -17,6 +17,10 @@
 # This file has never been installed on a server. Run `nginx -t` before reloading.
 # ─────────────────────────────────────────────────────────────────────────────
 
+log_format commerce_json escape=json '{"time":"$time_iso8601","request_id":"$request_id",'
+    '"remote_addr":"$remote_addr","method":"$request_method","uri":"$uri",'
+    '"status":$status,"duration":$request_time}';
+
 server {
     listen 80;
     listen [::]:80;
@@ -49,12 +53,14 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
 
     # The API rejects oversized uploads itself (MAX_UPLOAD_SIZE_BYTES); keep this
     # at or slightly above that value so the error comes from the application.
     client_max_body_size 8m;
 
-    access_log /var/log/nginx/commerce-CLIENT_SLUG.access.log;
+    access_log /var/log/nginx/commerce-CLIENT_SLUG.access.log commerce_json;
     error_log  /var/log/nginx/commerce-CLIENT_SLUG.error.log;
 
     gzip on;
@@ -93,6 +99,7 @@ server {
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host  $host;
+        proxy_set_header X-Request-ID      $request_id;
 
         proxy_connect_timeout 10s;
         proxy_send_timeout    60s;
@@ -104,7 +111,21 @@ server {
     location = /health {
         proxy_pass http://127.0.0.1:BACKEND_PORT/health;
         proxy_set_header Host $host;
+        proxy_set_header X-Request-ID $request_id;
         access_log off;
+    }
+
+    location = /ready {
+        proxy_pass http://127.0.0.1:BACKEND_PORT/ready;
+        proxy_set_header Host $host;
+        proxy_set_header X-Request-ID $request_id;
+        access_log off;
+    }
+
+    location ~ ^/(robots\.txt|sitemap\.xml)$ {
+        proxy_pass http://127.0.0.1:BACKEND_PORT$request_uri;
+        proxy_set_header Host $host;
+        proxy_set_header X-Request-ID $request_id;
     }
 
     # ── 3. Uploaded media ───────────────────────────────────────────────────
@@ -140,6 +161,6 @@ server {
 #   curl    https://CLIENT_DOMAIN/api/v1/store/settings
 #   curl -I https://CLIENT_DOMAIN/media/<an-uploaded-file>
 #
-# Note: rate limiting for /api/v1/auth/login is NOT configured here and the
-# application does not implement it. Add limit_req before a public launch.
+# Login and public-order abuse limits are enforced by the application. Keep
+# TRUSTED_PROXY_IPS restricted to this reverse proxy so client IPs are reliable.
 # ─────────────────────────────────────────────────────────────────────────────

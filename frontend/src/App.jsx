@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { StoreProvider } from "./app/StoreProvider.jsx";
 import PublicShell from "./components/public/shell/PublicShell.jsx";
 import HomePage from "./pages/HomePage.jsx";
+import useSeo from "./hooks/useSeo.js";
 
 const AdminApp = lazy(() => import("./admin/AdminApp.jsx"));
 const CatalogPage = lazy(() => import("./pages/CatalogPage.jsx"));
@@ -15,11 +16,18 @@ const ContactRoutePage = lazy(() => import("./pages/ContactRoutePage.jsx"));
 const NotFoundRoutePage = lazy(() => import("./pages/NotFoundRoutePage.jsx"));
 
 const routeFallback = <div role="status" aria-label="Loading" />;
-const lazyRoute = (Component, props) => (
-  <Suspense fallback={routeFallback}>
-    <Component {...props} />
-  </Suspense>
-);
+function RouteSeo({ config, children }) {
+  useSeo(config);
+  return children;
+}
+function lazyRoute(Component, props, seo) {
+  const content = (
+    <Suspense fallback={routeFallback}>
+      <Component {...props} />
+    </Suspense>
+  );
+  return seo ? <RouteSeo config={seo}>{content}</RouteSeo> : content;
+}
 
 /**
  * Two independent areas share one SPA: the public storefront (with its own data
@@ -28,7 +36,7 @@ const lazyRoute = (Component, props) => (
 export default function App() {
   return (
     <Routes>
-        <Route path="/admin/*" element={lazyRoute(AdminApp)} />
+        <Route path="/admin/*" element={lazyRoute(AdminApp, null, { title: "Admin | Tara Store", noindex: true })} />
 
         <Route
           element={
@@ -45,9 +53,9 @@ export default function App() {
           <Route path="molds" element={lazyRoute(CatalogPage, { mode: "molds" })} />
           <Route path="search" element={lazyRoute(CatalogPage, { mode: "search" })} />
           <Route path="product/:slug" element={lazyRoute(ProductDetailPage)} />
-          <Route path="cart" element={lazyRoute(CartRoutePage)} />
-          <Route path="checkout" element={lazyRoute(CheckoutRoutePage)} />
-          <Route path="order-success/:orderNumber" element={lazyRoute(OrderSuccessRoutePage)} />
+          <Route path="cart" element={lazyRoute(CartRoutePage, null, { title: "سلة التسوق", noindex: true })} />
+          <Route path="checkout" element={lazyRoute(CheckoutRoutePage, null, { title: "إتمام الطلب", noindex: true })} />
+          <Route path="order-success/:orderNumber" element={lazyRoute(OrderSuccessRoutePage, null, { title: "تأكيد الطلب", noindex: true })} />
           <Route path="page/:slug" element={lazyRoute(StaticContentPage)} />
           {/* Paths the original storefront used, kept working as direct links. */}
           <Route path="about" element={lazyRoute(StaticContentPage, { slug: "about" })} />

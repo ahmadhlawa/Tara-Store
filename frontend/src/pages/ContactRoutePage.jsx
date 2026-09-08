@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useStore } from "../app/StoreProvider.jsx";
+import useSeo from "../hooks/useSeo.js";
 import { storefrontService } from "../services/storefront.js";
 import { whatsappHref } from "../utils/format.js";
 
@@ -14,6 +15,12 @@ function safeMapUrl(value) {
 
 export default function ContactRoutePage() {
   const { settings } = useStore();
+  useSeo({
+    title: `اتصل بنا | ${settings.storeName}`,
+    description: settings.address || settings.seoDescription || settings.tagline,
+    baseUrl: settings.publicBaseUrl,
+    path: "/contact",
+  });
   const [lead, setLead] = useState("");
 
   useEffect(() => {

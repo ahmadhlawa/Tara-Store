@@ -33,7 +33,7 @@ Requires Python 3.12+ and Node.js 18+.
 ```powershell
 cd D:\Project\vista-store-e-commerce\backend
 python -m venv .venv
-.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.venv\Scripts\python.exe -m pip install -c constraints.txt -e ".[dev]"
 copy .env.example .env
 .venv\Scripts\alembic.exe upgrade head
 .venv\Scripts\python.exe -m scripts.instance_cli apply --profile ..\instance\vista-store.yaml

@@ -6,6 +6,7 @@ import json
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
+from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -24,6 +25,7 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     APP_NAME: str = "Tara Store"
     API_V1_PREFIX: str = "/api/v1"
+    PUBLIC_BASE_URL: str = ""
 
     SECRET_KEY: str = "development-only-secret-change-me"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60, ge=1)
@@ -80,11 +82,26 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in text.split(",") if origin.strip()]
         return value
 
+    @field_validator("PUBLIC_BASE_URL", mode="before")
+    @classmethod
+    def _normalize_public_base_url(cls, value: object) -> str:
+        text = str(value or "").strip()
+        if not text:
+            return ""
+        parsed = urlsplit(text)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("PUBLIC_BASE_URL must be an absolute HTTP(S) origin")
+        if parsed.username or parsed.password or parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+            raise ValueError("PUBLIC_BASE_URL must be an origin without credentials, path, query or fragment")
+        return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), "", "", ""))
+
     @model_validator(mode="after")
     def _validate_production_safety(self) -> "Settings":
         self.APP_ENV = self.APP_ENV.strip().lower()
         if self.APP_ENV != "production":
             return self
+        if not self.PUBLIC_BASE_URL or not self.PUBLIC_BASE_URL.startswith("https://"):
+            raise ValueError("production PUBLIC_BASE_URL must be an explicit HTTPS origin")
         secret = self.SECRET_KEY.strip()
         unsafe_secrets = {"development-only-secret-change-me", "replace-with-a-secure-random-value"}
         if len(secret) < 32 or len(set(secret)) < 12 or secret in unsafe_secrets:

@@ -101,10 +101,6 @@ export function StoreProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (settings.seoTitle) document.title = settings.seoTitle;
-  }, [settings.seoTitle]);
-
-  useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);

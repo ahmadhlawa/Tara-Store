@@ -2,14 +2,25 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { storefrontService } from "../services/storefront.js";
 import NotFoundRoutePage from "./NotFoundRoutePage.jsx";
+import { useStore } from "../app/StoreProvider.jsx";
+import useSeo from "../hooks/useSeo.js";
 
 /** Renders a published StaticPage. `slug` may come from the route or be fixed. */
 export default function StaticContentPage({ slug: fixedSlug }) {
   const params = useParams();
   const slug = fixedSlug || params.slug;
+  const { settings } = useStore();
 
   const [page, setPage] = useState(null);
   const [status, setStatus] = useState("loading");
+  const direct = ["about", "privacy-policy", "return-policy", "terms", "contact"].includes(slug);
+  useSeo({
+    title: page ? (page.seoTitle || `${page.title} | ${settings.storeName}`) : settings.storeName,
+    description: page ? (page.seoDescription || page.lead || page.body[0]) : "",
+    baseUrl: settings.publicBaseUrl,
+    path: direct ? `/${slug}` : `/page/${encodeURIComponent(slug || "")}`,
+    noindex: status === "missing",
+  });
 
   useEffect(() => {
     let cancelled = false;

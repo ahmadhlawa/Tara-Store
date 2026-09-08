@@ -12,6 +12,7 @@ import CategoryCard from "../components/public/catalog/CategoryCard.jsx";
 import ProductGrid, { GridSkeleton } from "../components/public/catalog/ProductGrid.jsx";
 import { ArrowForward } from "../components/public/shell/icons.jsx";
 import { useViewportReveal } from "../hooks/useViewportReveal.js";
+import useSeo, { absoluteUrl } from "../hooks/useSeo.js";
 
 /**
  * Each admin-managed section type is rendered by exactly one composition, and
@@ -80,6 +81,30 @@ export default function HomePage() {
   const store = useStore();
   const money = useMoney();
   const categories = useCategoryNav();
+  const { settings } = store;
+  const organization = settings.publicBaseUrl ? {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: settings.storeName,
+    url: settings.publicBaseUrl,
+    ...(settings.logoUrl ? { logo: absoluteUrl(settings.publicBaseUrl, settings.logoUrl) } : {}),
+    ...(settings.phone ? { telephone: settings.phone } : {}),
+    ...(settings.email ? { email: settings.email } : {}),
+  } : null;
+  const website = settings.publicBaseUrl ? {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: settings.storeName,
+    url: settings.publicBaseUrl,
+  } : null;
+  useSeo({
+    title: settings.seoTitle || settings.storeName,
+    description: settings.seoDescription || settings.tagline,
+    baseUrl: settings.publicBaseUrl,
+    path: "/",
+    image: settings.logoUrl,
+    jsonLd: [organization, website].filter(Boolean),
+  });
 
   const [hero, setHero] = useState({ slides: [], status: "loading" });
   const [sections, setSections] = useState({ list: [], status: "loading" });

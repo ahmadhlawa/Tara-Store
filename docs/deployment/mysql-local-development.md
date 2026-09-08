@@ -73,7 +73,7 @@ Install the MySQL extra once:
 
 ```
 cd backend
-.venv\Scripts\python.exe -m pip install -e ".[dev,mysql]"
+.venv\Scripts\python.exe -m pip install -c constraints.txt -e ".[dev,mysql]"
 ```
 
 The `rsa` extra it pulls in is required because MySQL 8 defaults to

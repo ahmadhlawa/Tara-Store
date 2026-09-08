@@ -15,6 +15,7 @@ import {
   GridIcon,
   SearchIcon,
 } from "../components/public/shell/icons.jsx";
+import useSeo from "../hooks/useSeo.js";
 
 const PAGE_SIZE = 12;
 
@@ -70,6 +71,15 @@ export default function CatalogPage({ mode = "shop" }) {
   const [ceiling, setCeiling] = useState(500);
   const [density, setDensity] = useState("standard");
   const firstLoad = useRef(true);
+  const cleanPath = mode === "category" ? `/category/${encodeURIComponent(params.slug || "")}` : `/${mode}`;
+  const seoTitle = mode === "category" && category ? category.name : spec.title;
+  useSeo({
+    title: `${seoTitle} | ${store.settings.storeName}`,
+    description: (mode === "category" ? category?.description : spec.subtitle) || store.settings.seoDescription,
+    baseUrl: store.settings.publicBaseUrl,
+    path: cleanPath,
+    noindex: mode === "search" || search.toString().length > 0,
+  });
 
   const baseQuery = useMemo(() => {
     const query = { ...(spec.force || {}) };

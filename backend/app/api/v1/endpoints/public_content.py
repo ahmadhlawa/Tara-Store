@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import Select, or_, select
 
 from app.api.deps import DbSession
@@ -41,8 +41,9 @@ def _within_window(stmt: Select, model) -> Select:
 
 
 @identity_router.get("/store/settings", response_model=StoreSettingsPublic)
-def store_settings(db: DbSession):
-    return settings_service.public_settings(db)
+def store_settings(db: DbSession, request: Request):
+    value = StoreSettingsPublic.model_validate(settings_service.public_settings(db))
+    return value.model_copy(update={"public_base_url": request.app.state.config.PUBLIC_BASE_URL})
 
 
 @router.get("/hero-slides", response_model=list[HeroSlideOut])

@@ -28,6 +28,8 @@ export function normalizeProduct(raw) {
     bestSeller: !!raw.is_bestseller,
     short: raw.short_description || "",
     description: raw.description || "",
+    seoTitle: raw.seo_title || "",
+    seoDescription: raw.seo_description || "",
     imageUrl: raw.primary_image_url || null,
     // Present on the list projection too, so a card can cross-fade to it on
     // hover without fetching the product's detail payload.

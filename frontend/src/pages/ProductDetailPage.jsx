@@ -16,6 +16,7 @@ import SectionHead from "../components/public/shell/SectionHead.jsx";
 import Media from "../components/public/shell/Media.jsx";
 import NotFoundRoutePage from "./NotFoundRoutePage.jsx";
 import { BoxIcon, TruckIcon, WalletIcon } from "../components/public/shell/icons.jsx";
+import useSeo, { absoluteUrl } from "../hooks/useSeo.js";
 
 function paragraphsOf(text) {
   return String(text || "")
@@ -38,6 +39,46 @@ export default function ProductDetailPage() {
   const [qty, setQty] = useState(1);
   const [related, setRelated] = useState([]);
   const [error, setError] = useState("");
+  const baseUrl = store.settings.publicBaseUrl;
+  const productPath = `/product/${encodeURIComponent(slug || "")}`;
+  const productJsonLd = product && baseUrl ? {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.seoDescription || product.short || product.description || undefined,
+    image: (product.images.length ? product.images.map((image) => image.url) : [product.imageUrl])
+      .map((image) => absoluteUrl(baseUrl, image))
+      .filter(Boolean),
+    sku: product.sku || undefined,
+    offers: {
+      "@type": "Offer",
+      url: absoluteUrl(baseUrl, productPath),
+      priceCurrency: store.settings.currencyCode,
+      price: String(product.sale ?? product.price),
+      availability: product.inStock
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+    },
+  } : null;
+  const breadcrumbs = product?.categorySlug && baseUrl ? {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: store.settings.storeName, item: baseUrl },
+      { "@type": "ListItem", position: 2, name: product.categoryName, item: absoluteUrl(baseUrl, `/category/${encodeURIComponent(product.categorySlug)}`) },
+      { "@type": "ListItem", position: 3, name: product.name, item: absoluteUrl(baseUrl, productPath) },
+    ],
+  } : null;
+  useSeo({
+    title: product ? (product.seoTitle || `${product.name} | ${store.settings.storeName}`) : store.settings.storeName,
+    description: product ? (product.seoDescription || product.short || product.description) : "",
+    baseUrl,
+    path: productPath,
+    image: product?.imageUrl,
+    type: "product",
+    noindex: status === "missing",
+    jsonLd: productJsonLd ? [productJsonLd, breadcrumbs].filter(Boolean) : [],
+  });
 
   useEffect(() => {
     setQty(1);

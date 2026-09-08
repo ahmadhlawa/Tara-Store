@@ -24,6 +24,7 @@ class StoreSettingsPublic(APIModel):
     """
 
     store_name: str
+    public_base_url: str = ""
     store_name_ar: str | None = None
     store_tagline: str | None = None
     logo_url: str | None = None

@@ -51,6 +51,7 @@ export function normalizeSettings(raw) {
     youtubeVisible: settings.youtube_visible !== false,
     currency: settings.currency_symbol || "₪",
     currencyCode: settings.currency_code || "ILS",
+    publicBaseUrl: settings.public_base_url || "",
     seoTitle: settings.seo_title || settings.store_name || STORE_NAME_LATIN,
     seoDescription: settings.seo_description || "",
     maintenanceMode: !!settings.maintenance_mode,
@@ -84,6 +85,8 @@ export function normalizePage(raw) {
     slug: raw?.slug || "",
     lead: raw?.lead || "",
     body: paragraphs.length ? paragraphs : [String(raw?.content || "").trim()].filter(Boolean),
+    seoTitle: raw?.seo_title || "",
+    seoDescription: raw?.seo_description || "",
   };
 }
 

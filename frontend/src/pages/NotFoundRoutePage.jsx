@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import useSeo from "../hooks/useSeo.js";
 
 export default function NotFoundRoutePage() {
+  useSeo({ title: "الصفحة غير موجودة", noindex: true });
   return (
     <section className="vs-container vs-section">
       <div className="vs-state vs-notfound">

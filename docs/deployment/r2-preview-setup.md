@@ -9,7 +9,7 @@ Install the optional client once in the backend virtual environment:
 
 ```powershell
 cd D:\Project\Tara-Store\backend
-.venv\Scripts\python.exe -m pip install -e ".[r2]"
+.venv\Scripts\python.exe -m pip install -c constraints.txt -e ".[r2]"
 ```
 
 Copy the values below into the untracked `backend/.env` file. Do not put them in a

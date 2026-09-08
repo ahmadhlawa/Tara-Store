@@ -18,7 +18,7 @@ storage account and no network services are required.
 ```powershell
 cd D:\Project\vista-store-e-commerce\backend
 python -m venv .venv
-.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.venv\Scripts\python.exe -m pip install -c constraints.txt -e ".[dev]"
 ```
 
 `-e ".[dev]"` installs the application in editable mode together with pytest, coverage and

@@ -31,6 +31,7 @@ uniqueness across instances.
 - [ ] Generate a unique `SECRET_KEY`:
       `python -c "import secrets; print(secrets.token_urlsafe(48))"`
 - [ ] `APP_ENV=production`
+- [ ] `PUBLIC_BASE_URL=https://CLIENT_DOMAIN` uses the canonical HTTPS origin
 - [ ] `APP_NAME` — the client's store name
 - [ ] `DATABASE_URL` — this client's own database and user
 - [ ] `CORS_ORIGINS=https://CLIENT_DOMAIN`
@@ -42,7 +43,7 @@ uniqueness across instances.
 
 ## 3 — Build and apply the schema
 
-- [ ] Backend virtualenv, then `pip install .` (production; `-e ".[dev]"` only for
+- [ ] Backend virtualenv, then `pip install -c constraints.txt .` (production; `-c constraints.txt -e ".[dev]"` only for
       development machines)
 - [ ] `alembic upgrade head`
 - [ ] `cd frontend && npm ci && npm run build` → `dist/`

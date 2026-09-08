@@ -14,7 +14,7 @@ has ever been contacted from this repository**, and the operational checklist be
 charset, users, privileges, backups, connection pooling — is still work to be done on the
 day a client instance actually moves.
 
-> The CI gate installs `pip install -e ".[dev,mysql]"`. The `mysql` extra pulls
+> The CI gate installs `pip install -c constraints.txt -e ".[dev,mysql,r2]"`. The `mysql` extra pulls
 > `PyMySQL[rsa]`, which MySQL 8 needs for its default `caching_sha2_password`
 > authentication. A real MySQL deployment needs the same extra.
 

@@ -105,7 +105,7 @@ answers that do not exist.
 3. Create the Python app; set the application root and Python version.
 4. Build the package: `python scripts/make_release_package.py`.
 5. Upload and extract outside the document root if the host permits it.
-6. Install dependencies (`pip install -r requirements.txt`).
+6. Install dependencies (`pip install -c constraints.txt -r requirements.txt`).
 7. Write the real `.env` from `backend.env.example`. **Never commit it.**
 8. `alembic upgrade head` against MySQL.
 9. `python -m scripts.instance_cli apply --profile instance/vista-store.yaml`.
