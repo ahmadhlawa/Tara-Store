@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from sqlalchemy import event, inspect
 from sqlalchemy.orm import Session
 
 from app.core.enums import ProductType
-from app.models import Category, Product
+from app.models import Category, PackageItem, Product, ProductImage, ProductOption
+from app.services import catalog as catalog_service
 from tests.conftest import auth, make_product
 
 
@@ -236,6 +238,62 @@ def test_listing_flags_products_that_need_an_option_chosen(
     assert listed[with_options.slug]["has_options"] is True
 
     assert client.get(f"/api/v1/products/{with_options.slug}").json()["has_options"] is True
+
+
+def test_public_list_query_loads_only_compact_relations_without_n_plus_one(db: Session) -> None:
+    category = Category(name="List category", slug="list-category")
+    db.add(category)
+    db.commit()
+    included = make_product(db, slug="included", name="Included")
+    products = [
+        make_product(
+            db,
+            slug=f"list-{index}",
+            name=f"List {index}",
+            category_id=category.id,
+        )
+        for index in range(3)
+    ]
+    for product in products:
+        db.add(ProductImage(product_id=product.id, url=f"/media/{product.id}.png"))
+        db.add(ProductOption(product_id=product.id, name="Size"))
+        db.add(PackageItem(package_product_id=product.id, included_product_id=included.id))
+    db.commit()
+    db.expunge_all()
+
+    statements: list[str] = []
+    engine = db.get_bind()
+
+    def record(connection, cursor, statement, parameters, context, executemany):
+        statements.append(statement.lower())
+
+    event.listen(engine, "before_cursor_execute", record)
+    try:
+        rows = db.execute(
+            catalog_service.product_list_query(active_only=True).where(Product.slug.like("list-%"))
+        ).scalars().all()
+        payloads = [catalog_service.product_payload(row, include_relations=False) for row in rows]
+    finally:
+        event.remove(engine, "before_cursor_execute", record)
+
+    assert len(statements) == 5  # product + four bounded select-in relationship queries
+    assert not any("product_specifications" in sql or "product_variants" in sql for sql in statements)
+    assert all(item["has_options"] and item["package_item_count"] == 1 for item in payloads)
+    assert all({"specifications", "variants"}.issubset(inspect(row).unloaded) for row in rows)
+
+
+def test_admin_list_query_does_not_load_public_or_detail_only_relations(db: Session) -> None:
+    make_product(db, slug="admin-list", name="Admin List")
+    db.expunge_all()
+    row = db.execute(
+        catalog_service.product_list_query(active_only=False, public=False).where(
+            Product.slug == "admin-list"
+        )
+    ).scalar_one()
+    assert {"specifications", "options", "variants", "package_items"}.issubset(
+        inspect(row).unloaded
+    )
+    catalog_service.admin_product_list_payload(row)
 
 
 def test_package_cannot_contain_itself_or_another_package(

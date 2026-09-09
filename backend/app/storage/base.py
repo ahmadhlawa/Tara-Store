@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import uuid
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from io import BytesIO
+
+from PIL import Image, ImageSequence, UnidentifiedImageError
 
 from app.services.errors import DomainError
 
@@ -34,7 +38,19 @@ def sniff_content_type(data: bytes) -> str | None:
     return None
 
 
-def validate_image_upload(data: bytes, max_bytes: int) -> tuple[str, str]:
+_PIL_FORMATS = {
+    "image/jpeg": "JPEG",
+    "image/png": "PNG",
+    "image/webp": "WEBP",
+    "image/gif": "GIF",
+    "image/x-icon": "ICO",
+    "image/vnd.microsoft.icon": "ICO",
+}
+
+
+def validate_image_upload(
+    data: bytes, max_bytes: int, max_pixels: int = 40_000_000
+) -> tuple[str, str]:
     """Return `(content_type, extension)` or raise a DomainError."""
     if not data:
         raise DomainError("الملف فارغ.", code="empty_file")
@@ -49,6 +65,30 @@ def validate_image_upload(data: bytes, max_bytes: int) -> tuple[str, str]:
             "نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, WebP, GIF, ICO.",
             code="unsupported_media_type",
         )
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(BytesIO(data)) as image:
+                if image.format != _PIL_FORMATS[content_type]:
+                    raise DomainError(
+                        "تنسيق الصورة الفعلي لا يطابق ترويسة الملف.",
+                        code="image_format_mismatch",
+                    )
+                width, height = image.size
+                if width <= 0 or height <= 0:
+                    raise DomainError("أبعاد الصورة غير صالحة.", code="invalid_image_dimensions")
+                if width * height > max_pixels:
+                    raise DomainError("أبعاد الصورة تتجاوز الحد المسموح.", code="image_too_many_pixels")
+                image.verify()
+            with Image.open(BytesIO(data)) as decoded:
+                for frame in ImageSequence.Iterator(decoded):
+                    frame.load()
+    except DomainError:
+        raise
+    except (Image.DecompressionBombWarning, Image.DecompressionBombError):
+        raise DomainError("أبعاد الصورة تتجاوز الحد المسموح.", code="image_too_many_pixels") from None
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError):
+        raise DomainError("ملف الصورة تالف أو غير صالح.", code="invalid_image") from None
     return content_type, ALLOWED_IMAGE_TYPES[content_type]
 
 

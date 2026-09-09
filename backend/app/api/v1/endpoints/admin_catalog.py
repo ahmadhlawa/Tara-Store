@@ -154,7 +154,7 @@ def delete_category(category_id: int, db: DbSession, admin: CurrentAdmin):
 
 # ── Products ──────────────────────────────────────────────────────────────────
 def _load_product(db: DbSession, product_id: int) -> Product:
-    stmt = catalog_service.base_product_query(active_only=False).where(Product.id == product_id)
+    stmt = catalog_service.product_detail_query(active_only=False).where(Product.id == product_id)
     product = db.execute(stmt).scalars().unique().one_or_none()
     if product is None:
         get_or_404(db, Product, product_id, "المنتج غير موجود.")
@@ -176,7 +176,7 @@ def list_products(
     ] = "newest",
 ) -> Page[ProductAdminListOut]:
     stmt = catalog_service.apply_product_filters(
-        catalog_service.base_product_query(active_only=False),
+        catalog_service.product_list_query(active_only=False, public=False),
         q=q,
         category_id=category_id,
         product_type=product_type.value if product_type else None,

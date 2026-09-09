@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     LOCAL_MEDIA_ROOT: str = "./data/uploads"
     LOCAL_MEDIA_BASE_URL: str = "/media"
     MAX_UPLOAD_SIZE_BYTES: int = 5 * 1024 * 1024
+    MAX_IMAGE_PIXELS: int = Field(default=40_000_000, ge=1, le=100_000_000)
 
     R2_ENDPOINT_URL: str = ""
     R2_ACCESS_KEY_ID: str = ""

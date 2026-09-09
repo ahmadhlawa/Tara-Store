@@ -7,14 +7,17 @@ refusal to delete anything outside the configured namespace.
 
 from __future__ import annotations
 
+from io import BytesIO
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from app.core.config import Settings
 from app.core.enums import StorageProviderName
 from app.storage import build_storage
 from app.storage.base import build_stored_key, normalize_prefix, validate_image_upload
+import app.storage.base as storage_base
 from app.storage.local import LocalStorageProvider
 from app.storage.r2 import R2NotConfiguredError, R2StorageError, R2StorageProvider
 from app.services.errors import DomainError
@@ -308,3 +311,63 @@ def test_upload_validation_rejects_a_non_image() -> None:
 def test_upload_validation_rejects_an_oversized_file() -> None:
     with pytest.raises(DomainError, match="حجم الملف"):
         validate_image_upload(gradient_png(64, 64, (0, 0, 0), (255, 255, 255)), 16)
+
+
+def image_bytes(format_name: str) -> bytes:
+    output = BytesIO()
+    size = (16, 16) if format_name == "ICO" else (8, 8)
+    Image.new("RGB", size, "purple").save(output, format=format_name)
+    return output.getvalue()
+
+
+@pytest.mark.parametrize(
+    ("format_name", "content_type", "extension"),
+    [
+        ("JPEG", "image/jpeg", ".jpg"),
+        ("PNG", "image/png", ".png"),
+        ("WEBP", "image/webp", ".webp"),
+        ("GIF", "image/gif", ".gif"),
+        ("ICO", "image/x-icon", ".ico"),
+    ],
+)
+def test_upload_validation_decodes_supported_images(
+    format_name: str, content_type: str, extension: str
+) -> None:
+    assert validate_image_upload(image_bytes(format_name), 1024 * 1024) == (
+        content_type,
+        extension,
+    )
+
+
+@pytest.mark.parametrize("payload", [b"\xff\xd8\xfffake", b"\x89PNG\r\n\x1a\ninvalid"])
+def test_upload_validation_rejects_fake_magic_headers(payload: bytes) -> None:
+    with pytest.raises(DomainError) as error:
+        validate_image_upload(payload, 1024)
+    assert error.value.code == "invalid_image"
+
+
+def test_upload_validation_rejects_truncated_image() -> None:
+    payload = image_bytes("JPEG")[:-20]
+    with pytest.raises(DomainError) as error:
+        validate_image_upload(payload, 1024 * 1024)
+    assert error.value.code == "invalid_image"
+
+
+def test_upload_validation_enforces_decoded_pixel_limit() -> None:
+    with pytest.raises(DomainError) as error:
+        validate_image_upload(image_bytes("PNG"), 1024 * 1024, max_pixels=63)
+    assert error.value.code == "image_too_many_pixels"
+
+
+def test_upload_validation_treats_pillow_bomb_warning_as_an_error(monkeypatch) -> None:
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 32)
+    with pytest.raises(DomainError) as error:
+        validate_image_upload(image_bytes("PNG"), 1024 * 1024, max_pixels=100)
+    assert error.value.code == "image_too_many_pixels"
+
+
+def test_upload_validation_rejects_sniffed_and_decoded_format_mismatch(monkeypatch) -> None:
+    monkeypatch.setattr(storage_base, "sniff_content_type", lambda data: "image/jpeg")
+    with pytest.raises(DomainError) as error:
+        validate_image_upload(image_bytes("PNG"), 1024 * 1024)
+    assert error.value.code == "image_format_mismatch"

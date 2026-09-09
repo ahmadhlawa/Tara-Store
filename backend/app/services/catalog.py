@@ -7,10 +7,10 @@ import unicodedata
 from typing import Any
 
 from sqlalchemy import Select, func, or_, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, load_only, selectinload
 
 from app.core.enums import ProductType
-from app.models import Category, PackageItem, Product
+from app.models import Category, PackageItem, Product, ProductImage, ProductOption
 
 _TASHKEEL = re.compile(r"[ً-ْـ]")
 _ALEF = re.compile(r"[أإآ]")
@@ -32,7 +32,7 @@ def refresh_search_text(product: Product) -> None:
     product.search_text = normalize_arabic(" ".join(parts))[:800]
 
 
-def product_loaders():
+def product_detail_loaders():
     return (
         selectinload(Product.images),
         selectinload(Product.specifications),
@@ -43,8 +43,31 @@ def product_loaders():
     )
 
 
-def base_product_query(*, active_only: bool) -> Select:
-    stmt = select(Product).options(*product_loaders())
+def product_detail_query(*, active_only: bool) -> Select:
+    stmt = select(Product).options(*product_detail_loaders())
+    if active_only:
+        stmt = stmt.where(Product.is_active.is_(True))
+    return stmt
+
+
+def product_list_query(*, active_only: bool, public: bool = True) -> Select:
+    """Load only relationships required by compact list serializers.
+
+    Select-in loaders keep query count constant as the page grows. Public cards need
+    two image URLs plus option/package presence; Admin rows need only their cover.
+    """
+    loaders = [
+        selectinload(Product.images).load_only(ProductImage.url, ProductImage.sort_order),
+        selectinload(Product.category).load_only(Category.name, Category.slug),
+    ]
+    if public:
+        loaders.extend(
+            [
+                selectinload(Product.options).load_only(ProductOption.id),
+                selectinload(Product.package_items).load_only(PackageItem.id),
+            ]
+        )
+    stmt = select(Product).options(*loaders)
     if active_only:
         stmt = stmt.where(Product.is_active.is_(True))
     return stmt

@@ -71,7 +71,7 @@ def _product_page(
     **filters,
 ) -> Page[ProductPublicOut]:
     stmt = catalog_service.apply_product_filters(
-        catalog_service.base_product_query(active_only=True), **filters
+        catalog_service.product_list_query(active_only=True), **filters
     )
     stmt = catalog_service.apply_product_sort(stmt, sort)
     rows, total = catalog_service.paginate(
@@ -146,7 +146,7 @@ def list_products(
 
 @router.get("/products/{slug}", response_model=ProductPublicDetail)
 def get_product(slug: str, db: DbSession) -> dict:
-    stmt = catalog_service.base_product_query(active_only=True).where(Product.slug == slug)
+    stmt = catalog_service.product_detail_query(active_only=True).where(Product.slug == slug)
     product = db.execute(stmt).scalars().unique().one_or_none()
     if product is None:
         raise _NOT_FOUND
@@ -163,7 +163,7 @@ def related_products(
     if product is None:
         raise _NOT_FOUND
     stmt = (
-        catalog_service.base_product_query(active_only=True)
+        catalog_service.product_list_query(active_only=True)
         .where(Product.id != product.id, Product.category_id == product.category_id)
         .order_by(Product.is_featured.desc(), Product.sort_order.asc(), Product.id.desc())
         .limit(limit)
