@@ -1,6 +1,6 @@
-# cPanel handoff — Vista Store
+# cPanel handoff — Tara Store
 
-**Date:** 2026-08-02 · **Branch:** `feat/vista-store-initial-release`
+**Status:** Current deployment handoff template; no production deployment has occurred.
 
 This separates what is finished from what is waiting on someone else. Read the three
 sections in order; do not skip to section 3.
@@ -11,14 +11,14 @@ sections in order; do not skip to section 3.
 
 | Area | State |
 | --- | --- |
-| Dedicated Vista Store repository | Local rebranding complete; GitHub publication remains pending |
-| Vista Store identity | Applied from `instance/vista-store.yaml` — the two verified names, nothing invented |
+| Dedicated Tara Store repository | Current source is maintained on `master` |
+| Tara Store identity | Applied from `instance/tara-store.yaml` |
 | Backend | FastAPI + SQLAlchemy + Alembic, three migrations, MySQL-portable column types throughout |
 | Storefront | React/Vite, Arabic, RTL, guest checkout, no customer accounts |
 | Admin | Full workspace including the new invoice screens |
 | Payments | Cash on delivery and manual transfer only; no card UI; the backend rejects anything else with 422 |
 | Invoicing | Automatic on first confirmation, immutable snapshot, sequential numbering, cancellation preserved, browser-printable A4 Arabic sheet |
-| Media | Local disk, Vista-specific root, Git-ignored, collision-resistant filenames |
+| Media | Local disk, Tara-specific development root, Git-ignored, collision-resistant filenames |
 | Tests | Backend 193 passed (91% coverage), frontend 47 passed, production build clean |
 | Local acceptance | 26/26 live checks against a real server — `docs/client/local-acceptance.md` |
 | Release packaging | `scripts/make_release_package.py` builds a secret-free archive |
@@ -67,7 +67,7 @@ See `docs/client/data-needed-from-owner.md` — 35 items, with 1–8 marked bloc
 
 Two deserve early attention because they are expensive to change later:
 
-- **Currency.** `ILS`/`₪` is a template default, not a verified Vista Store value. An
+- **Currency.** The configured currency must be confirmed by the Tara Store owner. An
   invoice is an immutable record; one issued in the wrong currency cannot be corrected in
   place, only cancelled and reissued.
 - **Invoice prefix.** Defaults to `INV`. Settle it before the first confirmed order, or
@@ -108,7 +108,7 @@ answers that do not exist.
 6. Install dependencies (`pip install -c constraints.txt -r requirements.txt`).
 7. Write the real `.env` from `backend.env.example`. **Never commit it.**
 8. `alembic upgrade head` against MySQL.
-9. `python -m scripts.instance_cli apply --profile instance/vista-store.yaml`.
+9. `python -m scripts.instance_cli apply --profile instance/tara-store.yaml`.
 10. Create the owner's admin account with `python -m app.initial_data`. Delete the local
     development admin; it must never exist in production.
 11. Publish `frontend/dist` to the document root.

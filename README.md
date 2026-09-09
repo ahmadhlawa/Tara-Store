@@ -1,16 +1,13 @@
-# Vista Store
+# Tara Store
 
-Arabic RTL e-commerce storefront and administration platform for Vista Store.
+Arabic RTL e-commerce storefront and administration platform for Tara Store.
 
-> **Project status:** local development only. Nothing has been deployed.
+> **Project status:** production deployment and real catalog entry are still pending.
 
-Vista Store provides a public storefront for browsing products, managing a cart, guest
-checkout, coupons, delivery areas, order tracking, editorial content, and static pages.
-Its admin workspace manages the catalogue, media, orders, coupons, delivery areas, home
-content, pages, articles, settings, administrator accounts, audit history, and invoices.
-
-Cash on delivery and manual payment are supported. Online card payments are not included.
-An immutable, sequential invoice is created automatically when an order is first confirmed.
+The application provides a public storefront, guest checkout, order tracking, editorial
+content, and an administration workspace for catalog, media, orders, promotions, content,
+settings, administrators, audit history, and invoices. Cash on delivery and manual payment
+are supported; online card payments are not included.
 
 ## Platform
 
@@ -19,30 +16,28 @@ An immutable, sequential invoice is created automatically when an order is first
 | Frontend | React and Vite |
 | Backend | FastAPI, SQLAlchemy, and Alembic |
 | Local database | SQLite |
-| Production database | MySQL-compatible |
+| Production database | MySQL 8 compatible |
 | Media storage | Local storage or Cloudflare R2 |
 
-The active profile is [Vista Store](instance/vista-store.yaml): `Vista Store` / `متجر فيستا`,
-using the verified Vista colour identity and logo. `ILS` / `₪` remains the documented
-preview default only; it must be confirmed by the owner before real orders are accepted.
+The active profile is [Tara Store](instance/tara-store.yaml).
 
 ## Local setup
 
-Requires Python 3.12+ and Node.js 18+.
+Requires Python 3.12+ and Node.js 22.
 
 ```powershell
-cd D:\Project\vista-store-e-commerce\backend
+cd backend
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -c constraints.txt -e ".[dev]"
 copy .env.example .env
 .venv\Scripts\alembic.exe upgrade head
-.venv\Scripts\python.exe -m scripts.instance_cli apply --profile ..\instance\vista-store.yaml
+.venv\Scripts\python.exe -m scripts.instance_cli apply --profile ..\instance\tara-store.yaml
 .venv\Scripts\python.exe -m app.initial_data --email you@example.com --password '<choose one>'
 .venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 
 # In a second terminal
-cd D:\Project\vista-store-e-commerce\frontend
-npm install
+cd frontend
+npm ci
 npm run dev
 ```
 
@@ -52,21 +47,15 @@ and [known limitations](docs/known-limitations.md).
 ## Testing
 
 ```powershell
-cd D:\Project\vista-store-e-commerce\backend
+cd backend
 .venv\Scripts\python.exe -m pytest
+.venv\Scripts\python.exe -m scripts.mysql_compat --verbose
 
-cd D:\Project\vista-store-e-commerce\frontend
-npx vitest run
+cd ..\frontend
+npm ci
+npm test -- --run
 npm run build
 ```
 
-## Current limitations
-
-- The real owner catalogue is still being finalized.
-- Live Cloudflare R2 credentials are pending.
-- Production cPanel deployment is pending.
-- No online card payment is available.
-
-This client project originated from the internal commerce foundation and is now maintained
-as the dedicated Vista Store application. Historical release and architecture records are
-retained for provenance; they are not part of the current onboarding path.
+Historical release and architecture records are retained for provenance and are not the
+current readiness source.

@@ -1,5 +1,8 @@
 # Release-candidate report — 0.3.0-rc.1
 
+> **HISTORICAL / SUPERSEDED:** This records an earlier acceptance run and is not the
+> current production-readiness source.
+
 Branch `feat/template-acceptance-rc`, cut from `feat/template-productization` at
 `2ed239b`. This is an acceptance pass over an existing implementation, not a rebuild.
 

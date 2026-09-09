@@ -98,7 +98,7 @@ def _ignore(directory: str, names: list[str]) -> set[str]:
 
 
 def build_frontend() -> None:
-    print("→ building the frontend")
+    print("-> building the frontend")
     npm = shutil.which("npm") or shutil.which("npm.cmd")
     if npm is None:
         sys.exit("npm was not found on PATH. Install Node, or pass --skip-build.")
@@ -212,6 +212,20 @@ def audit(root: Path) -> list[str]:
             problems.append(f"secret or runtime file: {relative}")
         if any(part in EXCLUDED_NAMES for part in relative.parts):
             problems.append(f"excluded directory survived: {relative}")
+    for required in ("backend/constraints.txt", "instance/tara-store.yaml"):
+        if not (root / required).is_file():
+            problems.append(f"required release file missing: {required}")
+    current_docs = [root / "deployment/cpanel", root / "docs/cpanel-handoff.md",
+                    root / "docs/cpanel-capability-checklist.md", root / "READ-ME-FIRST.md"]
+    for source in current_docs:
+        paths = source.rglob("*") if source.is_dir() else [source]
+        for path in paths:
+            if path.is_file():
+                text = path.read_text(encoding="utf-8").lower()
+                if "vista" in text:
+                    problems.append(f"stale Vista identity in current release instructions: {path.relative_to(root)}")
+                if "instance/vista-store.yaml" in text:
+                    problems.append(f"nonexistent Vista profile in release instructions: {path.relative_to(root)}")
     return problems
 
 
@@ -234,10 +248,10 @@ def main() -> int:
         shutil.rmtree(staging)
     staging.mkdir(parents=True)
 
-    print(f"→ staging into {staging}")
+    print(f"-> staging into {staging}")
     stage(staging)
 
-    print("→ auditing the staged tree")
+    print("-> auditing the staged tree")
     problems = audit(staging)
     if problems:
         shutil.rmtree(staging)
@@ -253,7 +267,7 @@ def main() -> int:
                 bundle.write(path, path.relative_to(staging))
 
     files = sum(1 for path in staging.rglob("*") if path.is_file())
-    print(f"\nPackaged {files} files → {archive}")
+    print(f"\nPackaged {files} files -> {archive}")
     print(f"  {archive.stat().st_size / 1024:.0f} KB")
     print("\nNo secrets, databases, uploads or Git history are included.")
     print("NOT certified deployable: the cPanel capability checklist is still unanswered.")

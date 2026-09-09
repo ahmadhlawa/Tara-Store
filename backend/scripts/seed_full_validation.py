@@ -1,8 +1,8 @@
 ﻿"""Build the deterministic acceptance fixture for a disposable validation database.
 
 This script never runs against the tracked development databases. It refuses any
-DATABASE_URL whose file name is not of the ``vista_full_validation_*.db`` form, so a
-mistyped argument cannot reseed ``vista_preview.db`` or ``vista_store_dev.db``.
+DATABASE_URL whose file name is not of the ``tara_full_validation_*.db`` form, so a
+mistyped argument cannot reseed ``tara_store_dev.db``.
 
 Catalog, content, marketing and account rows are written through the ORM. Orders and
 invoices are created through the real HTTP API (an in-process TestClient bound to the
@@ -16,13 +16,12 @@ fight the very invariant the acceptance run is meant to prove. The script theref
 refuses to seed a database that already carries the fixture, and running it on a new
 copy always produces the identical dataset.
 
-    # 1. make a disposable copy and bring it to head
-    copy backend\\data\\vista_preview.db backend\\data\\vista_full_validation_<stamp>.db
-    DATABASE_URL=sqlite+pysqlite:///./data/vista_full_validation_<stamp>.db alembic upgrade head
+    # 1. create a uniquely named empty disposable database and migrate it
+    DATABASE_URL=sqlite+pysqlite:///./data/tara_full_validation_<stamp>.db alembic upgrade head
 
     # 2. seed it
     python scripts/seed_full_validation.py \
-        --database-url sqlite+pysqlite:///./data/vista_full_validation_<stamp>.db
+        --database-url sqlite+pysqlite:///./data/tara_full_validation_<stamp>.db
 """
 
 from __future__ import annotations
@@ -47,7 +46,7 @@ from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 SLUG_PREFIX = "vfx-"
 # Not a special-use TLD: `email-validator` rejects .local/.test/.example outright,
 # and the login endpoint validates the address as an EmailStr.
-EMAIL_DOMAIN = "vista-acceptance.dev"
+EMAIL_DOMAIN = "tara-acceptance.dev"
 LEGACY_EMAIL_DOMAINS = ("validation.local",)
 CLIENT_REF_PREFIX = "vfx-checkout-"
 COUPON_PREFIX = "VFX"
@@ -61,7 +60,7 @@ SUPER_ADMIN_EMAIL = f"super@{EMAIL_DOMAIN}"
 NORMAL_ADMIN_EMAIL = f"admin@{EMAIL_DOMAIN}"
 INACTIVE_ADMIN_EMAIL = f"inactive@{EMAIL_DOMAIN}"
 
-VALIDATION_DB_PATTERN = re.compile(r"vista_full_validation_[0-9]{8}-[0-9]{6}\.db$")
+VALIDATION_DB_PATTERN = re.compile(r"tara_full_validation_[0-9]{8}-[0-9]{6}\.db$")
 
 
 def _guard_database_url(url: str) -> None:
@@ -73,7 +72,7 @@ def _guard_database_url(url: str) -> None:
         raise SystemExit(
             "refusing to seed a database that is not a disposable validation copy.\n"
             f"  got     : {url}\n"
-            "  expected: .../data/vista_full_validation_<yyyymmdd-hhmmss>.db"
+            "  expected: .../data/tara_full_validation_<yyyymmdd-hhmmss>.db"
         )
 
 
@@ -83,7 +82,7 @@ def guard_not_already_seeded(db: Session) -> None:
 
     Re-seeding in place is not possible without deleting orders, and order history is
     append-only by database trigger from migration 0008. A second run therefore has to
-    start from a new copy of the database.
+    start from a new empty migrated database.
     """
     from app.models import AdminUser, Product
 
@@ -97,7 +96,7 @@ def guard_not_already_seeded(db: Session) -> None:
         raise SystemExit(
             "this database already carries the validation fixture.\n"
             "order history is append-only (migration 0008), so the fixture cannot be\n"
-            "rebuilt in place. Make a new copy of the source database, upgrade it to\n"
+            "rebuilt in place. Create a new empty database, upgrade it to\n"
             "head, and seed that instead."
         )
 
@@ -513,7 +512,7 @@ def seed_store_settings(db: Session) -> None:
     if row is None:
         row = StoreSettings()
         db.add(row)
-    row.store_name = row.store_name or "Vista Store"
+    row.store_name = row.store_name or "Tara Store"
     row.whatsapp = "970599000000"
     row.phone = "0599000000"
     row.email = f"store@{EMAIL_DOMAIN}"

@@ -113,11 +113,18 @@ def _production_settings(**overrides) -> Settings:
         {"PUBLIC_BASE_URL": ""},
         {"PUBLIC_BASE_URL": "http://shop.example.com"},
         {"PUBLIC_BASE_URL": "https://shop.example.com/catalog?q=x#top"},
+        {"LOCAL_MEDIA_ROOT": ""},
+        {"LOCAL_MEDIA_ROOT": "."},
     ],
 )
 def test_production_rejects_unsafe_configuration(override: dict[str, object]) -> None:
     with pytest.raises(ValidationError):
         _production_settings(**override)
+
+
+@pytest.mark.parametrize("media_root", ["./data/uploads", "../shared/media"])
+def test_production_accepts_meaningful_local_media_paths(media_root: str) -> None:
+    assert _production_settings(LOCAL_MEDIA_ROOT=media_root).LOCAL_MEDIA_ROOT == media_root
 
 
 def test_production_disables_api_documentation() -> None:

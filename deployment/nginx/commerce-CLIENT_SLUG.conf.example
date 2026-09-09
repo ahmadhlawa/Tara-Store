@@ -129,7 +129,7 @@ server {
     }
 
     # ── 3. Uploaded media ───────────────────────────────────────────────────
-    # Served straight from disk. Must match LOCAL_MEDIA_ROOT in the instance .env.
+    # Served from PROJECT_PATH/backend/data/uploads; set LOCAL_MEDIA_ROOT=./data/uploads.
     # Stored filenames are random hex, so they are safe to cache for a long time.
     location /media/ {
         alias PROJECT_PATH/backend/data/uploads/;
@@ -138,7 +138,7 @@ server {
         access_log off;
         try_files $uri =404;
 
-        # Uploads are validated by magic bytes on the way in; never execute them.
+        # Uploads are signature-checked and decoded/verified with Pillow; never execute them.
         location ~ \.(php|py|sh|cgi|pl)$ { deny all; }
     }
 

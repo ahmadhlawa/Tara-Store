@@ -53,6 +53,17 @@ test("an admin catalog record persists, reflects publicly, and is safely removed
       data: { is_active: false },
     });
     expect(inactive.status(), await inactive.text()).toBe(200);
+    const adminDetail = await request.get(`/api/v1/admin/products/${productId}`, { headers });
+    expect(adminDetail.status(), await adminDetail.text()).toBe(200);
+    expect((await adminDetail.json()).is_active).toBe(false);
+
+    const publicList = await request.get("/api/v1/products");
+    expect(publicList.status(), await publicList.text()).toBe(200);
+    expect((await publicList.json()).items.some((item) => item.slug === productSlug)).toBe(false);
+
+    const publicSearch = await request.get(`/api/v1/products?q=${encodeURIComponent(productSlug)}`);
+    expect(publicSearch.status(), await publicSearch.text()).toBe(200);
+    expect((await publicSearch.json()).items.some((item) => item.slug === productSlug)).toBe(false);
     expect((await request.get(`/api/v1/products/${productSlug}`)).status()).toBe(404);
 
     const active = await request.patch(`/api/v1/admin/products/${productId}`, {

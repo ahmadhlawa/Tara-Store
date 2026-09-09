@@ -85,9 +85,9 @@ location /media/ {
 }
 ```
 
-This path must match `LOCAL_MEDIA_ROOT` in the instance `.env`. Nginx serves the files;
+This path matches production `LOCAL_MEDIA_ROOT=./data/uploads`. Nginx serves the files;
 the API never streams them. Script extensions are denied inside that location as a second
-layer behind the magic-byte validation on upload.
+layer behind signature checks and Pillow decoding/verification on upload.
 
 If the instance later moves to Cloudflare R2, media URLs point elsewhere and this location
 should be removed — see [future-r2-integration.md](future-r2-integration.md).
@@ -107,9 +107,8 @@ real domain, leave `R2_*` and `INITIAL_ADMIN_*` empty, and `chmod 600` the resul
 ## What these templates do not do
 
 They do not provision DNS, issue certificates, configure a firewall, install a database
-server, create system users, or set up backups. They also do **not** configure rate
-limiting for `/api/v1/auth/login` — the application does not implement it either, so add
-`limit_req` before any public launch.
+server, create system users, or set up backups. Application rate limits are configured
+through the backend environment.
 
 ## Related
 

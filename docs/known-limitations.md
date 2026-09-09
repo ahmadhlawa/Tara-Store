@@ -3,19 +3,12 @@
 An honest list of what this application does not do, does only partly, or has not proven.
 Read it before promising anything to the client.
 
-## Vista Store — specific to this instance
+## Tara Store readiness
 
-- **The store cannot take a real order.** No delivery area exists, and checkout requires
-  one. No catalog, no phone number, no address. All of it is waiting on the owner —
-  `docs/client/data-needed-from-owner.md`.
-- **Business data is unverified except the name.** The supplied Facebook page is
-  login-walled; only "Vista Store / متجر فيستا" is confirmed. Currency, colours and
-  timezone are template defaults carried over, not Vista Store values.
-- **No visual QA has been done.** No browser tooling was available. Every screen renders
-  in jsdom and the print CSS is asserted, but nothing has been *looked at* — including the
-  printed A4 invoice and the cancelled watermark. See `docs/client/local-acceptance.md`.
-- **No deployment target is confirmed.** Whether a FastAPI app runs on the client's cPanel
-  account is unanswered. See `docs/deployment/cpanel-capability-checklist.md`.
+- **Real catalog and owner data are not entered yet.** See
+  [client-data-readiness.md](client-data-readiness.md).
+- **No production deployment target is confirmed.** Whether the client's cPanel supports
+  Python 3.12 and ASGI remains unanswered.
 
 ## Invoicing — what it does not do
 
@@ -88,12 +81,6 @@ Be precise about these when reporting status.
   Docker is not installed on the machine this was written on. See
   [future-mysql-migration.md](future-mysql-migration.md) and
   [deployment/mysql-local-development.md](deployment/mysql-local-development.md).
-- **The preview catalog is demonstration content, not Vista Store's.** Every product name
-  and price in `instance/preview/vista-social-preview.yaml` is invented. It is removable
-  with `vista-preview purge --confirm`. See
-  [client/preview-content-manifest.md](client/preview-content-manifest.md).
-- **The preview catalog has never been looked at in a browser.** No browser tooling was
-  available. See [client/preview-visual-qa.md](client/preview-visual-qa.md).
 - **The deployment templates have never been installed or run** on any server. They are
   reviewed examples, not proven configuration.
 - **Python 3.13 is what the development environment runs**, while the code targets 3.12+.

@@ -115,6 +115,11 @@ class Settings(BaseSettings):
             raise ValueError("production CORS_ORIGINS must contain only explicit HTTPS origins")
         if self.is_sqlite:
             raise ValueError("production DATABASE_URL must not use the development SQLite database")
+        if self.STORAGE_PROVIDER.strip().lower() == "local":
+            if not self.LOCAL_MEDIA_ROOT.strip():
+                raise ValueError("production LOCAL_MEDIA_ROOT must be a non-empty media directory")
+            if self.media_root == BACKEND_ROOT.resolve():
+                raise ValueError("production LOCAL_MEDIA_ROOT must not resolve to the backend root")
         if not 1 <= self.ACCESS_TOKEN_EXPIRE_MINUTES <= 60:
             raise ValueError("production access tokens must expire within 60 minutes")
         self.LOGIN_RATE_LIMIT = self.LOGIN_RATE_LIMIT or 10

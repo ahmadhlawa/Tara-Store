@@ -1,4 +1,4 @@
-# cPanel capability checklist — Vista Store
+# cPanel capability checklist — Tara Store
 
 **Status: unanswered. Send this to the hosting provider or the account owner.**
 

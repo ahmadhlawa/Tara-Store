@@ -8,7 +8,7 @@ storage account and no network services are required.
 | Tool | Version | Notes |
 | --- | --- | --- |
 | Python | 3.12 or newer | The reference environment currently runs 3.13 |
-| Node.js | 18 or newer | Vite 6 requires it |
+| Node.js | 22 | Matches CI and the supported application runtime |
 | Git | any recent | |
 
 ## First run
@@ -16,7 +16,7 @@ storage account and no network services are required.
 ### 1 — Backend
 
 ```powershell
-cd D:\Project\vista-store-e-commerce\backend
+cd D:\Project\Tara-Store\backend
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -c constraints.txt -e ".[dev]"
 ```
@@ -40,7 +40,7 @@ Then edit `backend\.env`:
   ```
 
 - Leave everything else at its default for local work. `DATABASE_URL` already points at
-  `./data/commerce_dev.db`, and relative SQLite paths are anchored to `backend/`, not to
+  `./data/tara_store_dev.db`, and relative SQLite paths are anchored to `backend/`, not to
   your current directory, so the file lands in the same place wherever you run from.
 
 `.env` is git-ignored. Confirm it if you are unsure:
@@ -59,8 +59,8 @@ A JSON array works too.
 .venv\Scripts\python.exe -m scripts.seed
 ```
 
-`alembic upgrade head` creates all 24 tables from revisions `0001_initial` and
-`0002_instance_metadata`.
+`alembic upgrade head` applies the full migration chain through current head
+`0014_remove_content`.
 
 > **Two initialization workflows, deliberately separate.** `scripts.seed` is the **demo
 > seed** — sample products, orders and coupons for development and demonstration. A real
@@ -103,12 +103,12 @@ email validator. The first account created is a `super_admin`.
 
 ```powershell
 # terminal 1
-cd D:\Project\vista-store-e-commerce\backend
+cd D:\Project\Tara-Store\backend
 .venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 
 # terminal 2
-cd D:\Project\vista-store-e-commerce\frontend
-npm install
+cd D:\Project\Tara-Store\frontend
+npm ci
 npm run dev
 ```
 
@@ -121,9 +121,8 @@ npm run dev
 
 The Vite dev server proxies `/api`, `/media` and `/health` to `127.0.0.1:8000`, so the
 browser talks to a single origin and no CORS configuration is needed in development. If
-you run the backend on another port, either change the proxy target in
-`frontend/vite.config.js` or set `VITE_API_BASE_URL` and `VITE_MEDIA_BASE_URL` in
-`frontend/.env.local` and add the dev origin to `CORS_ORIGINS`.
+you run the backend on another port, set `VITE_DEV_API_TARGET` in
+`frontend/.env.local`. The canonical local runtime is Vite 5173 proxying backend 8000.
 
 ## Daily workflow
 
@@ -138,17 +137,17 @@ Both reload on save. After pulling changes that touch `backend/app/models/`, run
 ## Tests
 
 ```powershell
-cd D:\Project\vista-store-e-commerce\backend
-.venv\Scripts\python.exe -m pytest                 # 74 tests
-.venv\Scripts\python.exe -m pytest --cov=app       # with coverage, currently 88 %
+cd D:\Project\Tara-Store\backend
+.venv\Scripts\python.exe -m pytest                 # full backend suite
+.venv\Scripts\python.exe -m pytest --cov=app       # with coverage
 
-cd D:\Project\vista-store-e-commerce\frontend
-npx vitest run                                     # 24 tests
+cd D:\Project\Tara-Store\frontend
+npm test -- --run                                  # unit tests
 npm run test:watch                                 # watch mode
 ```
 
 Backend tests build their own throwaway SQLite database and never touch
-`commerce_dev.db`. Frontend tests run under jsdom with `fetch` stubbed; they never reach a
+`tara_store_dev.db`. Frontend tests run under jsdom with `fetch` stubbed; they never reach a
 real server.
 
 ## Instance tooling
@@ -156,7 +155,7 @@ real server.
 Four commands manage an instance's identity. All are local and touch no server.
 
 ```powershell
-cd D:\Project\vista-store-e-commerce\backend
+cd D:\Project\Tara-Store\backend
 .venv\Scripts\python.exe -m scripts.instance_cli validate --profile ..\instance\demo-profile.yaml
 .venv\Scripts\python.exe -m scripts.instance_cli plan     --profile ..\instance\demo-profile.yaml
 .venv\Scripts\python.exe -m scripts.instance_cli apply    --profile ..\instance\demo-profile.yaml
@@ -175,7 +174,7 @@ The offline MySQL portability check connects to nothing:
 ## Production build check
 
 ```powershell
-cd D:\Project\vista-store-e-commerce\frontend
+cd D:\Project\Tara-Store\frontend
 npm run build       # emits dist/
 npm run preview     # serves the build locally
 ```
@@ -207,7 +206,7 @@ Confirm an admin exists (`app.initial_data`), that the account is active, and th
 
 **Images 404 in development**
 They are served through the `/media` proxy from `LOCAL_MEDIA_ROOT`. Check the backend is
-running and that `backend/data/uploads/` contains the files.
+running and that `backend/data/tara-uploads/` contains the files.
 
 **Arabic slugs in URLs**
 Products named in Arabic get Arabic slugs. Browsers percent-encode them automatically;

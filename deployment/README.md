@@ -81,7 +81,7 @@ Work through this in order. Stop at anything that does not behave as described.
 - [ ] Set `APP_ENV=production`.
 - [ ] Set `DATABASE_URL` for this instance's own database.
 - [ ] Set `CORS_ORIGINS=https://CLIENT_DOMAIN` (comma-separated if more than one).
-- [ ] Set `LOCAL_MEDIA_ROOT` to a directory the service user can write to.
+- [ ] Set `LOCAL_MEDIA_ROOT=./data/uploads`; ensure `PROJECT_PATH/backend/data/uploads` is writable.
 - [ ] Leave `INITIAL_ADMIN_*` empty; create the admin explicitly in step 4.
 - [ ] `chmod 600` the `.env` and make the service user its owner.
 - [ ] Confirm `.env` is not tracked by Git.
@@ -128,8 +128,7 @@ Work through this in order. Stop at anything that does not behave as described.
 
 - [ ] Back up the database and the media directory together; see
       `docs/backup-and-restore.md`.
-- [ ] Add rate limiting in front of `/api/v1/auth/login` — the application does not
-      implement it.
+- [ ] Confirm application rate limits and `TRUSTED_PROXY_IPS` match the deployment.
 - [ ] Pin the Python version; the code targets 3.12+.
 
 ## Out of scope for these templates

@@ -4,9 +4,9 @@ import { expect } from "@playwright/test";
  * Acceptance credentials. They exist only inside the disposable validation database
  * created by backend/scripts/seed_full_validation.py and are worthless anywhere else.
  */
-export const MANAGER = { email: "super@vista-acceptance.dev", password: "Validation!Pass42" };
-export const EMPLOYEE = { email: "admin@vista-acceptance.dev", password: "Validation!Pass42" };
-export const DISABLED = { email: "inactive@vista-acceptance.dev", password: "Validation!Pass42" };
+export const MANAGER = { email: "super@tara-acceptance.dev", password: "Validation!Pass42" };
+export const EMPLOYEE = { email: "admin@tara-acceptance.dev", password: "Validation!Pass42" };
+export const DISABLED = { email: "inactive@tara-acceptance.dev", password: "Validation!Pass42" };
 
 /**
  * Collect console errors and failed responses for the lifetime of a page.
