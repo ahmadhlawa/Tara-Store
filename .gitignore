@@ -18,7 +18,7 @@ venv/
 # Browser acceptance artefacts: screenshots and traces are captured only on failure
 # and are evidence for one run, never source.
 tmp/
-backend/data/vista_validation_uploads_*/
+backend/data/tara_validation_uploads_*/
 frontend/e2e/.artifacts/
 frontend/playwright-report/
 frontend/test-results/
@@ -41,7 +41,7 @@ htmlcov/
 *.orig
 *.swp
 # Timestamped copies taken before a migration, e.g.
-# vista_preview.db.20260805-212228.pre-0009.bak — covered by *.bak above, and
+# tara_store_dev.db.20260805-212228.pre-0009.bak — covered by *.bak above, and
 # named here so the intent survives an edit to these rules.
 backend/data/*.bak
 
@@ -69,7 +69,7 @@ Thumbs.db
 # `uploads/` rule would make that re-inclusion impossible, so it is not used.
 backend/data/uploads/*
 !backend/data/uploads/.gitkeep
-# Vista's runtime media root. Uploads made through Admin are instance data, never
+# Tara's runtime media root. Uploads made through Admin are instance data, never
 # source; the tracked seed/brand assets live in backend/data/brand instead.
 backend/data/tara-uploads/*
 !backend/data/tara-uploads/.gitkeep

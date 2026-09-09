@@ -56,22 +56,16 @@ A JSON array works too.
 
 ```powershell
 .venv\Scripts\alembic.exe upgrade head
-.venv\Scripts\python.exe -m scripts.seed
+.venv\Scripts\python.exe -m scripts.instance_cli apply --profile ..\instance\tara-store.yaml
 ```
 
 `alembic upgrade head` applies the full migration chain through current head
 `0014_remove_content`.
 
-> **Two initialization workflows, deliberately separate.** `scripts.seed` is the **demo
-> seed** — sample products, orders and coupons for development and demonstration. A real
-> client instance instead gets **client bootstrap**, which creates store identity and
-> structural defaults only:
+> `scripts.seed` is optional, isolated demo/test tooling. It creates sample products,
+> orders, coupons and media; it is not part of Tara's normal first-run workflow.
 >
-> ```powershell
-> .venv\Scripts\python.exe -m scripts.instance_cli apply --profile ..\instance\demo-profile.yaml
-> ```
->
-> Never run the demo seed against a client store. See
+> **NEVER run it against `tara_store_dev.db` once real client data entry begins.** See
 > [client-lifecycle.md](client-lifecycle.md).
 
 `scripts.seed` fills the store with demo content and is **idempotent** — every record is
@@ -156,9 +150,9 @@ Four commands manage an instance's identity. All are local and touch no server.
 
 ```powershell
 cd D:\Project\Tara-Store\backend
-.venv\Scripts\python.exe -m scripts.instance_cli validate --profile ..\instance\demo-profile.yaml
-.venv\Scripts\python.exe -m scripts.instance_cli plan     --profile ..\instance\demo-profile.yaml
-.venv\Scripts\python.exe -m scripts.instance_cli apply    --profile ..\instance\demo-profile.yaml
+.venv\Scripts\python.exe -m scripts.instance_cli validate --profile ..\instance\tara-store.yaml
+.venv\Scripts\python.exe -m scripts.instance_cli plan     --profile ..\instance\tara-store.yaml
+.venv\Scripts\python.exe -m scripts.instance_cli apply    --profile ..\instance\tara-store.yaml
 .venv\Scripts\python.exe -m scripts.instance_cli manifest
 ```
 
