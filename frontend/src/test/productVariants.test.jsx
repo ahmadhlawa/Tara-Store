@@ -303,12 +303,13 @@ const adminProduct = {
 };
 
 describe("product editor variant wiring", () => {
-  it("patches the existing variant and keeps its option combination", async () => {
+  it("uses direct option rows and persists them with the main save", async () => {
     authStorage.save("valid-token", ADMIN);
     const calls = stubApi({
       "/api/v1/auth/me": ADMIN,
       "/api/v1/admin/products/7": adminProduct,
-      "PATCH /api/v1/admin/products/7/variants/101": { ...RED_SMALL, stock_quantity: 30 },
+      "PATCH /api/v1/admin/products/7": adminProduct,
+      "PUT /api/v1/admin/products/7/options": OPTIONS,
       "/api/v1/admin/categories": page([]),
       "/api/v1/admin/products": page([]),
     });
@@ -321,24 +322,18 @@ describe("product editor variant wiring", () => {
       </MemoryRouter>,
     );
 
-    await userEvent.click(await screen.findByRole("button", { name: "تعديل أحمر / صغير" }));
-    await userEvent.clear(screen.getByLabelText("مخزون النسخة"));
-    await userEvent.type(screen.getByLabelText("مخزون النسخة"), "30");
-    await userEvent.click(screen.getByRole("button", { name: "حفظ النسخة" }));
+    expect(await screen.findByLabelText("اسم الخيار 1")).toHaveValue("اللون");
+    expect(screen.queryByRole("button", { name: "تعديل أحمر / صغير" })).toBeNull();
+    await userEvent.clear(screen.getByLabelText("قيمة 1 للخيار 1"));
+    await userEvent.type(screen.getByLabelText("قيمة 1 للخيار 1"), "قرمزي");
+    await userEvent.click(screen.getAllByRole("button", { name: "حفظ" })[0]);
 
-    const patch = await waitFor(() => {
-      const call = calls.find((row) => row.method === "PATCH");
+    const put = await waitFor(() => {
+      const call = calls.find((row) => row.method === "PUT");
       expect(call).toBeTruthy();
       return call;
     });
-    expect(JSON.parse(patch.body)).toEqual({
-      title: "أحمر / صغير",
-      sku: "RS-1",
-      price_override: 70,
-      stock_quantity: 30,
-      is_active: true,
-      option_value_ids: [11, 21],
-    });
+    expect(JSON.parse(put.body)[0].values[0]).toEqual(expect.objectContaining({ id: 11, value: "قرمزي" }));
   });
 });
 
@@ -503,45 +498,31 @@ describe("saving options from the product editor", () => {
     return calls;
   };
 
-  const retypeColours = async (text) => {
-    const fields = await screen.findAllByPlaceholderText("القيم مفصولة بفاصلة");
-    await userEvent.clear(fields[0]);
-    await userEvent.type(fields[0], text);
-  };
-
-  it("saves straight away when no variant is lost", async () => {
+  it("adds and removes direct value rows", async () => {
     const calls = renderEditor();
-    await retypeColours("قرمزي، أزرق");
-    await userEvent.click(screen.getByRole("button", { name: "حفظ الخيارات" }));
-
-    const put = await waitFor(() => {
-      const call = calls.find((row) => row.method === "PUT");
-      expect(call).toBeTruthy();
-      return call;
-    });
-    expect(JSON.parse(put.body)[0].values[0]).toEqual({ id: 11, value: "قرمزي", sort_order: 0 });
-    expect(screen.queryByText(/غير متوافقة/)).toBeNull();
+    await screen.findByLabelText("قيمة 1 للخيار 1");
+    await userEvent.click(screen.getAllByRole("button", { name: "+ إضافة قيمة" })[0]);
+    expect(screen.getByLabelText("قيمة 3 للخيار 1")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "حذف القيمة 3" }));
+    expect(screen.queryByLabelText("قيمة 3 للخيار 1")).toBeNull();
+    expect(calls.find((row) => row.method === "PUT")).toBeFalsy();
   });
 
-  it("asks for confirmation, with the count, before a save that drops variants", async () => {
+  it("keeps unsaved direct values until the main save", async () => {
     const calls = renderEditor();
-    await retypeColours("أزرق");
-    await userEvent.click(screen.getByRole("button", { name: "حفظ الخيارات" }));
-
-    expect(await screen.findByText(/حذف 1 نسخة غير متوافقة/)).toBeTruthy();
+    const value = await screen.findByLabelText("قيمة 1 للخيار 1");
+    await userEvent.clear(value);
+    await userEvent.type(value, "قرمزي");
+    expect(value).toHaveValue("قرمزي");
     expect(calls.find((row) => row.method === "PUT")).toBeFalsy();
-
-    await userEvent.click(screen.getByRole("button", { name: "حفظ وحذف النسخ" }));
-    await waitFor(() => expect(calls.find((row) => row.method === "PUT")).toBeTruthy());
   });
 
-  it("keeps the variants when the confirmation is cancelled", async () => {
+  it("removes an option row locally without invoking the legacy variant workflow", async () => {
     const calls = renderEditor();
-    await retypeColours("أزرق");
-    await userEvent.click(screen.getByRole("button", { name: "حفظ الخيارات" }));
-    await userEvent.click(await screen.findByRole("button", { name: "إلغاء" }));
-
+    await screen.findByLabelText("اسم الخيار 1");
+    await userEvent.click(screen.getAllByRole("button", { name: "حذف الخيار" })[0]);
+    expect(screen.getByLabelText("اسم الخيار 1")).toHaveValue("الحجم");
     expect(calls.find((row) => row.method === "PUT")).toBeFalsy();
-    expect(screen.getByText("أحمر / صغير")).toBeTruthy();
+    expect(screen.queryByText("أحمر / صغير")).toBeNull();
   });
 });

@@ -183,7 +183,7 @@ export function StoreProvider({ children }) {
           unit,
           bg: product.bg,
           imageUrl: product.imageUrl || null,
-          variation: variant?.title || optionSummary || "",
+          variation: optionSummary || variant?.title || "",
           qty,
         });
       }

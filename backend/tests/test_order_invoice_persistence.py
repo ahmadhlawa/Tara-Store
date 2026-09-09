@@ -613,7 +613,8 @@ def test_downgrade_with_replacement_history_refuses_to_stamp_invalid_0004(
         command.downgrade(config, "0004_import_batches")
     command.upgrade(config, "head")
     with engine.connect() as connection:
-        assert connection.execute(sa.text("SELECT version_num FROM alembic_version")).scalar_one() == "0015_hero_targets"
+        current_head = ScriptDirectory.from_config(config).get_current_head()
+        assert connection.execute(sa.text("SELECT version_num FROM alembic_version")).scalar_one() == current_head
     engine.dispose()
 
 

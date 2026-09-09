@@ -38,7 +38,7 @@ describe("checkout confirmation", () => {
       coupon_code: null,
       payment_method: "cash_on_delivery",
       customer_notes: null,
-      items: [{ product_id: 4, variant_id: null, quantity: 2 }],
+      items: [{ product_id: 4, variant_id: null, selected_option_value_ids: [], quantity: 2 }],
     });
   });
 

@@ -209,7 +209,8 @@ export default function ProductEditorPage() {
       if (isNew) {
         const created = await adminApi.createProduct(payload);
         try {
-          await adminApi.replaceOptions(created.id, optionPayload(options));
+          const optionRows = optionPayload(options);
+          if (optionRows.length) await adminApi.replaceOptions(created.id, optionRows);
           await attachQueuedImages(created.id);
         } catch (error) {
           await Promise.allSettled([adminApi.deleteProduct(created.id)]);
@@ -220,7 +221,10 @@ export default function ProductEditorPage() {
         navigate(`/admin/products/${created.id}`, { replace: true });
       } else {
         await adminApi.updateProduct(productId, payload);
-        await adminApi.replaceOptions(productId, optionPayload(options));
+        const optionRows = optionPayload(options);
+        if (optionRows.length || product?.options?.length) {
+          await adminApi.replaceOptions(productId, optionRows);
+        }
         const { added } = await attachQueuedImages(productId);
         if (added.length) {
           if (queuedMain) {
