@@ -205,9 +205,9 @@ def get_product(product_id: int, db: DbSession, admin: CurrentAdmin):
 
 @router.post("/products", response_model=ProductAdminOut, status_code=status.HTTP_201_CREATED)
 def create_product(payload: ProductCreate, db: DbSession, admin: CurrentAdmin):
-    data = payload.model_dump(exclude={"slug", "images", "specifications"})
+    data = payload.model_dump(exclude={"slug", "sku", "images", "specifications"})
     data["product_type"] = payload.product_type.value
-    product = Product(**data, slug=unique_slug(db, Product, payload.slug or payload.name))
+    product = Product(**data, slug=unique_slug(db, Product, payload.name))
     for index, image in enumerate(payload.images):
         product.images.append(ProductImage(**image.model_dump(), ))
         product.images[-1].sort_order = image.sort_order or index
@@ -217,6 +217,15 @@ def create_product(payload: ProductCreate, db: DbSession, admin: CurrentAdmin):
     catalog_service.refresh_search_text(product)
     db.add(product)
     db.flush()
+    # The database-generated primary key is already concurrency-safe on both
+    # SQLite and MySQL, so deriving the public SKU from it needs no counter row.
+    base_sku = f"TARA-{product.id:06d}"
+    product.sku = base_sku
+    suffix = 1
+    while db.scalar(select(Product.id).where(Product.sku == product.sku, Product.id != product.id)):
+        suffix += 1
+        product.sku = f"{base_sku}-{suffix}"
+    catalog_service.refresh_search_text(product)
     audit_service.record(
         db,
         admin=admin,
@@ -232,9 +241,9 @@ def create_product(payload: ProductCreate, db: DbSession, admin: CurrentAdmin):
 @router.patch("/products/{product_id}", response_model=ProductAdminOut)
 def update_product(product_id: int, payload: ProductUpdate, db: DbSession, admin: CurrentAdmin):
     product = _load_product(db, product_id)
-    data = payload.model_dump(exclude_unset=True)
-    if data.get("slug"):
-        data["slug"] = unique_slug(db, Product, data["slug"], exclude_id=product.id)
+    # Product URLs and generated SKUs are stable identifiers, not ordinary edit
+    # fields. Legacy clients may still send them, but edits must not change them.
+    data = payload.model_dump(exclude_unset=True, exclude={"slug", "sku"})
     if isinstance(data.get("product_type"), ProductType):
         data["product_type"] = data["product_type"].value
 

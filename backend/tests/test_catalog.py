@@ -67,11 +67,13 @@ def test_product_crud_and_slug_uniqueness(
     first = client.post("/api/v1/admin/products", headers=auth(admin_token), json=payload)
     assert first.status_code == 201, first.text
     assert first.json()["slug"] == "ريزن-شفاف"
+    assert first.json()["sku"] == f"TARA-{first.json()['id']:06d}"
     assert len(first.json()["specifications"]) == 1
 
     second = client.post("/api/v1/admin/products", headers=auth(admin_token), json=payload)
     assert second.status_code == 201
     assert second.json()["slug"] != first.json()["slug"]
+    assert second.json()["sku"] != first.json()["sku"]
 
     product_id = first.json()["id"]
     updated = client.patch(
@@ -82,6 +84,15 @@ def test_product_crud_and_slug_uniqueness(
     assert updated.status_code == 200
     assert updated.json()["price"] == 99
     assert updated.json()["is_active"] is False
+
+    stable = client.patch(
+        f"/api/v1/admin/products/{product_id}",
+        headers=auth(admin_token),
+        json={"name": "اسم جديد", "slug": "changed", "sku": "changed"},
+    )
+    assert stable.status_code == 200
+    assert stable.json()["slug"] == first.json()["slug"]
+    assert stable.json()["sku"] == first.json()["sku"]
 
     deleted = client.delete(f"/api/v1/admin/products/{product_id}", headers=auth(admin_token))
     assert deleted.status_code == 200

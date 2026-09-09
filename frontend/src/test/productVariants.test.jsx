@@ -392,6 +392,7 @@ describe("storefront multi-axis selection", () => {
 
     await waitFor(() => expect(cartStorage.load()).toHaveLength(1));
     expect(cartStorage.load()[0].variantId).toBe(104);
+    expect(cartStorage.load()[0].variation).toBe("اللون: أزرق، الحجم: كبير");
   });
 
   it("re-resolves when one axis is switched", async () => {

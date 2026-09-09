@@ -662,6 +662,10 @@ def ensure_demo_order(db: Session, products: dict[str, Product]) -> None:
     area = db.execute(
         select(DeliveryArea).order_by(DeliveryArea.sort_order.asc())
     ).scalars().first()
+    resin = products["resin-clear-1kg"]
+    resin_variant = next((row for row in resin.variants if row.is_active), None)
+    mold = products["mold-coaster-rect"]
+    mold_variant = next((row for row in mold.variants if row.is_active), None)
     draft = orders_service.OrderDraft(
         customer_name="عميل تجريبي",
         customer_phone="0591234567",
@@ -669,8 +673,8 @@ def ensure_demo_order(db: Session, products: dict[str, Product]) -> None:
         delivery_area_id=area.id if area else None,
         customer_notes="طلب تجريبي أنشأه أمر التهيئة.",
         items=[
-            (products["resin-clear-1kg"].id, None, 1),
-            (products["mold-coaster-rect"].id, None, 2),
+            (resin.id, resin_variant.id if resin_variant else None, 1),
+            (mold.id, mold_variant.id if mold_variant else None, 2),
         ],
     )
     order = orders_service.create_order(db, draft)

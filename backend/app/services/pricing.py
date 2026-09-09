@@ -36,7 +36,16 @@ class PricedLine:
 
     @property
     def variant_description(self) -> str | None:
-        return self.variant.title if self.variant else None
+        if not self.variant:
+            return None
+        selected = {value.id: value.value for value in self.variant.option_values}
+        labels = [
+            f"{option.name}: {value.value}"
+            for option in self.product.options
+            for value in option.values
+            if value.id in selected
+        ]
+        return "، ".join(labels) or self.variant.title
 
     @property
     def sku(self) -> str | None:
@@ -87,6 +96,11 @@ def price_lines(db: Session, requested: list[tuple[int, int | None, int]]) -> li
             )
 
         variant: ProductVariant | None = None
+        if product.options and variant_id is None:
+            raise DomainError(
+                "يجب اختيار خيارات المنتج قبل إضافته إلى الطلب.",
+                code="variant_required",
+            )
         if variant_id is not None:
             variant = db.get(ProductVariant, variant_id)
             if variant is None or variant.product_id != product.id:

@@ -23,10 +23,8 @@ import {
 
 const EMPTY = {
   name: "",
-  slug: "",
   category_id: "",
   product_type: "standard",
-  sku: "",
   short_description: "",
   description: "",
   price: "",
@@ -44,7 +42,19 @@ const EMPTY = {
   seo_description: "",
 };
 
-function Section({ title, children, actions }) {
+function Section({ title, children, actions, collapsible = false, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  if (collapsible) {
+    return (
+      <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)} style={{ ...card, ...sx`margin-bottom:16px` }}>
+        <summary style={sx`cursor:pointer;font-size:16px;font-weight:800`}>{title}</summary>
+        <div style={sx`display:flex;flex-direction:column;gap:14px;margin-top:14px`}>
+          {actions && <div style={sx`display:flex;justify-content:flex-end`}>{actions}</div>}
+          {children}
+        </div>
+      </details>
+    );
+  }
   return (
     <div style={{ ...card, ...sx`display:flex;flex-direction:column;gap:14px;margin-bottom:16px` }}>
       <div style={sx`display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap`}>
@@ -77,6 +87,7 @@ export default function ProductEditorPage() {
   const [queuedAdditional, setQueuedAdditional] = useState([]);
   const [specs, setSpecs] = useState([]);
   const [options, setOptions] = useState([]);
+  const [selectableEnabled, setSelectableEnabled] = useState(false);
   const [packageChoice, setPackageChoice] = useState({ included_product_id: "", quantity: 1, display_note: "" });
 
   const update = (patch) => setForm((current) => ({ ...current, ...patch }));
@@ -103,6 +114,7 @@ export default function ProductEditorPage() {
           rows: option.values.map((value) => ({ id: value.id, value: value.value })),
         })),
       );
+      setSelectableEnabled(row.options.length > 0);
     } catch (error) {
       feedback.error(error.message || "تعذّر تحميل المنتج.");
     } finally {
@@ -167,7 +179,6 @@ export default function ProductEditorPage() {
         name: form.name.trim(),
         category_id: form.category_id === "" ? null : Number(form.category_id),
         product_type: form.product_type,
-        sku: form.sku.trim() || null,
         short_description: form.short_description,
         description: form.description,
         price: num(form.price) ?? 0,
@@ -188,8 +199,6 @@ export default function ProductEditorPage() {
           existing: isNew ? undefined : form,
         }),
       };
-      if (form.slug.trim()) payload.slug = form.slug.trim();
-
       if (isNew) {
         const created = await adminApi.createProduct(payload);
         try {
@@ -249,6 +258,12 @@ export default function ProductEditorPage() {
     return setOptionsConfirm({ payload, count: removed.length });
   };
 
+  const disableOptions = () => {
+    const removed = variantsRemovedByOptions(product?.variants || [], []);
+    if (removed.length) return setOptionsConfirm({ payload: [], count: removed.length });
+    return commitOptions([]);
+  };
+
   if (loading) return <Spinner />;
 
   const isPackage = form.product_type === "package";
@@ -270,8 +285,6 @@ export default function ProductEditorPage() {
       <Section title="البيانات الأساسية">
         <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px`}>
           <Field title="اسم المنتج"><input value={form.name} onChange={(e) => update({ name: e.target.value })} style={input} /></Field>
-          <Field title="الرابط (اختياري)" hint="يُولَّد من الاسم إذا تُرك فارغاً"><input value={form.slug} onChange={(e) => update({ slug: e.target.value })} style={input} /></Field>
-          <Field title="رقم SKU"><input value={form.sku} onChange={(e) => update({ sku: e.target.value })} style={input} /></Field>
           <Field title="القسم">
             <select value={form.category_id} onChange={(e) => update({ category_id: e.target.value })} style={input}>
               <option value="">بدون قسم</option>
@@ -285,7 +298,6 @@ export default function ProductEditorPage() {
               <option value="silicone_mold">قالب سيليكون</option>
             </select>
           </Field>
-          <Field title="ترتيب العرض"><input type="number" value={form.sort_order} onChange={(e) => update({ sort_order: e.target.value })} style={input} /></Field>
         </div>
         <Field title="وصف مختصر"><textarea rows="2" value={form.short_description} onChange={(e) => update({ short_description: e.target.value })} style={textarea} /></Field>
         <Field title="الوصف الكامل" hint="افصل الفقرات بسطر فارغ."><textarea rows="6" value={form.description} onChange={(e) => update({ description: e.target.value })} style={textarea} /></Field>
@@ -295,17 +307,12 @@ export default function ProductEditorPage() {
         <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px`}>
           <Field title="سعر البيع"><input type="number" step="0.01" value={form.price} onChange={(e) => update({ price: e.target.value })} style={input} /></Field>
           <Field title="سعر قبل الخصم" hint="يجب أن يكون أعلى من سعر البيع"><input type="number" step="0.01" value={form.compare_at_price ?? ""} onChange={(e) => update({ compare_at_price: e.target.value })} style={input} /></Field>
-          <Field title="سعر التكلفة" hint="داخلي — لا يظهر في المتجر"><input type="number" step="0.01" value={form.cost_price ?? ""} onChange={(e) => update({ cost_price: e.target.value })} style={input} /></Field>
           <Field title="الكمية في المخزون"><input type="number" value={form.stock_quantity} onChange={(e) => update({ stock_quantity: e.target.value })} style={input} /></Field>
-          <Field title="حد التنبيه"><input type="number" value={form.low_stock_threshold} onChange={(e) => update({ low_stock_threshold: e.target.value })} style={input} /></Field>
         </div>
         <div style={sx`display:flex;gap:18px;flex-wrap:wrap`}>
           {[
             ["track_inventory", "تتبّع المخزون"],
             ["is_active", "فعّال في المتجر"],
-            ["is_featured", "مميّز"],
-            ["is_new", "جديد"],
-            ["is_bestseller", "الأكثر مبيعاً"],
           ].map(([key, title]) => (
             <label key={key} style={sx`display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer`}>
               <input type="checkbox" checked={!!form[key]} onChange={(e) => update({ [key]: e.target.checked })} style={sx`width:18px;height:18px;accent-color:var(--admin-primary)`} />
@@ -345,7 +352,7 @@ export default function ProductEditorPage() {
             />
           </Section>
 
-          <Section
+          <Section collapsible defaultOpen={specs.length > 0}
             title="المواصفات"
             actions={<Button variant="secondary" onClick={() => setSpecs((rows) => [...rows, { name: "", value: "" }])}>إضافة سطر</Button>}
           >
@@ -369,10 +376,15 @@ export default function ProductEditorPage() {
             </Button>
           </Section>
 
-          <Section
-            title="الخيارات"
-            actions={<Button variant="secondary" onClick={() => setOptions((rows) => [...rows, { name: "", values: "" }])}>إضافة خيار</Button>}
+          <Section collapsible defaultOpen={selectableEnabled}
+            title="الخيارات القابلة للاختيار والنسخ"
+            actions={selectableEnabled ? <Button variant="secondary" onClick={() => setOptions((rows) => [...rows, { name: "", values: "" }])}>إضافة خيار</Button> : null}
           >
+            <label style={sx`display:flex;align-items:center;gap:8px;font-weight:700`}>
+              <input type="checkbox" checked={selectableEnabled} onChange={(e) => setSelectableEnabled(e.target.checked)} />
+              لهذا المنتج خيارات يختارها العميل
+            </label>
+            {selectableEnabled ? <>
             <p style={sx`margin:0;font-size:12.5px;color:#8A7F95`}>حفظ الخيارات يبقي النسخ (variants) المتوافقة كما هي، ويحذف فقط غير المتوافقة بعد تأكيدك.</p>
             {options.map((option, index) => (
               <div key={index} style={sx`display:flex;gap:10px;flex-wrap:wrap`}>
@@ -382,9 +394,6 @@ export default function ProductEditorPage() {
               </div>
             ))}
             <Button onClick={saveOptions}>حفظ الخيارات</Button>
-          </Section>
-
-          <Section title="النسخ (المقاسات والألوان)">
             <ProductVariantsEditor
               options={product?.options || []}
               variants={product?.variants || []}
@@ -401,10 +410,13 @@ export default function ProductEditorPage() {
               )}
               onReport={(message) => feedback.success(message)}
             />
+            </> : (
+              <Button onClick={disableOptions} disabled={!product?.options?.length}>حفظ تعطيل الخيارات</Button>
+            )}
           </Section>
 
           {isPackage && (
-            <Section title="محتويات البكج">
+            <Section collapsible defaultOpen title="محتويات البكج">
               <div style={sx`display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end`}>
                 <Field title="المنتج">
                   <select value={packageChoice.included_product_id} onChange={(e) => setPackageChoice({ ...packageChoice, included_product_id: e.target.value })} style={input}>
@@ -443,6 +455,22 @@ export default function ProductEditorPage() {
               </div>
             </Section>
           )}
+
+          <Section collapsible title="حقول متقدمة وتسويقية">
+            {!isNew && product?.sku && <p style={sx`margin:0;font-size:13px;color:#766669`}>SKU: {product.sku}</p>}
+            <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px`}>
+              <Field title="سعر التكلفة" hint="داخلي — لا يظهر في المتجر"><input type="number" step="0.01" value={form.cost_price ?? ""} onChange={(e) => update({ cost_price: e.target.value })} style={input} /></Field>
+              <Field title="حد التنبيه"><input type="number" value={form.low_stock_threshold} onChange={(e) => update({ low_stock_threshold: e.target.value })} style={input} /></Field>
+              <Field title="ترتيب العرض"><input type="number" value={form.sort_order} onChange={(e) => update({ sort_order: e.target.value })} style={input} /></Field>
+            </div>
+            <div style={sx`display:flex;gap:18px;flex-wrap:wrap`}>
+              {[["is_featured", "مميّز"], ["is_new", "جديد"], ["is_bestseller", "الأكثر مبيعاً"]].map(([key, title]) => (
+                <label key={key} style={sx`display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer`}>
+                  <input type="checkbox" checked={!!form[key]} onChange={(e) => update({ [key]: e.target.checked })} /> {title}
+                </label>
+              ))}
+            </div>
+          </Section>
 
           <div style={sx`display:flex;gap:10px;margin-bottom:30px`}>
             <Button onClick={save} disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ المنتج"}</Button>

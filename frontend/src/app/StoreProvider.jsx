@@ -158,6 +158,20 @@ export function StoreProvider({ children }) {
       if (index > -1) {
         next[index] = { ...next[index], qty: next[index].qty + qty };
       } else {
+        const selectedIds = new Set((variant?.option_value_ids || []).map(Number));
+        const options = product.options || [];
+        const sameCombination = (product.variants || []).filter((row) => {
+          const ids = (row.option_value_ids || []).map(Number);
+          return ids.length === selectedIds.size && ids.every((id) => selectedIds.has(id));
+        });
+        const describesExactCombination = selectedIds.size === options.length
+          && options.every((option) => option.values.filter((value) => selectedIds.has(Number(value.id))).length === 1)
+          && sameCombination.length === 1;
+        const optionSummary = describesExactCombination ? options
+          .flatMap((option) => (option.values || [])
+            .filter((value) => selectedIds.has(Number(value.id)))
+            .map((value) => `${option.name}: ${value.value}`))
+          .join("، ") : "";
         next.push({
           key,
           productId: product.id,
@@ -167,7 +181,7 @@ export function StoreProvider({ children }) {
           unit,
           bg: product.bg,
           imageUrl: product.imageUrl || null,
-          variation: variant?.title || "",
+          variation: optionSummary || variant?.title || "",
           qty,
         });
       }

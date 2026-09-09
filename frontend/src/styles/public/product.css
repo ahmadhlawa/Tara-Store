@@ -6,7 +6,7 @@
 
 .vs-pdp {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.04fr);
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
   grid-template-rows: auto auto;
   gap: 28px 32px;
   align-items: start;
@@ -58,7 +58,7 @@
   border-radius: var(--vs-r-lg);
   overflow: hidden;
   background: var(--vs-surface-2);
-  max-height: 540px;
+  max-height: 460px;
 }
 
 .vs-gallery__thumbs {

@@ -12,7 +12,16 @@ from sqlalchemy.orm import Session
 from app.api.v1.endpoints import public_checkout
 from app.core.enums import DiscountType, OrderStatus
 from app.db.base import utcnow
-from app.models import Coupon, DeliveryArea, Order, PackageItem, Product
+from app.models import (
+    Coupon,
+    DeliveryArea,
+    Order,
+    PackageItem,
+    Product,
+    ProductOption,
+    ProductOptionValue,
+    ProductVariant,
+)
 from app.schemas.orders import OrderCreate
 from app.services import orders as orders_service
 from app.services import pricing
@@ -364,6 +373,64 @@ def test_variant_price_override_is_used(client: TestClient, db: Session) -> None
     assert response.status_code == 201
     assert response.json()["subtotal"] == 150.0
     assert response.json()["items"][0]["variant_description"] == "كبير"
+
+
+def test_configurable_product_requires_variant_and_snapshots_arabic_labels(
+    client: TestClient, db: Session, admin_token: str
+) -> None:
+    product = make_product(db, slug="arabic-options", name="شمعة لافندر", price="100.00")
+    scent = ProductOption(product_id=product.id, name="الرائحة", sort_order=0)
+    scent.values.append(ProductOptionValue(value="فراولة", sort_order=0))
+    size = ProductOption(product_id=product.id, name="الحجم", sort_order=1)
+    size.values.append(ProductOptionValue(value="كبير", sort_order=0))
+    db.add_all([scent, size])
+    db.flush()
+    variant = ProductVariant(
+        product_id=product.id,
+        title="فراولة / كبير",
+        price_override=Decimal("125.00"),
+        stock_quantity=5,
+        option_values=[scent.values[0], size.values[0]],
+    )
+    db.add(variant)
+    db.commit()
+
+    missing = client.post("/api/v1/orders", json=_order_payload(product))
+    assert missing.status_code == 400
+    assert missing.json()["error"]["code"] == "variant_required"
+
+    created = client.post(
+        "/api/v1/orders",
+        json=_order_payload(
+            product,
+            items=[{"product_id": product.id, "variant_id": variant.id, "quantity": 1}],
+        ),
+    )
+    assert created.status_code == 201, created.text
+    item = created.json()["items"][0]
+    assert item["unit_price"] == 125
+    assert item["variant_description"] == "الرائحة: فراولة، الحجم: كبير"
+
+    scent.values[0].value = "مسك"
+    db.commit()
+    lookup = client.get(
+        f"/api/v1/orders/{created.json()['order_number']}",
+        headers={"X-Order-Token": created.json()["public_token"]},
+    )
+    assert lookup.json()["items"][0]["variant_description"] == "الرائحة: فراولة، الحجم: كبير"
+
+    order = db.query(Order).filter_by(order_number=created.json()["order_number"]).one()
+    completed = client.post(
+        f"/api/v1/admin/orders/{order.id}/complete",
+        json={"payment_method": "cash_on_delivery"},
+        headers=auth(admin_token),
+    )
+    assert completed.status_code == 200, completed.text
+    invoice_number = completed.json()["invoice"]["invoice_number"]
+    invoice = client.get(
+        f"/api/v1/admin/invoices/{invoice_number}", headers=auth(admin_token)
+    ).json()
+    assert invoice["items"][0]["variant_description"] == "الرائحة: فراولة، الحجم: كبير"
 
 
 def test_a_variant_from_another_product_is_rejected(client: TestClient, db: Session) -> None:
