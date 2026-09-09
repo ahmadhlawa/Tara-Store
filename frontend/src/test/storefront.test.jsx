@@ -26,19 +26,15 @@ describe("public storefront", () => {
     expect(screen.queryByText("من الساعة العاشرة صباحاً حتى السابعة مساءً")).not.toBeInTheDocument();
   });
 
-  it("uses fixed delivery trust copy without exposing configured area details", async () => {
+  it("always shows the fixed delivery trust copy", async () => {
     stubApi({
       ...storefrontRoutes,
-      "/api/v1/delivery-areas": [
-        { id: 1, name: "رام الله" },
-        { id: 2, name: "القدس" },
-        { id: 3, name: "الداخل" },
-      ],
+      "/api/v1/delivery-areas": [],
     });
     renderApp("/");
 
-    expect(await screen.findByText("التوصيل إلى كافة المناطق")).toBeInTheDocument();
-    expect(screen.queryByText("توصيل إلى 3 مناطق")).not.toBeInTheDocument();
+    expect(await screen.findByText("التوصيل إلى جميع المناطق")).toBeInTheDocument();
+    expect(screen.getByText("تُحتسب رسوم التوصيل عند إتمام الطلب")).toBeInTheDocument();
   });
 
   it("renders the homepage sections the admin has made visible", async () => {
