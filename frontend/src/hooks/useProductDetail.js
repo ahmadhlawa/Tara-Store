@@ -46,8 +46,9 @@ export function useProductDetail(slug) {
  */
 export function useVariantSelection(product) {
   const [variantId, setVariantId] = useState(null);
+  const [simpleChoices, setSimpleChoices] = useState({});
 
-  useEffect(() => setVariantId(null), [product?.id]);
+  useEffect(() => { setVariantId(null); setSimpleChoices({}); }, [product?.id]);
 
   const variants = useMemo(
     () => (product?.variants || []).filter((variant) => variant.is_active),
@@ -61,11 +62,22 @@ export function useVariantSelection(product) {
 
   // Options declared without any variant row cannot be honoured from a card or a
   // quick view; those products are sent to the full product page instead.
-  const requiresChoice = !!product?.hasOptions && variants.length > 0;
-  const unavailable = !!product?.hasOptions && variants.length === 0;
+  const simple = !!product?.hasOptions && variants.length === 0;
+  const selectedOptionValueIds = Object.values(simpleChoices).map(Number);
+  const requiresChoice = !!product?.hasOptions;
+  const unavailable = false;
+  const simpleComplete = !simple || selectedOptionValueIds.length === (product?.options || []).length;
+  const simpleValue = simple ? (product?.options || []).flatMap((option) => option.values || []).find(
+    (value) => selectedOptionValueIds.includes(Number(value.id)) && value.price_override != null,
+  ) : null;
+  const simpleSelection = simpleComplete && simple ? {
+    selected_option_value_ids: selectedOptionValueIds,
+    title: (product.options || []).flatMap((option) => (option.values || []).filter((value) => selectedOptionValueIds.includes(Number(value.id))).map((value) => `${option.name}: ${value.value}`)).join("، "),
+    price_override: simpleValue?.price_override ?? null,
+  } : null;
 
-  const price = selected?.price_override != null
-    ? Number(selected.price_override)
+  const price = (selected || simpleSelection)?.price_override != null
+    ? Number((selected || simpleSelection).price_override)
     : (product?.sale ?? product?.price ?? 0);
 
   const stock = selected ? selected.stock_quantity : product?.stock ?? 0;
@@ -75,10 +87,13 @@ export function useVariantSelection(product) {
     variants,
     variantId,
     setVariantId,
-    selected,
+    simpleChoices,
+    setSimpleChoice: (optionId, valueId) => setSimpleChoices((current) => ({ ...current, [optionId]: valueId })),
+    selected: selected || simpleSelection,
+    selectedOptionValueIds,
     requiresChoice,
     unavailable,
-    missingChoice: requiresChoice && !selected,
+    missingChoice: requiresChoice && !(selected || simpleSelection),
     price,
     stock,
     soldOut,

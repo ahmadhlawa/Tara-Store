@@ -83,6 +83,7 @@ class ProductOptionValueIn(APIModel):
     id: int | None = None
     value: str = Field(min_length=1, max_length=150)
     sort_order: int = 0
+    price_override: Money | None = None
 
 
 class ProductOptionValueOut(ProductOptionValueIn):
@@ -93,6 +94,7 @@ class ProductOptionIn(APIModel):
     id: int | None = None
     name: str = Field(min_length=1, max_length=100)
     sort_order: int = 0
+    affects_price: bool = False
     values: list[ProductOptionValueIn] = Field(default_factory=list)
 
 
@@ -100,6 +102,7 @@ class ProductOptionOut(APIModel):
     id: int
     name: str
     sort_order: int
+    affects_price: bool = False
     values: list[ProductOptionValueOut] = Field(default_factory=list)
 
 

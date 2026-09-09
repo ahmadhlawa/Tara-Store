@@ -225,7 +225,7 @@
      hero reserves, so the box is correct before the image decodes. The cap
      stops the same ratio from turning a 1852px-wide band into a 700px wall on
      a large monitor; containment preserves text embedded in the artwork. */
-  --vs-ar-hero: 4 / 1;
+  --vs-ar-hero: 21 / 8;
   --vs-hero-max-h: 520px;
 }
 @media (max-width: 1279px) {
@@ -236,7 +236,7 @@
     --vs-grid-gap: 18px;
     --vs-fs-h1: 28px;
     --vs-rail-w: 58px;
-    --vs-ar-hero: 4 / 1;
+    --vs-ar-hero: 2 / 1;
     --vs-hero-max-h: 440px;
   }
 }
@@ -263,7 +263,7 @@
     --vs-fs-h1: 26px;
     --vs-fs-h2: 20px;
     /* A tablet keeps the promotional strip wide enough to preserve embedded copy. */
-    --vs-ar-hero: 3 / 1;
+    --vs-ar-hero: 16 / 9;
     /* The fixed rail leaves the layout entirely below 900: its trigger moves
        into the header, so no width is reserved and nothing is covered. */
     --vs-rail-w: 0px;
@@ -287,7 +287,7 @@
     --vs-fs-h1: 23px;
     --vs-fs-h2: 20px;
     /* A phone keeps a compact wide strip and contains the complete artwork. */
-    --vs-ar-hero: 3 / 1;
+    --vs-ar-hero: 16 / 9;
     --vs-hero-max-h: 360px;
     --vs-section: 30px;
     --vs-section-tight: 20px;

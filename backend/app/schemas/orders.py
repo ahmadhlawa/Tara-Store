@@ -16,6 +16,7 @@ PHONE_PATTERN = re.compile(r"^\+?\d{7,15}$")
 class OrderItemIn(APIModel):
     product_id: int
     variant_id: int | None = None
+    selected_option_value_ids: list[int] = Field(default_factory=list)
     quantity: int = Field(gt=0, le=999)
 
 

@@ -19,7 +19,7 @@ const comboKey = (ids) =>
     .sort((a, b) => a - b)
     .join("-");
 
-export default function OptionPicker({ product, variants, variantId, onPick, error }) {
+export default function OptionPicker({ product, variants, variantId, onPick, simpleChoices = {}, onSimplePick, error }) {
   const axes = useMemo(
     () => (product?.options || []).filter((option) => (option.values || []).length),
     [product],
@@ -44,8 +44,17 @@ export default function OptionPicker({ product, variants, variantId, onPick, err
   const [choice, setChoice] = useState({});
   useEffect(() => setChoice({}), [product?.id]);
 
-  if (!variants.length) return null;
   const errorId = error ? "vs-option-error" : undefined;
+
+  if (!variants.length) return (
+    <fieldset className="vs-options" aria-describedby={errorId}>
+      {axes.map((axis) => <div key={axis.id} className="vs-options__axis" role="group" aria-label={axis.name}>
+        <span className="vs-options__legend">{axis.name}<span className="vs-options__required" aria-hidden="true">*</span></span>
+        <div className="vs-options__row">{axis.values.map((value) => <button key={value.id} type="button" className="vs-option" aria-pressed={Number(simpleChoices[axis.id]) === Number(value.id)} onClick={() => onSimplePick(axis.id, value.id)}>{value.value}</button>)}</div>
+      </div>)}
+      {error && <p className="vs-options__error" id="vs-option-error" role="alert">{error}</p>}
+    </fieldset>
+  );
 
   if (!resolvable) {
     const groupName = product?.options?.[0]?.name || "الخيار";

@@ -13,12 +13,12 @@ export function HeroSlidesPage() {
   const fetchList = useCallback(() => adminApi.listHeroSlides(), []);
   const [categories, setCategories] = useState([]);
   useEffect(() => {
-    adminApi.listCategories({ page_size: 100, is_active: true })
+    adminApi.listCategories({ page_size: 100 })
       .then((result) => setCategories(result.items || []))
       .catch(() => setCategories([]));
   }, []);
   const fields = useMemo(() => [
-    { name: "image_url", title: "الصورة", type: "media", required: true, hint: "يفضّل بانر أفقي عريض جداً بنسبة تقارب 4:1، مثل 1920×480 بكسل." },
+    { name: "image_url", title: "الصورة", type: "media", required: true, hint: "المقاس الموصى به لسطح المكتب: 2100×800 بكسل (21:8)." },
     {
       name: "target_type", title: "وجهة الإعلان", type: "select", required: true, defaultValue: "none",
       options: [
@@ -32,7 +32,7 @@ export function HeroSlidesPage() {
     },
     {
       name: "target_slug", title: "القسم", type: "select", required: true,
-      options: categories.map((category) => ({ value: category.slug, label: category.name })),
+      options: categories.map((category) => ({ value: category.slug, label: `${category.name}${category.is_active ? "" : " — مخفي"}` })),
       showWhen: (values) => values.target_type === "category",
     },
     { name: "sort_order", title: "الترتيب", type: "number", defaultValue: 0 },

@@ -199,7 +199,7 @@ class OrderDraft:
     customer_name: str
     customer_phone: str
     address: str
-    items: list[tuple[int, int | None, int]]
+    items: list[tuple[int, int | None, int] | tuple[int, int | None, int, list[int]]]
     client_reference: str | None = None
     customer_email: str | None = None
     delivery_area_id: int | None = None

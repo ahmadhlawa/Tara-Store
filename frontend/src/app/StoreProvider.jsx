@@ -151,8 +151,9 @@ export function StoreProvider({ children }) {
   const addToCart = useCallback(
     (product, qty = 1, variant = null) => {
       if (!product) return;
-      const unit = product.sale ?? product.price;
-      const key = lineKey(product.id, variant?.id);
+      const selectedOptionValueIds = variant?.selected_option_value_ids || [];
+      const unit = variant?.price_override != null ? Number(variant.price_override) : (product.sale ?? product.price);
+      const key = lineKey(product.id, variant?.id, selectedOptionValueIds);
       const next = cart.slice();
       const index = next.findIndex((line) => line.key === key);
       if (index > -1) {
@@ -176,12 +177,13 @@ export function StoreProvider({ children }) {
           key,
           productId: product.id,
           variantId: variant?.id ?? null,
+          selectedOptionValueIds,
           slug: product.slug,
           name: product.name,
           unit,
           bg: product.bg,
           imageUrl: product.imageUrl || null,
-          variation: optionSummary || variant?.title || "",
+          variation: variant?.title || optionSummary || "",
           qty,
         });
       }

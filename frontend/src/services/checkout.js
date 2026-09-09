@@ -6,6 +6,7 @@ const toItems = (cart) =>
   cart.map((line) => ({
     product_id: line.productId,
     variant_id: line.variantId ?? null,
+    selected_option_value_ids: line.selectedOptionValueIds || [],
     quantity: line.qty,
   }));
 

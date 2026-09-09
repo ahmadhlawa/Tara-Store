@@ -6,14 +6,15 @@ const CART_KEY = "commerce_cart_v1";
 const VIEWED_KEY = "commerce_viewed_v1";
 const SEARCHES_KEY = "commerce_searches_v1";
 
-export const lineKey = (productId, variantId) => `${productId}|${variantId ?? ""}`;
+export const lineKey = (productId, variantId, selectedIds = []) => `${productId}|${variantId ?? ""}|${[...selectedIds].map(Number).sort((a, b) => a - b).join("-")}`;
 
 function sanitize(items) {
   if (!Array.isArray(items)) return [];
   return items
     .filter((item) => item && Number.isFinite(Number(item.productId)) && Number(item.qty) > 0)
     .map((item) => ({
-      key: item.key || lineKey(item.productId, item.variantId),
+      selectedOptionValueIds: Array.isArray(item.selectedOptionValueIds) ? item.selectedOptionValueIds.map(Number) : [],
+      key: item.key || lineKey(item.productId, item.variantId, item.selectedOptionValueIds),
       productId: Number(item.productId),
       variantId: item.variantId == null ? null : Number(item.variantId),
       slug: String(item.slug || ""),

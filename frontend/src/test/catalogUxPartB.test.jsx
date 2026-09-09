@@ -30,7 +30,7 @@ describe("structured hero destinations", () => {
     expect(within(dialog).queryByLabelText(/رابط/)).toBeNull();
     await userEvent.selectOptions(within(dialog).getByLabelText("وجهة الإعلان"), "category");
     await userEvent.selectOptions(within(dialog).getByLabelText("القسم"), categoryFixture.slug);
-    expect(within(dialog).getByText(/1920×480/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/2100×800/)).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "حفظ" }));
     await waitFor(() => expect(calls.some((call) => call.method === "PATCH" && JSON.parse(call.body).target_slug === categoryFixture.slug)).toBe(true));
   });

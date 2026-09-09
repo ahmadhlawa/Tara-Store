@@ -433,6 +433,8 @@ def replace_options(
     are dropped; nothing is merged, and no combination is created here.
     """
     product = _load_product(db, product_id)
+    if sum(bool(option.affects_price) for option in payload) > 1:
+        raise DomainError("يمكن لخيار واحد فقط تغيير السعر.", code="multiple_price_options")
     # Snapshot before touching the axes: once a value row is deleted the
     # association rows go with it, and the variant would look empty.
     variant_value_ids = {
@@ -472,6 +474,7 @@ def replace_options(
                 row = ProductOption(product_id=product.id)
             row.name = option.name
             row.sort_order = option.sort_order or index
+            row.affects_price = option.affects_price
             value_rows: list[ProductOptionValue] = []
             for value_index, value in enumerate(option.values):
                 value_row = existing_values.get(value.id) if value.id else None
@@ -483,6 +486,7 @@ def replace_options(
                     value_row = ProductOptionValue()
                 value_row.value = value.value
                 value_row.sort_order = value.sort_order or value_index
+                value_row.price_override = value.price_override if option.affects_price else None
                 value_rows.append(value_row)
             row.values = value_rows
             option_rows.append(row)

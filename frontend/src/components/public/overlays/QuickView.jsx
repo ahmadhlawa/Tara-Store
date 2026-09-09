@@ -30,7 +30,7 @@ export default function QuickView({ slug, open, onClose }) {
     setError("");
   }, [slug]);
 
-  useEffect(() => setError(""), [selection.variantId]);
+  useEffect(() => setError(""), [selection.variantId, selection.selectedOptionValueIds.join("-")]);
 
   const view = product ? productView(product, money) : null;
   const images = product?.images?.length ? product.images : [];
@@ -125,6 +125,8 @@ export default function QuickView({ slug, open, onClose }) {
                 variants={selection.variants}
                 variantId={selection.variantId}
                 onPick={selection.setVariantId}
+                simpleChoices={selection.simpleChoices}
+                onSimplePick={selection.setSimpleChoice}
                 error={error}
               />
             )}

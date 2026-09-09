@@ -85,7 +85,7 @@ export default function ProductDetailPage() {
     setError("");
   }, [slug]);
 
-  useEffect(() => setError(""), [selection.variantId]);
+  useEffect(() => setError(""), [selection.variantId, selection.selectedOptionValueIds.join("-")]);
 
   useEffect(() => {
     if (status !== "ready" || !product) return undefined;
@@ -246,6 +246,8 @@ export default function ProductDetailPage() {
                 variants={selection.variants}
                 variantId={selection.variantId}
                 onPick={selection.setVariantId}
+                simpleChoices={selection.simpleChoices}
+                onSimplePick={selection.setSimpleChoice}
                 error={error}
               />
             )}

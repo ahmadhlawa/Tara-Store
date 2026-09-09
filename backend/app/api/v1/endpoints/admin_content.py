@@ -62,7 +62,7 @@ def list_hero_slides(db: DbSession, admin: CurrentAdmin):
     "/hero-slides", response_model=HeroSlideAdminOut, status_code=status.HTTP_201_CREATED
 )
 def create_hero_slide(payload: HeroSlideCreate, db: DbSession, admin: CurrentAdmin):
-    _validate_hero_target(db, payload.target_type, payload.target_slug)
+    _validate_hero_target(db, payload.target_type, payload.target_slug, payload.is_active)
     slide = HeroSlide(**payload.model_dump())
     db.add(slide)
     db.flush()
@@ -84,9 +84,10 @@ def update_hero_slide(
     slide_id: int, payload: HeroSlideUpdate, db: DbSession, admin: CurrentAdmin
 ):
     slide = get_or_404(db, HeroSlide, slide_id, "الشريحة غير موجودة.")
-    target_type = payload.target_type or slide.target_type
+    target_type = payload.target_type if payload.target_type is not None else slide.target_type
     target_slug = payload.target_slug if payload.target_slug is not None else slide.target_slug
-    _validate_hero_target(db, target_type, target_slug)
+    is_active = payload.is_active if payload.is_active is not None else slide.is_active
+    _validate_hero_target(db, target_type, target_slug, is_active)
     changed = apply_updates(slide, payload)
     audit_service.record(
         db,
@@ -101,14 +102,14 @@ def update_hero_slide(
     return slide
 
 
-def _validate_hero_target(db: DbSession, target_type: str | None, target_slug: str | None) -> None:
+def _validate_hero_target(db: DbSession, target_type: str | None, target_slug: str | None, is_active: bool) -> None:
     if target_type != "category":
         return
-    category = db.scalar(
-        select(Category.id).where(Category.slug == target_slug, Category.is_active.is_(True))
-    )
+    category = db.scalar(select(Category).where(Category.slug == target_slug))
     if category is None:
         raise ConflictError("القسم المحدد غير متاح.", code="hero_category_unavailable")
+    if is_active and not category.is_active:
+        raise ConflictError("لا يمكن تفعيل شريحة مرتبطة بقسم مخفي.", code="hero_category_unavailable")
 
 
 @router.delete("/hero-slides/{slide_id}", response_model=MessageResponse)

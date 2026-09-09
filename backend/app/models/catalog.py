@@ -174,6 +174,7 @@ class ProductOption(Base):
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    affects_price: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     product: Mapped[Product] = relationship(back_populates="options")
     values: Mapped[list["ProductOptionValue"]] = relationship(
@@ -194,6 +195,7 @@ class ProductOptionValue(Base):
     )
     value: Mapped[str] = mapped_column(String(150), nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    price_override: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
 
     option: Mapped[ProductOption] = relationship(back_populates="values")
 

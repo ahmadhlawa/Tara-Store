@@ -219,5 +219,6 @@ def test_robots_and_sitemap_use_configured_origin_and_public_rows(
         assert "https://shop.example.com/product/public-product" in sitemap.text
         assert "https://shop.example.com/category/active-category" in sitemap.text
         assert "https://shop.example.com/page/shipping-policy" in sitemap.text
+        assert "https://shop.example.com/categories" in sitemap.text
         assert "/hidden" not in sitemap.text
         assert all(private not in sitemap.text for private in ("/admin", "/cart", "/checkout", "/search"))
