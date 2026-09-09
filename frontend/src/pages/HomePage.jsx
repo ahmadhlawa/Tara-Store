@@ -13,6 +13,7 @@ import ProductGrid, { GridSkeleton } from "../components/public/catalog/ProductG
 import { ArrowForward } from "../components/public/shell/icons.jsx";
 import { useViewportReveal } from "../hooks/useViewportReveal.js";
 import useSeo, { absoluteUrl } from "../hooks/useSeo.js";
+import { STORE_ROUTES } from "../utils/storeRoutes.js";
 
 /**
  * Each admin-managed section type is rendered by exactly one composition, and
@@ -20,7 +21,7 @@ import useSeo, { absoluteUrl } from "../hooks/useSeo.js";
  * split editorial block — so the page has rhythm instead of eight identical rows.
  */
 const SECTIONS = {
-  categories: { kind: "categories", fallbackTitle: "تسوّق حسب القسم", more: "/shop" },
+  categories: { kind: "categories", fallbackTitle: "تسوّق حسب القسم", more: STORE_ROUTES.categories },
   featured_products: {
     kind: "products",
     layout: "grid",

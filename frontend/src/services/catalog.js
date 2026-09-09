@@ -95,7 +95,7 @@ export const catalogService = {
   },
   async categories() {
     const rows = await publicApi.categories();
-    return rows.map(normalizeCategory);
+    return rows.filter((row) => row.is_active !== false).map(normalizeCategory);
   },
   async category(slug) {
     return normalizeCategory(await publicApi.category(slug));

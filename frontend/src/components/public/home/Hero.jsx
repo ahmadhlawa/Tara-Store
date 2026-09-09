@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import Media from "../shell/Media.jsx";
 
 const INTERVAL_MS = 6000;
@@ -31,9 +32,12 @@ export default function Hero({ slides }) {
 
   return (
     <section className="vs-hero" aria-label="العروض">
-      {slides.map((slide, slideIndex) => (
-        <div
+      {slides.map((slide, slideIndex) => {
+        const Slide = slide.destination ? Link : "div";
+        return (
+        <Slide
           key={slide.id}
+          {...(slide.destination ? { to: slide.destination } : {})}
           className="vs-hero__slide"
           data-active={slideIndex === index}
           aria-hidden={slideIndex !== index}
@@ -45,8 +49,8 @@ export default function Hero({ slides }) {
             eager={slideIndex === 0}
             fetchPriority={slideIndex === 0 ? "high" : undefined}
           />
-        </div>
-      ))}
+        </Slide>
+      );})}
     </section>
   );
 }

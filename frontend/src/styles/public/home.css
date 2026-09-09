@@ -35,6 +35,7 @@
   opacity: 0;
   transition: opacity var(--vs-t-hero) var(--vs-ease);
   pointer-events: none;
+  display: block;
 }
 
 .vs-hero__slide[data-active="true"] {
@@ -49,7 +50,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
 }
 

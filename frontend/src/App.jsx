@@ -7,6 +7,7 @@ import useSeo from "./hooks/useSeo.js";
 
 const AdminApp = lazy(() => import("./admin/AdminApp.jsx"));
 const CatalogPage = lazy(() => import("./pages/CatalogPage.jsx"));
+const CategoriesPage = lazy(() => import("./pages/CategoriesPage.jsx"));
 const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage.jsx"));
 const CartRoutePage = lazy(() => import("./pages/CartRoutePage.jsx"));
 const CheckoutRoutePage = lazy(() => import("./pages/CheckoutRoutePage.jsx"));
@@ -47,6 +48,7 @@ export default function App() {
         >
           <Route index element={<HomePage />} />
           <Route path="shop" element={lazyRoute(CatalogPage, { mode: "shop" })} />
+          <Route path="categories" element={lazyRoute(CategoriesPage)} />
           <Route path="category/:slug" element={lazyRoute(CatalogPage, { mode: "category" })} />
           <Route path="offers" element={lazyRoute(CatalogPage, { mode: "offers" })} />
           <Route path="packages" element={lazyRoute(CatalogPage, { mode: "packages" })} />

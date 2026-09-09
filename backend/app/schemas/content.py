@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, field_validator, model_validator
 
@@ -10,6 +10,7 @@ from app.schemas.common import APIModel, UTCDateTime
 
 _MAX_CONFIG_KEYS = 20
 _SCRIPTISH = ("<script", "javascript:", "onerror=", "onload=", "<iframe")
+HeroTarget = Literal["none", "shop", "offers", "packages", "categories", "category"]
 
 
 def _reject_markup(value: str, field: str) -> str:
@@ -27,6 +28,8 @@ class HeroSlideBase(APIModel):
     image_url: str | None = Field(default=None, max_length=500)
     button_label: str | None = Field(default=None, max_length=100)
     button_url: str | None = Field(default=None, max_length=500)
+    target_type: HeroTarget = "none"
+    target_slug: str | None = Field(default=None, max_length=160)
     is_active: bool = True
     sort_order: int = 0
     starts_at: datetime | None = None
@@ -36,6 +39,14 @@ class HeroSlideBase(APIModel):
     def _window_is_ordered(self):
         if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
             raise ValueError("ends_at must be after starts_at")
+        return self
+
+    @model_validator(mode="after")
+    def _category_target_has_slug(self):
+        if self.target_type == "category" and not self.target_slug:
+            raise ValueError("target_slug is required for a category target")
+        if self.target_type != "category":
+            self.target_slug = None
         return self
 
 
@@ -50,6 +61,8 @@ class HeroSlideUpdate(APIModel):
     image_url: str | None = Field(default=None, max_length=500)
     button_label: str | None = Field(default=None, max_length=100)
     button_url: str | None = Field(default=None, max_length=500)
+    target_type: HeroTarget | None = None
+    target_slug: str | None = Field(default=None, max_length=160)
     is_active: bool | None = None
     sort_order: int | None = None
     starts_at: datetime | None = None
@@ -64,6 +77,8 @@ class HeroSlideOut(APIModel):
     image_url: str | None = None
     button_label: str | None = None
     button_url: str | None = None
+    target_type: HeroTarget | None = None
+    target_slug: str | None = None
     sort_order: int
 
 

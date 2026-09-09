@@ -46,17 +46,6 @@ export default function ProductCard({ view, eager = false, revealDelay = 0 }) {
             imgClass="vs-card__img"
             eager={eager}
           />
-          {/* Only when the product genuinely has a second picture. Nothing is
-              substituted for one that does not. */}
-          {view.secondaryImageUrl && (
-            <img
-              className="vs-card__img2"
-              src={view.secondaryImageUrl}
-              alt=""
-              loading="lazy"
-              decoding="async"
-            />
-          )}
         </Link>
 
         {badges.length > 0 && (

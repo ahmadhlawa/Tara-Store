@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import app.api.v1.endpoints.admin_media as admin_media
-from app.models import AuditLog, MediaAsset, StaticPage, StoreSettings
+from app.models import AuditLog, Category, MediaAsset, StaticPage, StoreSettings
 from app.services.placeholder_image import gradient_png, vista_preview_png
 from app.storage.base import StoredFile
 from tests.conftest import auth
@@ -195,6 +195,33 @@ def test_hero_slides_respect_their_schedule(
 
     public = client.get("/api/v1/hero-slides").json()
     assert [slide["image_url"] for slide in public] == ["/media/hero-live.png"]
+
+
+def test_hero_slide_uses_a_valid_structured_category_target(
+    client: TestClient, db: Session, admin_token: str
+) -> None:
+    active = Category(name="شموع", slug="candles", is_active=True)
+    inactive = Category(name="مخفي", slug="hidden", is_active=False)
+    db.add_all([active, inactive])
+    db.commit()
+
+    created = client.post(
+        "/api/v1/admin/hero-slides",
+        headers=auth(admin_token),
+        json={"image_url": "/media/hero.png", "target_type": "category", "target_slug": "candles"},
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["target_type"] == "category"
+    assert created.json()["target_slug"] == "candles"
+    assert client.get("/api/v1/hero-slides").json()[0]["target_slug"] == "candles"
+
+    rejected = client.post(
+        "/api/v1/admin/hero-slides",
+        headers=auth(admin_token),
+        json={"image_url": "/media/hidden.png", "target_type": "category", "target_slug": "hidden"},
+    )
+    assert rejected.status_code == 409
+    assert rejected.json()["error"]["code"] == "hero_category_unavailable"
 
 
 

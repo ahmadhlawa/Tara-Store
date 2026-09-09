@@ -213,7 +213,7 @@ describe("product card behaviour", () => {
     expect(within(panel).getByRole("button", { name: /نظرة سريعة على/ })).toBeInTheDocument();
   });
 
-  it("swaps to a second image only when the product has one", async () => {
+  it("never swaps a standard product to its second image", async () => {
     const withSecond = {
       ...productFixture,
       primary_image_url: "/media/one.png",
@@ -231,12 +231,25 @@ describe("product card behaviour", () => {
     renderApp("/shop");
 
     const swapper = await cardOf(withSecond.name);
-    expect(swapper.querySelector(".vs-card__img2")).toHaveAttribute("src", "/media/two.png");
+    expect(swapper.querySelector(".vs-card__img2")).toBeNull();
 
     // The fallback: cover stays, panel still reveals, no invented second image.
     const plain = await cardOf(withoutSecond.name);
     expect(plain.querySelector(".vs-card__img2")).toBeNull();
     expect(plain.querySelector(".vs-card__panel")).not.toBeNull();
+  });
+
+  it("keeps the second-image preview for packages", async () => {
+    const packageWithSecond = {
+      ...packageProduct,
+      primary_image_url: "/media/package.png",
+      secondary_image_url: "/media/contents.png",
+    };
+    stubApi({ ...storefrontRoutes, "/api/v1/products": page([packageWithSecond]) });
+    renderApp("/packages");
+
+    const card = await cardOf(packageWithSecond.name);
+    expect(card.querySelector(".vs-pkg__img2")).toHaveAttribute("src", "/media/contents.png");
   });
 
   it("adds exactly one line however fast the button is pressed", async () => {

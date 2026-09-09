@@ -20,6 +20,8 @@ class HeroSlide(TimestampMixin, Base):
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     button_label: Mapped[str | None] = mapped_column(String(100), nullable=True)
     button_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    target_type: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    target_slug: Mapped[str | None] = mapped_column(String(160), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     starts_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

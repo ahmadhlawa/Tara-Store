@@ -1,6 +1,7 @@
 // Store identity, homepage composition and editorial content.
 import { LOGO_URL, STORE_NAME_AR, STORE_NAME_LATIN, STORE_TAGLINE } from "../brand.js";
 import { publicApi } from "../api/publicApi.js";
+import { heroDestination } from "../utils/storeRoutes.js";
 
 // Tara's own identity and colours, sampled from the owner's logo, so the
 // storefront is on brand from the first paint. The API's StoreSettings still
@@ -72,6 +73,7 @@ export function normalizeHeroSlide(raw) {
   return {
     id: raw.id,
     imageUrl: raw.image_url,
+    destination: heroDestination(raw),
   };
 }
 

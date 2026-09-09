@@ -245,7 +245,7 @@ export default function ResourceScreen({
             </>
           }
         >
-          {fields.map((field) => (
+          {fields.filter((field) => !field.showWhen || field.showWhen(values)).map((field) => (
             <FieldControl
               key={field.name}
               field={field}

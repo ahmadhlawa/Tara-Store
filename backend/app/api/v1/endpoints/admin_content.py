@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.api.crud import apply_updates, get_or_404
 from app.api.deps import CurrentAdmin, DbSession
-from app.models import HeroSlide, HomeSection
+from app.models import Category, HeroSlide, HomeSection
 from app.schemas.common import MessageResponse
 from app.schemas.content import (
     HeroSlideAdminOut,
@@ -62,6 +62,7 @@ def list_hero_slides(db: DbSession, admin: CurrentAdmin):
     "/hero-slides", response_model=HeroSlideAdminOut, status_code=status.HTTP_201_CREATED
 )
 def create_hero_slide(payload: HeroSlideCreate, db: DbSession, admin: CurrentAdmin):
+    _validate_hero_target(db, payload.target_type, payload.target_slug)
     slide = HeroSlide(**payload.model_dump())
     db.add(slide)
     db.flush()
@@ -83,6 +84,9 @@ def update_hero_slide(
     slide_id: int, payload: HeroSlideUpdate, db: DbSession, admin: CurrentAdmin
 ):
     slide = get_or_404(db, HeroSlide, slide_id, "الشريحة غير موجودة.")
+    target_type = payload.target_type or slide.target_type
+    target_slug = payload.target_slug if payload.target_slug is not None else slide.target_slug
+    _validate_hero_target(db, target_type, target_slug)
     changed = apply_updates(slide, payload)
     audit_service.record(
         db,
@@ -95,6 +99,16 @@ def update_hero_slide(
     db.commit()
     db.refresh(slide)
     return slide
+
+
+def _validate_hero_target(db: DbSession, target_type: str | None, target_slug: str | None) -> None:
+    if target_type != "category":
+        return
+    category = db.scalar(
+        select(Category.id).where(Category.slug == target_slug, Category.is_active.is_(True))
+    )
+    if category is None:
+        raise ConflictError("القسم المحدد غير متاح.", code="hero_category_unavailable")
 
 
 @router.delete("/hero-slides/{slide_id}", response_model=MessageResponse)

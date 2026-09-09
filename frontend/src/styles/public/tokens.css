@@ -221,11 +221,11 @@
   /* Square by default so a package sitting in a mixed catalogue grid lines up
      with the products around it; the dedicated package grid widens it. */
   --vs-ar-package: 1 / 1;
-  /* Wide hero artwork. The ratio â€” not a pixel height â€” is what the
+  /* Ultra-wide hero artwork. The ratio â€” not a pixel height â€” is what the
      hero reserves, so the box is correct before the image decodes. The cap
      stops the same ratio from turning a 1852px-wide band into a 700px wall on
-     a large monitor; the artwork covers, so a shorter box only crops. */
-  --vs-ar-hero: 21 / 8;
+     a large monitor; containment preserves text embedded in the artwork. */
+  --vs-ar-hero: 4 / 1;
   --vs-hero-max-h: 520px;
 }
 @media (max-width: 1279px) {
@@ -236,7 +236,7 @@
     --vs-grid-gap: 18px;
     --vs-fs-h1: 28px;
     --vs-rail-w: 58px;
-    --vs-ar-hero: 2 / 1;
+    --vs-ar-hero: 4 / 1;
     --vs-hero-max-h: 440px;
   }
 }
@@ -262,10 +262,8 @@
     --vs-tabbar-h: 64px;
     --vs-fs-h1: 26px;
     --vs-fs-h2: 20px;
-    /* A tablet still reads landscape artwork; the portrait crop is for phones
-       only, and starts at 600 (below). At 768 a 5/6 hero was 878px tall â€” most
-       of the screen for one advertisement. */
-    --vs-ar-hero: 16 / 9;
+    /* A tablet keeps the promotional strip wide enough to preserve embedded copy. */
+    --vs-ar-hero: 3 / 1;
     /* The fixed rail leaves the layout entirely below 900: its trigger moves
        into the header, so no width is reserved and nothing is covered. */
     --vs-rail-w: 0px;
@@ -288,13 +286,8 @@
     --vs-grid-gap: 12px;
     --vs-fs-h1: 23px;
     --vs-fs-h2: 20px;
-    /* A phone shows the whole advertisement, not a slice of it. Hero artwork
-       is landscape (the shipped hero is 1672Ã—941), so a portrait phone box plus
-       `cover` threw away more than half the image width â€” the Arabic promo text
-       and the branding were cropped straight out of the viewport. The box keeps
-       the artwork's own landscape ratio and the media contains rather than
-       covers below 600 (see home.css), so nothing is cut sideways. */
-    --vs-ar-hero: 16 / 9;
+    /* A phone keeps a compact wide strip and contains the complete artwork. */
+    --vs-ar-hero: 3 / 1;
     --vs-hero-max-h: 360px;
     --vs-section: 30px;
     --vs-section-tight: 20px;
