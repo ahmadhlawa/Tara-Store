@@ -26,6 +26,21 @@ describe("public storefront", () => {
     expect(screen.queryByText("من الساعة العاشرة صباحاً حتى السابعة مساءً")).not.toBeInTheDocument();
   });
 
+  it("uses fixed delivery trust copy without exposing configured area details", async () => {
+    stubApi({
+      ...storefrontRoutes,
+      "/api/v1/delivery-areas": [
+        { id: 1, name: "رام الله" },
+        { id: 2, name: "القدس" },
+        { id: 3, name: "الداخل" },
+      ],
+    });
+    renderApp("/");
+
+    expect(await screen.findByText("التوصيل إلى كافة المناطق")).toBeInTheDocument();
+    expect(screen.queryByText("توصيل إلى 3 مناطق")).not.toBeInTheDocument();
+  });
+
   it("renders the homepage sections the admin has made visible", async () => {
     stubApi({
       ...storefrontRoutes,

@@ -16,12 +16,6 @@ export default function TrustStrip() {
 
   const paymentText = "ادفع نقداً للمندوب عند التسليم";
 
-  const areasText = !deliveryAreas.length
-    ? null
-    : deliveryAreas.length === 1
-      ? `توصيل إلى ${deliveryAreas[0].name}`
-      : `توصيل إلى ${deliveryAreas.length} مناطق`;
-
   return (
     <div className="vs-trust">
       <div className="vs-trust__item" {...paymentReveal}>
@@ -35,13 +29,13 @@ export default function TrustStrip() {
         </span>
       </div>
 
-      {areasText && (
+      {deliveryAreas.length > 0 && (
         <div className="vs-trust__item" {...deliveryReveal}>
           <span className="vs-trust__icon">
             <TruckIcon size={20} />
           </span>
           <span>
-            <span className="vs-trust__title">{areasText}</span>
+            <span className="vs-trust__title">التوصيل إلى كافة المناطق</span>
             <br />
             <span className="vs-trust__desc">تُحتسب رسوم التوصيل عند إتمام الطلب</span>
           </span>

@@ -71,7 +71,7 @@ describe("public shell", () => {
     expect(within(footer).queryByText("لا يتم إدخال بيانات بطاقات بنكية في هذا المتجر.")).not.toBeInTheDocument();
   });
 
-  it("keeps the header and opened mobile navigation free of tracking links", async () => {
+  it("shows only normal links in the mobile navigation while categories stay in their drawer", async () => {
     stubApi(storefrontRoutes);
     renderApp("/");
 
@@ -81,6 +81,9 @@ describe("public shell", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "فتح القائمة" }));
     const mobileNavigation = screen.getByRole("dialog", { name: "قائمة التنقّل" });
+    expect(within(mobileNavigation).getByRole("link", { name: "كل المنتجات" })).toBeInTheDocument();
+    expect(within(mobileNavigation).queryByText(categoryFixture.name)).not.toBeInTheDocument();
+    expect(within(mobileNavigation).queryByText("الأقسام")).not.toBeInTheDocument();
     expect(mobileNavigation.querySelectorAll('a[href="/track-order"]')).toHaveLength(0);
     expect(within(mobileNavigation).queryByText("تتبّع الطلب")).not.toBeInTheDocument();
   });
