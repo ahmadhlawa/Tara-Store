@@ -26,6 +26,7 @@ An admin account is only created when credentials are supplied explicitly, throu
 from __future__ import annotations
 
 import argparse
+import hashlib
 import sys
 from datetime import timedelta
 from decimal import Decimal
@@ -487,6 +488,10 @@ def ensure_products(
     return result
 
 
+def demo_variant_sku(product_slug: str, title: str) -> str:
+    return hashlib.sha256(f"{product_slug}\0{title}".encode("utf-8")).hexdigest()
+
+
 def ensure_options_and_variants(db: Session, products: dict[str, Product]) -> None:
     variant_count = 0
     for slug, options in PRODUCT_OPTIONS.items():
@@ -522,7 +527,7 @@ def ensure_options_and_variants(db: Session, products: dict[str, Product]) -> No
             if variant is None:
                 variant = ProductVariant(product_id=product.id, title=title)
                 db.add(variant)
-            variant.sku = f"{product.sku}-{len(title)}{abs(hash(title)) % 97:02d}"
+            variant.sku = demo_variant_sku(slug, title)
             variant.price_override = Decimal(price_override) if price_override else None
             variant.stock_quantity = stock
             variant.is_active = True

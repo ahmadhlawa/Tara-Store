@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.template_version import template_version
-from app.models import Coupon, InstanceMetadata, Order, Product, StoreSettings
+from app.models import Coupon, InstanceMetadata, Order, Product, ProductVariant, StoreSettings
 from scripts import instance_cli, mysql_compat
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -143,13 +143,14 @@ def test_the_shipped_tara_profile_applies(cli_env, capsys) -> None:
 
 # ── demo seed remains a separate, idempotent workflow ────────────────────────
 def test_demo_seed_is_idempotent_and_distinct_from_bootstrap(db: Session) -> None:
-    from scripts.seed import seed
+    from scripts.seed import demo_variant_sku, seed
 
-    def snapshot() -> dict[str, int]:
+    def snapshot() -> dict[str, int | list[str]]:
         return {
             "products": len(db.execute(select(Product)).scalars().all()),
             "orders": len(db.execute(select(Order)).scalars().all()),
             "coupons": len(db.execute(select(Coupon)).scalars().all()),
+            "variant_skus": sorted(db.execute(select(ProductVariant.sku)).scalars().all()),
         }
 
     seed(db, admin_email="", admin_password="", admin_name="Owner")
@@ -158,6 +159,13 @@ def test_demo_seed_is_idempotent_and_distinct_from_bootstrap(db: Session) -> Non
     second = snapshot()
 
     assert first == second
+    assert len(first["variant_skus"]) == len(set(first["variant_skus"]))
+    assert demo_variant_sku("silicone-molds", "Small") == (
+        "360ff34abacfeb99e8b53a038fb33d7163d1073b8a5bd6979e991153a6d92701"
+    )
+    assert demo_variant_sku("silicone-molds", "Small") != demo_variant_sku(
+        "silicone-molds", "Large"
+    )
     # The demo seed is exactly what bootstrap must never do.
     assert first["products"] > 0
     assert first["orders"] > 0
