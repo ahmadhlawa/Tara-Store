@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { page, renderApp, respond, stubApi } from "./utils.jsx";
 import { authStorage } from "../storage/authStorage.js";
 import { api, setAuthToken, setUnauthorizedHandler } from "../api/client.js";
+import { CategoriesPage, orderCategoriesForAdmin } from "../admin/pages/CatalogScreens.jsx";
 
 const ADMIN = {
   id: 1,
@@ -29,6 +30,44 @@ const DASHBOARD = {
 };
 
 const signedIn = () => authStorage.save("valid-token", ADMIN);
+
+describe("admin category hierarchy", () => {
+  const categories = [
+    { id: 2, name: "شمعة المشروبات", slug: "drinks", parent_id: 1, product_count: 1 },
+    { id: 3, name: "Crochet", slug: "crochet", parent_id: null, product_count: 0 },
+    { id: 1, name: "Candles", slug: "candles", parent_id: null, product_count: 2 },
+    { id: 4, name: "شمعة أخرى", slug: "other", parent_id: 1, product_count: 0 },
+  ];
+
+  it("groups each child directly under its parent without duplicates", () => {
+    const ordered = orderCategoriesForAdmin(categories);
+    expect(ordered.map((category) => category.id)).toEqual([3, 1, 2, 4]);
+    expect(ordered.map((category) => category.__categoryDepth)).toEqual([0, 0, 1, 1]);
+    expect(new Set(ordered.map((category) => category.id)).size).toBe(categories.length);
+  });
+
+  it("renders indented child labels while preserving row actions", async () => {
+    const calls = stubApi({
+      "/api/v1/admin/categories": page(categories),
+      "PATCH /api/v1/admin/categories/1": { ...categories[2], show_on_home: true },
+    });
+    render(<CategoriesPage />);
+
+    const child = await screen.findByText("شمعة المشروبات");
+    expect(child.parentElement).toHaveStyle({ paddingInlineStart: "20px", fontWeight: "500" });
+    expect(child.previousElementSibling).toHaveTextContent("└─");
+    expect(screen.getAllByRole("button", { name: "تعديل" })).toHaveLength(4);
+    expect(screen.getAllByRole("button", { name: "حذف" })).toHaveLength(4);
+
+    await userEvent.click(within(screen.getByText("Candles").closest("tr")).getByRole("button", { name: "تعديل" }));
+    const homeToggle = within(screen.getByRole("dialog")).getByLabelText("عرض في الصفحة الرئيسية");
+    await userEvent.click(homeToggle);
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "حفظ" }));
+    await waitFor(() => expect(calls.some((call) =>
+      call.method === "PATCH" && JSON.parse(call.body).show_on_home === true,
+    )).toBe(true));
+  });
+});
 
 describe("admin workspace", () => {
   it("shows the login form with no storefront chrome", async () => {

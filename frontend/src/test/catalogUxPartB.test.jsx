@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import App from "../App.jsx";
 import { HeroSlidesPage } from "../admin/pages/ContentScreens.jsx";
 import { heroDestination } from "../utils/storeRoutes.js";
-import { categoryFixture, renderApp, settingsFixture, storefrontRoutes, stubApi } from "./utils.jsx";
+import { categoryFixture, page, productFixture, renderApp, settingsFixture, storefrontRoutes, stubApi } from "./utils.jsx";
 
 describe("structured hero destinations", () => {
   it("resolves every supported route including a specific category", () => {
@@ -72,5 +72,52 @@ describe("categories navigation", () => {
     expect(await screen.findByRole("heading", { name: "كل الأقسام" })).toBeInTheDocument();
     expect(screen.getAllByText(categoryFixture.name).length).toBeGreaterThan(0);
     await waitFor(() => expect(screen.queryByText("مخفي")).toBeNull());
+  });
+
+  it("uses visual child cards and keeps the selected child in the URL filter", async () => {
+    const candles = {
+      ...categoryFixture,
+      id: 20,
+      slug: "candles",
+      name: "Candles",
+      image_url: "/candles.jpg",
+      product_count: 2,
+      children: [
+        { ...categoryFixture, id: 21, parent_id: 20, slug: "scented", name: "الشموع العطرية", image_url: "/scented.jpg" },
+        { ...categoryFixture, id: 22, parent_id: 20, slug: "drinks", name: "شمعة المشروبات", image_url: "/drinks.jpg" },
+      ],
+    };
+    const calls = stubApi({
+      ...storefrontRoutes,
+      "/api/v1/categories": [candles],
+      "/api/v1/categories/candles": candles,
+      "/api/v1/products": page([productFixture]),
+    });
+    renderApp("/category/candles");
+
+    const all = await screen.findByRole("button", { name: "الكل" });
+    expect(all).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(screen.getByRole("button", { name: "الشموع العطرية" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "الشموع العطرية" })).toHaveAttribute("aria-pressed", "true"));
+    await waitFor(() => expect(calls.some((call) => call.path.includes("category=scented"))).toBe(true));
+  });
+
+  it("builds Home showcases only for enabled root categories", async () => {
+    const enabled = { ...categoryFixture, id: 30, slug: "candles", name: "Candles", show_on_home: true, image_url: "/candles.jpg" };
+    const second = { ...categoryFixture, id: 31, slug: "crochet", name: "Crochet", show_on_home: true, image_url: "/crochet.jpg" };
+    const disabled = { ...categoryFixture, id: 32, slug: "resin", name: "Resin", show_on_home: false };
+    const calls = stubApi({
+      ...storefrontRoutes,
+      "/api/v1/categories": [enabled, second, disabled],
+      "/api/v1/products": page([productFixture]),
+    });
+    renderApp("/");
+
+    await waitFor(() => expect(document.querySelectorAll(".vs-home-showcase")).toHaveLength(2));
+    expect(screen.getByRole("heading", { name: "Candles" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Crochet" })).toBeInTheDocument();
+    expect(calls.some((call) => call.path.includes("category=candles"))).toBe(true);
+    expect(calls.some((call) => call.path.includes("category=crochet"))).toBe(true);
+    expect(calls.some((call) => call.path.includes("category=resin"))).toBe(false);
   });
 });

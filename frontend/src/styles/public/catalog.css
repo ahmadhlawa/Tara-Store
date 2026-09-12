@@ -541,11 +541,49 @@
   opacity: 0.9;
 }
 
-.vs-cathead__subs {
+.vs-subcategories {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-block-start: 4px;
+  gap: 12px;
+  overflow-x: auto;
+  padding-block: 18px 4px;
+  scrollbar-width: thin;
+}
+
+.vs-subcategory {
+  flex: 0 0 116px;
+  padding: 5px;
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-r-md);
+  background: var(--vs-surface);
+  color: var(--vs-ink);
+  font: inherit;
+  font-size: var(--vs-fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--vs-t) var(--vs-ease), box-shadow var(--vs-t) var(--vs-ease);
+}
+
+.vs-subcategory .vs-mediabox {
+  overflow: hidden;
+  border-radius: calc(var(--vs-r-md) - 4px);
+  margin-block-end: 7px;
+}
+
+.vs-subcategory[aria-pressed="true"] {
+  border-color: var(--vs-primary);
+  box-shadow: 0 0 0 2px var(--vs-primary-soft);
+  color: var(--vs-primary);
+}
+
+.vs-subcategory:focus-visible {
+  outline: 2px solid var(--vs-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 599px) {
+  .vs-subcategory {
+    flex-basis: 94px;
+  }
 }
 
 .vs-cathead--image .vs-crumbs,
@@ -554,12 +592,6 @@
 }
 
 .vs-cathead--image .vs-crumbs__here {
-  color: var(--vs-ink-invert);
-}
-
-.vs-cathead--image .vs-chip {
-  background: rgba(255, 253, 250, 0.16);
-  border-color: rgba(255, 253, 250, 0.28);
   color: var(--vs-ink-invert);
 }
 

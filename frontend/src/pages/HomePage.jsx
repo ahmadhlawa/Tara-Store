@@ -110,6 +110,11 @@ export default function HomePage() {
   const [hero, setHero] = useState({ slides: [], status: "loading" });
   const [sections, setSections] = useState({ list: [], status: "loading" });
   const [lists, setLists] = useState({});
+  const [showcases, setShowcases] = useState({});
+  const homeCategories = useMemo(
+    () => categories.filter((category) => category.showOnHome),
+    [categories],
+  );
 
   // Sections first: only the product lists an enabled section actually needs are
   // fetched, so a store with three sections makes three requests, not six.
@@ -169,6 +174,38 @@ export default function HomePage() {
       cancelled = true;
     };
   }, [needed]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setShowcases((current) => {
+      const next = {};
+      homeCategories.forEach((category) => {
+        next[category.slug] = current[category.slug] || { items: [], status: "loading" };
+      });
+      return next;
+    });
+    homeCategories.forEach((category) => {
+      catalogService
+        .list({ category: category.slug, sort: "featured", page_size: 4 })
+        .then((result) => {
+          if (cancelled) return;
+          setShowcases((current) => ({
+            ...current,
+            [category.slug]: { items: result.items, status: "ready" },
+          }));
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setShowcases((current) => ({
+            ...current,
+            [category.slug]: { items: [], status: "error" },
+          }));
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [homeCategories]);
 
   const views = (source) =>
     (lists[source]?.items || []).map((product) => productView(product, money));
@@ -262,18 +299,49 @@ export default function HomePage() {
     })
     .filter(Boolean);
 
+  const renderedShowcases = homeCategories.map((category) => {
+    const showcase = showcases[category.slug];
+    if (!showcase || showcase.status === "loading") {
+      return (
+        <RevealSection key={category.slug} className="vs-container vs-section">
+          <SectionHead title={category.name} moreHref={category.href} />
+          <div className="vs-home-showcase">
+            <div className="vs-skel vs-home-showcase__category" />
+            <GridSkeleton count={3} />
+          </div>
+        </RevealSection>
+      );
+    }
+    if (showcase.status === "error" || !showcase.items.length) return null;
+    const categoryViews = showcase.items.map((product) => productView(product, money));
+    return (
+      <RevealSection key={category.slug} className="vs-container vs-section">
+        <SectionHead title={category.name} moreHref={category.href} />
+        <div className="vs-home-showcase">
+          <div className="vs-home-showcase__category">
+            <CategoryCard category={category} />
+          </div>
+          <div className="vs-home-showcase__products">
+            <ProductGrid views={categoryViews} variant="plain" eagerCount={0} />
+          </div>
+        </div>
+      </RevealSection>
+    );
+  }).filter(Boolean);
+
   // Before the catalog arrives there is no hero and every section drops out, which
   // would leave the header sitting straight on top of the trust strip. Say so
   // instead: the store is real and reachable, it just has nothing to show yet.
   const stillLoading =
     hero.status === "loading" ||
     sections.status === "loading" ||
-    needed.some(([source]) => (lists[source]?.status ?? "loading") === "loading");
+    needed.some(([source]) => (lists[source]?.status ?? "loading") === "loading") ||
+    homeCategories.some((category) => (showcases[category.slug]?.status ?? "loading") === "loading");
   // Categories are checked too: a store that has a catalog but no configured home
   // sections is not "being prepared", it is merely unarranged, and telling its
   // customers otherwise would be the misleading version of this message.
   const nothingToShow =
-    !stillLoading && !hero.slides.length && !rendered.length && !categories.length;
+    !stillLoading && !hero.slides.length && !rendered.length && !renderedShowcases.length && !categories.length;
 
   return (
     <div className="vs-home">
@@ -295,6 +363,8 @@ export default function HomePage() {
       )}
 
       {rendered}
+
+      {renderedShowcases}
 
       {nothingToShow && (
         <RevealSection className="vs-container vs-section">

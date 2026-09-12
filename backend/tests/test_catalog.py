@@ -14,11 +14,17 @@ def test_category_crud(client: TestClient, admin_token: str) -> None:
     created = client.post(
         "/api/v1/admin/categories",
         headers=auth(admin_token),
-        json={"name": "قوالب سيليكون", "description": "قوالب", "is_featured": True},
+        json={
+            "name": "قوالب سيليكون",
+            "description": "قوالب",
+            "is_featured": True,
+            "show_on_home": True,
+        },
     )
     assert created.status_code == 201, created.text
     category = created.json()
     assert category["slug"]
+    assert category["show_on_home"] is True
 
     updated = client.patch(
         f"/api/v1/admin/categories/{category['id']}",
@@ -38,6 +44,45 @@ def test_category_crud(client: TestClient, admin_token: str) -> None:
     )
     assert deleted.status_code == 200
     assert client.get("/api/v1/categories").json() == []
+
+
+def test_category_filters_and_counts_include_all_descendants(
+    client: TestClient, db: Session
+) -> None:
+    root = Category(name="Candles", slug="candles", is_active=True, show_on_home=True)
+    child = Category(name="عطرية", slug="scented", is_active=True, parent=root)
+    grandchild = Category(name="مشروبات", slug="drinks", is_active=True, parent=child)
+    sibling = Category(name="أخرى", slug="other", is_active=True, parent=root)
+    db.add_all([root, child, grandchild, sibling])
+    db.commit()
+
+    make_product(db, slug="root-product", category_id=root.id)
+    make_product(
+        db,
+        slug="deep-product",
+        category_id=grandchild.id,
+        price="70.00",
+        compare_at_price="90.00",
+    )
+    make_product(db, slug="sibling-product", category_id=sibling.id)
+
+    root_result = client.get(
+        "/api/v1/products",
+        params={"category": "candles", "on_sale": True, "in_stock": True, "sort": "price-desc"},
+    ).json()
+    assert [item["slug"] for item in root_result["items"]] == ["deep-product"]
+
+    child_result = client.get("/api/v1/products", params={"category": "scented"}).json()
+    assert [item["slug"] for item in child_result["items"]] == ["deep-product"]
+
+    sibling_result = client.get("/api/v1/products", params={"category": "other"}).json()
+    assert [item["slug"] for item in sibling_result["items"]] == ["sibling-product"]
+
+    tree = client.get("/api/v1/categories").json()[0]
+    assert tree["show_on_home"] is True
+    assert tree["product_count"] == 3
+    assert tree["children"][0]["product_count"] == 1
+    assert tree["children"][0]["children"][0]["slug"] == "drinks"
 
 
 def test_category_with_products_cannot_be_deleted(

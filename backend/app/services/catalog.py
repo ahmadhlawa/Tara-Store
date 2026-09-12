@@ -93,9 +93,17 @@ def apply_product_filters(
         needle = f"%{normalize_arabic(q)}%"
         stmt = stmt.where(Product.search_text.like(needle))
     if category_slug:
-        stmt = stmt.join(Category, Product.category_id == Category.id).where(
-            Category.slug == category_slug
+        hierarchy = select(Category.id).where(
+            Category.slug == category_slug, Category.is_active.is_(True)
+        ).cte(name="category_hierarchy", recursive=True)
+        child = Category.__table__.alias("category_child")
+        hierarchy = hierarchy.union(
+            select(child.c.id).where(
+                child.c.parent_id == hierarchy.c.id,
+                child.c.is_active.is_(True),
+            )
         )
+        stmt = stmt.where(Product.category_id.in_(select(hierarchy.c.id)))
     if category_id is not None:
         stmt = stmt.where(Product.category_id == category_id)
     if product_type:
@@ -262,6 +270,7 @@ def category_payload(category: Category, product_count: int = 0) -> dict[str, An
         "parent_id": category.parent_id,
         "is_active": category.is_active,
         "is_featured": category.is_featured,
+        "show_on_home": category.show_on_home,
         "sort_order": category.sort_order,
         "product_count": product_count,
     }
@@ -270,8 +279,23 @@ def category_payload(category: Category, product_count: int = 0) -> dict[str, An
 def product_counts_by_category(db: Session, *, active_only: bool) -> dict[int, int]:
     stmt = select(Product.category_id, func.count(Product.id)).group_by(Product.category_id)
     if active_only:
-        stmt = stmt.where(Product.is_active.is_(True))
-    return {row[0]: row[1] for row in db.execute(stmt) if row[0] is not None}
+        stmt = stmt.join(Category, Product.category_id == Category.id).where(
+            Product.is_active.is_(True), Category.is_active.is_(True)
+        )
+    direct = {row[0]: row[1] for row in db.execute(stmt) if row[0] is not None}
+    category_stmt = select(Category.id, Category.parent_id)
+    if active_only:
+        category_stmt = category_stmt.where(Category.is_active.is_(True))
+    parents = dict(db.execute(category_stmt).all())
+    totals = dict(direct)
+    for category_id, count in direct.items():
+        parent_id = parents.get(category_id)
+        visited = {category_id}
+        while parent_id is not None and parent_id not in visited:
+            visited.add(parent_id)
+            totals[parent_id] = totals.get(parent_id, 0) + count
+            parent_id = parents.get(parent_id)
+    return totals
 
 
 def assert_package_is_valid(db: Session, package: Product, included_product_id: int) -> Product:

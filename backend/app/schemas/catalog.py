@@ -14,6 +14,7 @@ class CategoryBase(APIModel):
     parent_id: int | None = None
     is_active: bool = True
     is_featured: bool = False
+    show_on_home: bool = False
     sort_order: int = 0
 
 
@@ -29,6 +30,7 @@ class CategoryUpdate(APIModel):
     parent_id: int | None = None
     is_active: bool | None = None
     is_featured: bool | None = None
+    show_on_home: bool | None = None
     sort_order: int | None = None
 
 
@@ -41,6 +43,7 @@ class CategoryOut(APIModel):
     parent_id: int | None = None
     is_active: bool
     is_featured: bool
+    show_on_home: bool
     sort_order: int
     product_count: int = 0
 
@@ -314,7 +317,7 @@ def validate_sort(value: str) -> str:
 
 
 class CategoryTreeOut(CategoryOut):
-    children: list[CategoryOut] = Field(default_factory=list)
+    children: list["CategoryTreeOut"] = Field(default_factory=list)
 
     @field_validator("children", mode="before")
     @classmethod

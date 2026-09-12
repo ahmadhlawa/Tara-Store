@@ -40,16 +40,13 @@ def list_categories(db: DbSession, featured_only: bool = False) -> list[dict]:
     for category in categories:
         by_parent.setdefault(category.parent_id, []).append(category)
 
-    return [
-        {
+    def tree(category: Category) -> dict:
+        return {
             **catalog_service.category_payload(category, counts.get(category.id, 0)),
-            "children": [
-                catalog_service.category_payload(child, counts.get(child.id, 0))
-                for child in by_parent.get(category.id, [])
-            ],
+            "children": [tree(child) for child in by_parent.get(category.id, [])],
         }
-        for category in by_parent.get(None, [])
-    ]
+
+    return [tree(category) for category in by_parent.get(None, [])]
 
 
 @router.get("/categories/{slug}", response_model=CategoryOut)

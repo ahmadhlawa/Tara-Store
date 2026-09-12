@@ -48,6 +48,15 @@ const DENSITIES = [
   { value: "standard", label: "عرض قياسي", Icon: GridDenseIcon },
 ];
 
+function findCategory(categories, slug) {
+  for (const category of categories) {
+    if (category.slug === slug) return category;
+    const nested = findCategory(category.children || [], slug);
+    if (nested) return nested;
+  }
+  return null;
+}
+
 /**
  * One catalogue template behind /shop, /category/:slug, /offers, /packages,
  * /molds and /search. The mode fixes the parts of the query the visitor cannot
@@ -63,6 +72,10 @@ export default function CatalogPage({ mode = "shop" }) {
   const { filters, patch, reset, active } = useCatalogQuery();
 
   const term = search.get("q") || "";
+  const currentTreeCategory = mode === "category" ? findCategory(categories, params.slug) : null;
+  const children = currentTreeCategory?.children || [];
+  const requestedChild = search.get("subcat") || "";
+  const selectedChild = children.find((child) => child.slug === requestedChild) || null;
   const [items, setItems] = useState([]);
   const [meta, setMeta] = useState({ total: 0, pages: 0 });
   const [page, setPage] = useState(1);
@@ -83,7 +96,7 @@ export default function CatalogPage({ mode = "shop" }) {
 
   const baseQuery = useMemo(() => {
     const query = { ...(spec.force || {}) };
-    if (mode === "category") query.category = params.slug;
+    if (mode === "category") query.category = selectedChild?.slug || params.slug;
     else if (filters.category) query.category = filters.category;
     if (mode === "search" && term) query.q = term;
     if (filters.onSale) query.on_sale = true;
@@ -92,7 +105,7 @@ export default function CatalogPage({ mode = "shop" }) {
     if (filters.maxPrice != null) query.max_price = filters.maxPrice;
     query.sort = filters.sort;
     return query;
-  }, [spec.force, mode, params.slug, filters, term]);
+  }, [spec.force, mode, params.slug, selectedChild?.slug, filters, term]);
 
   const queryKey = JSON.stringify(baseQuery);
 
@@ -137,7 +150,7 @@ export default function CatalogPage({ mode = "shop" }) {
   useEffect(() => {
     let cancelled = false;
     const scope = { ...(spec.force || {}) };
-    if (mode === "category") scope.category = params.slug;
+    if (mode === "category") scope.category = selectedChild?.slug || params.slug;
     if (mode === "search" && term) scope.q = term;
     catalogService
       .list({ ...scope, sort: "price-desc", page_size: 1 })
@@ -150,7 +163,7 @@ export default function CatalogPage({ mode = "shop" }) {
     return () => {
       cancelled = true;
     };
-  }, [mode, params.slug, term, spec.force]);
+  }, [mode, params.slug, selectedChild?.slug, term, spec.force]);
 
   useEffect(() => {
     let cancelled = false;
@@ -178,7 +191,6 @@ export default function CatalogPage({ mode = "shop" }) {
           : "اكتب كلمة في شريط البحث للبدء"
         : spec.subtitle;
 
-  const children = mode === "category" ? categories.find((c) => c.slug === params.slug)?.children || [] : [];
   const hasImage = mode === "category" && !!category?.imageUrl;
   // An empty search box is a prompt, not a result set: listing the whole
   // catalogue under "search results" would be a lie about what was searched.
@@ -218,17 +230,34 @@ export default function CatalogPage({ mode = "shop" }) {
           </nav>
           <h1 className="vs-cathead__title">{title}</h1>
           {subtitle && <p className="vs-cathead__desc">{subtitle}</p>}
-          {children.length > 0 && (
-            <div className="vs-cathead__subs">
-              {children.map((child) => (
-                <Link key={child.slug} to={child.href} className="vs-chip">
-                  {child.name}
-                </Link>
-              ))}
-            </div>
-          )}
         </div>
       </header>
+
+      {mode === "category" && children.length > 0 && (
+        <div className="vs-container vs-subcategories" role="group" aria-label="تصفية حسب القسم الفرعي">
+          <button
+            type="button"
+            className="vs-subcategory"
+            aria-pressed={!selectedChild}
+            onClick={() => patch({ subcat: null })}
+          >
+            <Media src={category?.imageUrl} fallback={category?.bg} alt="" ratio="1 / 1" />
+            <span>الكل</span>
+          </button>
+          {children.map((child) => (
+            <button
+              type="button"
+              key={child.slug}
+              className="vs-subcategory"
+              aria-pressed={selectedChild?.slug === child.slug}
+              onClick={() => patch({ subcat: child.slug })}
+            >
+              <Media src={child.imageUrl} fallback={child.bg} alt="" ratio="1 / 1" />
+              <span>{child.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {awaitingTerm ? (
         <div className="vs-container vs-section">

@@ -22,7 +22,6 @@
      width back from the capped height and the band stops filling the row. */
   width: 100%;
   aspect-ratio: var(--vs-ar-hero);
-  max-height: var(--vs-hero-max-h);
   overflow: hidden;
   background: var(--vs-surface-2);
   isolation: isolate;
@@ -185,6 +184,60 @@
   gap: var(--vs-grid-gap);
 }
 
+/* Admin-selected root category merchandising: one editorial category image
+   beside the existing product cards, adapted into a stacked composition on
+   narrow screens. */
+.vs-home-showcase {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.72fr) minmax(0, 2.8fr);
+  gap: var(--vs-grid-gap);
+  align-items: stretch;
+}
+
+.vs-home-showcase__category,
+.vs-home-showcase__category .vs-cat,
+.vs-home-showcase__category .vs-mediabox {
+  min-height: 100%;
+  height: 100%;
+}
+
+.vs-home-showcase__category .vs-mediabox {
+  aspect-ratio: auto !important;
+}
+
+.vs-home-showcase__products {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--vs-grid-gap);
+}
+
+@media (max-width: 1100px) {
+  .vs-home-showcase {
+    grid-template-columns: minmax(210px, 0.8fr) minmax(0, 2fr);
+  }
+
+  .vs-home-showcase__products {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 699px) {
+  .vs-home-showcase {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vs-home-showcase__category,
+  .vs-home-showcase__category .vs-cat,
+  .vs-home-showcase__category .vs-mediabox {
+    min-height: 0;
+    height: auto;
+  }
+
+  .vs-home-showcase__category .vs-mediabox {
+    aspect-ratio: 16 / 9 !important;
+  }
+}
+
 /* â”€â”€ trust strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-trust {
@@ -233,6 +286,5 @@
 .vs-hero--skel {
   width: 100%;
   aspect-ratio: var(--vs-ar-hero);
-  max-height: var(--vs-hero-max-h);
   border-radius: 0;
 }

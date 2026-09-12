@@ -96,21 +96,20 @@ export function useActiveCategorySlug() {
 }
 
 /** Top-level categories with routes and an active flag, ready for navigation. */
+function decorateCategory(category, activeSlug) {
+  return {
+    ...category,
+    href: `/category/${category.slug}`,
+    active: category.slug === activeSlug,
+    countText: category.count === 1 ? "منتج واحد" : `${category.count} منتجاً`,
+    children: (category.children || []).map((child) => decorateCategory(child, activeSlug)),
+  };
+}
+
 export function useCategoryNav(activeSlug = null) {
   const { categories } = useStore();
   return useMemo(
-    () =>
-      categories.map((category) => ({
-        ...category,
-        href: `/category/${category.slug}`,
-        active: category.slug === activeSlug,
-        countText: category.count === 1 ? "منتج واحد" : `${category.count} منتجاً`,
-        children: (category.children || []).map((child) => ({
-          ...child,
-          href: `/category/${child.slug}`,
-          active: child.slug === activeSlug,
-        })),
-      })),
+    () => categories.map((category) => decorateCategory(category, activeSlug)),
     [categories, activeSlug],
   );
 }

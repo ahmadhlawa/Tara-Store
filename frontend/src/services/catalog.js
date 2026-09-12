@@ -65,13 +65,9 @@ export function normalizeCategory(raw) {
     imageUrl: raw.image_url || null,
     bg: backgroundFor(raw.image_url, raw.slug),
     featured: !!raw.is_featured,
+    showOnHome: !!raw.show_on_home,
     count: raw.product_count ?? 0,
-    children: (raw.children || []).map((child) => ({
-      id: child.id,
-      slug: child.slug,
-      name: child.name,
-      count: child.product_count ?? 0,
-    })),
+    children: (raw.children || []).map(normalizeCategory),
   };
 }
 
