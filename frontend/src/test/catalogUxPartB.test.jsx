@@ -114,6 +114,7 @@ describe("categories navigation", () => {
     renderApp("/");
 
     await waitFor(() => expect(document.querySelectorAll(".vs-home-showcase")).toHaveLength(2));
+    expect(document.querySelectorAll(".vs-home-showcase__content .vs-sec-head")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "Candles" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Crochet" })).toBeInTheDocument();
     expect(calls.some((call) => call.path.includes("category=candles"))).toBe(true);

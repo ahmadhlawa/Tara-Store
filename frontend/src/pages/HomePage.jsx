@@ -304,10 +304,12 @@ export default function HomePage() {
     if (!showcase || showcase.status === "loading") {
       return (
         <RevealSection key={category.slug} className="vs-container vs-section">
-          <SectionHead title={category.name} moreHref={category.href} />
           <div className="vs-home-showcase">
             <div className="vs-skel vs-home-showcase__category" />
-            <GridSkeleton count={3} />
+            <div className="vs-home-showcase__content">
+              <SectionHead title={category.name} moreHref={category.href} />
+              <GridSkeleton count={3} />
+            </div>
           </div>
         </RevealSection>
       );
@@ -316,13 +318,15 @@ export default function HomePage() {
     const categoryViews = showcase.items.map((product) => productView(product, money));
     return (
       <RevealSection key={category.slug} className="vs-container vs-section">
-        <SectionHead title={category.name} moreHref={category.href} />
         <div className="vs-home-showcase">
           <div className="vs-home-showcase__category">
             <CategoryCard category={category} />
           </div>
-          <div className="vs-home-showcase__products">
-            <ProductGrid views={categoryViews} variant="plain" eagerCount={0} />
+          <div className="vs-home-showcase__content">
+            <SectionHead title={category.name} moreHref={category.href} />
+            <div className="vs-home-showcase__products">
+              <ProductGrid views={categoryViews} variant="plain" eagerCount={0} />
+            </div>
           </div>
         </div>
       </RevealSection>
