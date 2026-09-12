@@ -72,6 +72,7 @@ class StoreSettingsAdmin(StoreSettingsPublic):
 
     id: int
     order_notifications_email: EmailStr | None = None
+    low_stock_threshold: int = 5
     invoice_prefix: str
     invoice_notes: str | None = None
     legal_business_name: str | None = None
@@ -123,6 +124,7 @@ class StoreSettingsUpdate(APIModel):
     seo_description: str | None = None
     maintenance_mode: bool | None = None
     order_notifications_email: EmailStr | None = None
+    low_stock_threshold: int | None = Field(default=None, ge=0)
     manual_payment_instructions: str | None = Field(default=None, max_length=2000)
 
     # Invoicing. The prefix applies to invoices issued from now on; numbers already

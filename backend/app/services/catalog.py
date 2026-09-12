@@ -6,11 +6,11 @@ import re
 import unicodedata
 from typing import Any
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, and_, exists, func, or_, select
 from sqlalchemy.orm import Session, load_only, selectinload
 
 from app.core.enums import ProductType
-from app.models import Category, PackageItem, Product, ProductImage, ProductOption
+from app.models import Category, PackageItem, Product, ProductImage, ProductOption, ProductVariant
 
 _TASHKEEL = re.compile(r"[ً-ْـ]")
 _ALEF = re.compile(r"[أإآ]")
@@ -64,6 +64,7 @@ def product_list_query(*, active_only: bool, public: bool = True) -> Select:
         loaders.extend(
             [
                 selectinload(Product.options).load_only(ProductOption.id),
+                selectinload(Product.variants),
                 selectinload(Product.package_items).load_only(PackageItem.id),
             ]
         )
@@ -119,9 +120,7 @@ def apply_product_filters(
             Product.compare_at_price.is_not(None), Product.compare_at_price > Product.price
         )
     if in_stock:
-        stmt = stmt.where(
-            or_(Product.track_inventory.is_(False), Product.stock_quantity > 0)
-        )
+        stmt = stmt.where(publicly_available_condition())
     if min_price is not None:
         stmt = stmt.where(Product.price >= min_price)
     if max_price is not None:
@@ -155,8 +154,27 @@ def paginate(db: Session, stmt: Select, *, offset: int, limit: int) -> tuple[lis
     return list(rows), total
 
 
+def publicly_available_condition():
+    active_variant = exists(select(ProductVariant.id).where(
+        ProductVariant.product_id == Product.id, ProductVariant.is_active.is_(True)
+    ))
+    stocked_variant = exists(select(ProductVariant.id).where(
+        ProductVariant.product_id == Product.id,
+        ProductVariant.is_active.is_(True),
+        ProductVariant.stock_quantity > 0,
+    ))
+    return or_(
+        Product.track_inventory.is_(False),
+        stocked_variant,
+        and_(~active_variant, Product.stock_quantity > 0),
+    )
+
+
 def in_stock(product: Product) -> bool:
-    return (not product.track_inventory) or product.stock_quantity > 0
+    if not product.track_inventory:
+        return True
+    active_variants = [variant for variant in product.variants if variant.is_active]
+    return any(variant.stock_quantity > 0 for variant in active_variants) if active_variants else product.stock_quantity > 0
 
 
 def product_payload(product: Product, *, include_relations: bool) -> dict[str, Any]:
@@ -280,7 +298,8 @@ def product_counts_by_category(db: Session, *, active_only: bool) -> dict[int, i
     stmt = select(Product.category_id, func.count(Product.id)).group_by(Product.category_id)
     if active_only:
         stmt = stmt.join(Category, Product.category_id == Category.id).where(
-            Product.is_active.is_(True), Category.is_active.is_(True)
+            Product.is_active.is_(True), Category.is_active.is_(True),
+            publicly_available_condition(),
         )
     direct = {row[0]: row[1] for row in db.execute(stmt) if row[0] is not None}
     category_stmt = select(Category.id, Category.parent_id)

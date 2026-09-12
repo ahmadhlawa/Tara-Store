@@ -107,7 +107,6 @@ export default function CheckoutRoutePage() {
       const order = await checkoutService.placeOrder(cart, {
         name: form.name.trim(),
         phone: form.phone.trim(),
-        email: form.email.trim() || null,
         address: form.address.trim(),
         deliveryAreaId: form.areaId,
         couponCode: coupon.applied || null,
@@ -158,111 +157,101 @@ export default function CheckoutRoutePage() {
 
       <div className="vs-checkout">
         <form className="vs-form vs-checkout__form" onSubmit={placeOrder} noValidate ref={formRef}>
-          <fieldset className="vs-panel">
+          <fieldset className="vs-panel vs-checkout__customer">
             <legend className="vs-panel__title">بيانات العميل</legend>
 
-            <label className="vs-field">
-              الاسم الكامل
-              <input
-                className="vs-input"
-                type="text"
-                value={form.name}
-                onChange={(event) => update({ name: event.target.value })}
-                placeholder="مثال: سارة أحمد"
-                {...field("name")}
-              />
-              {errors.name && (
-                <span className="vs-field__error" id="vs-err-name">
-                  {errors.name}
-                </span>
-              )}
-            </label>
+            <div className="vs-checkout__fields">
+              <label className="vs-field">
+                الاسم الكامل
+                <input
+                  className="vs-input"
+                  type="text"
+                  value={form.name}
+                  onChange={(event) => update({ name: event.target.value })}
+                  placeholder="مثال: محمد أحمد"
+                  {...field("name")}
+                />
+                {errors.name && (
+                  <span className="vs-field__error" id="vs-err-name">
+                    {errors.name}
+                  </span>
+                )}
+              </label>
 
-            <label className="vs-field">
-              رقم الهاتف
-              <input
-                className="vs-input"
-                type="tel"
-                dir="ltr"
-                value={form.phone}
-                onChange={(event) => update({ phone: event.target.value })}
-                placeholder="05XXXXXXXX"
-                {...field("phone")}
-              />
-              {errors.phone && (
-                <span className="vs-field__error" id="vs-err-phone">
-                  {errors.phone}
-                </span>
-              )}
-            </label>
+              <label className="vs-field">
+                رقم الهاتف
+                <input
+                  className="vs-input"
+                  type="tel"
+                  dir="ltr"
+                  value={form.phone}
+                  onChange={(event) => update({ phone: event.target.value })}
+                  placeholder="05XXXXXXXX"
+                  {...field("phone")}
+                />
+                {errors.phone && (
+                  <span className="vs-field__error" id="vs-err-phone">
+                    {errors.phone}
+                  </span>
+                )}
+              </label>
 
-            <label className="vs-field">
-              البريد الإلكتروني (اختياري)
-              <input
-                className="vs-input"
-                type="email"
-                dir="ltr"
-                value={form.email}
-                onChange={(event) => update({ email: event.target.value })}
-                placeholder="you@example.com"
-              />
-            </label>
+              <label className="vs-field">
+                منطقة التوصيل
+                <select
+                  className="vs-input"
+                  value={form.areaId ?? ""}
+                  onChange={(event) =>
+                    update({ areaId: event.target.value ? Number(event.target.value) : null })
+                  }
+                  {...field("area")}
+                >
+                  <option value="">اختر المنطقة…</option>
+                  {deliveryAreas.map((area) => (
+                    <option key={area.id} value={area.id}>
+                      {area.name} — {money(area.price)}
+                      {area.eta ? ` · ${area.eta}` : ""}
+                    </option>
+                  ))}
+                </select>
+                {errors.area && (
+                  <span className="vs-field__error" id="vs-err-area">
+                    {errors.area}
+                  </span>
+                )}
+              </label>
 
-            <label className="vs-field">
-              منطقة التوصيل
-              <select
-                className="vs-input"
-                value={form.areaId ?? ""}
-                onChange={(event) =>
-                  update({ areaId: event.target.value ? Number(event.target.value) : null })
-                }
-                {...field("area")}
-              >
-                <option value="">اختر المنطقة…</option>
-                {deliveryAreas.map((area) => (
-                  <option key={area.id} value={area.id}>
-                    {area.name} — {money(area.price)}
-                    {area.eta ? ` · ${area.eta}` : ""}
-                  </option>
-                ))}
-              </select>
-              {errors.area && (
-                <span className="vs-field__error" id="vs-err-area">
-                  {errors.area}
-                </span>
-              )}
-            </label>
+              <label className="vs-field">
+                العنوان بالتفصيل
+                <textarea
+                  className="vs-input vs-textarea"
+                  rows="2"
+                  value={form.address}
+                  onChange={(event) => update({ address: event.target.value })}
+                  placeholder="الشارع، رقم البناية، أقرب معلم"
+                  {...field("address")}
+                />
+                {errors.address && (
+                  <span className="vs-field__error" id="vs-err-address">
+                    {errors.address}
+                  </span>
+                )}
+              </label>
 
-            <label className="vs-field">
-              العنوان بالتفصيل
-              <textarea
-                className="vs-input vs-textarea"
-                rows="3"
-                value={form.address}
-                onChange={(event) => update({ address: event.target.value })}
-                placeholder="الشارع، رقم البناية، أقرب معلم"
-                {...field("address")}
-              />
-              {errors.address && (
-                <span className="vs-field__error" id="vs-err-address">
-                  {errors.address}
-                </span>
-              )}
-            </label>
-
-            <label className="vs-field">
-              ملاحظات على الطلب (اختياري)
-              <textarea
-                className="vs-input vs-textarea"
-                rows="2"
-                value={form.notes}
-                onChange={(event) => update({ notes: event.target.value })}
-                placeholder="أي تفاصيل تساعدنا في التوصيل"
-              />
-            </label>
+              <label className="vs-field vs-checkout__notes">
+                ملاحظات على الطلب (اختياري)
+                <textarea
+                  className="vs-input vs-textarea"
+                  rows="1"
+                  value={form.notes}
+                  onChange={(event) => update({ notes: event.target.value })}
+                  placeholder="أي تفاصيل تساعدنا في التوصيل"
+                />
+              </label>
+            </div>
           </fieldset>
 
-          <fieldset className="vs-panel">
+          <fieldset className="vs-panel vs-checkout__payment">
             <legend className="vs-panel__title">طريقة الدفع</legend>
             {paymentMethods.map((method) => (
               <label

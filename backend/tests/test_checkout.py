@@ -544,12 +544,12 @@ def test_order_status_history_is_recorded(
     client.post(
         f"/api/v1/admin/orders/{order.id}/status",
         headers=auth(admin_token),
-        json={"status": "reviewing", "note": "تم التأكيد هاتفياً"},
+        json={"status": "confirmed", "note": "تم التأكيد هاتفياً"},
     )
     detail = client.get(f"/api/v1/admin/orders/{order.id}", headers=auth(admin_token)).json()
 
     history = detail["status_history"]
-    assert [h["new_status"] for h in history] == ["new", "reviewing"]
+    assert [h["new_status"] for h in history] == ["new", "confirmed"]
     assert history[0]["old_status"] is None
     assert history[1]["old_status"] == "new"
     assert history[1]["note"] == "تم التأكيد هاتفياً"
@@ -715,7 +715,8 @@ def test_public_checkout_returns_a_canonical_new_order_snapshot_and_is_idempoten
             "variant_id": None,
             "product_name": "Server name",
             "sku": "SERVER-SKU",
-            "variant_description": None,
+                "variant_description": None,
+                "selected_option_value_ids": [],
             "unit_price": 25.0,
             "quantity": 2,
             "line_total": 50.0,

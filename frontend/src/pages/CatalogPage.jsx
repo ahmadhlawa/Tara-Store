@@ -34,12 +34,6 @@ const MODES = {
     filterCategories: false,
     force: { product_type: "package" },
   },
-  molds: {
-    title: "قوالب سيليكون",
-    subtitle: "قوالب للريزن والشمع",
-    filterCategories: false,
-    force: { product_type: "silicone_mold" },
-  },
   search: { title: "نتائج البحث", filterCategories: true },
 };
 
@@ -59,7 +53,7 @@ function findCategory(categories, slug) {
 
 /**
  * One catalogue template behind /shop, /category/:slug, /offers, /packages,
- * /molds and /search. The mode fixes the parts of the query the visitor cannot
+ * and /search. The mode fixes the parts of the query the visitor cannot
  * change; everything else comes from the URL.
  */
 export default function CatalogPage({ mode = "shop" }) {

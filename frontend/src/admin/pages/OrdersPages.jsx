@@ -10,6 +10,7 @@ import {
 import {
   CompleteOrderDialog, InvoiceStatusBadge, OrderActivityTimeline, OrderStatusBadge, OrderTotalsSummary, PaymentStatusBadge,
 } from "../orderInvoice/components.jsx";
+import CatalogItemPicker from "../orderInvoice/CatalogItemPicker.jsx";
 import {
   ORDER_SOURCES, ORDER_STATUSES, PAYMENT_STATUSES, PAYMENT_METHODS, canCompleteOrder, canEditIncompleteOrder,
   canReopenOrder, isMoney, isWholeQuantity, orderSourceLabels, orderStatusLabels, paymentMethodLabels, paymentStatusLabels,
@@ -76,13 +77,7 @@ export function OrdersPage() {
 }
 
 function CatalogItemsEditor({ items, products, onChange, disabled }) {
-  const [productId, setProductId] = useState("");
   const update = (index, key, value) => onChange(items.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item));
-  const add = () => {
-    const product = products.find((row) => String(row.id) === productId);
-    if (!product || items.some((item) => item.product_id === product.id && !item.variant_id)) return;
-    onChange([...items, { kind: "catalog", product_id: product.id, product_name: product.name, sku: product.sku, quantity: 1, unit_price: asText(product.price) }]); setProductId("");
-  };
   return <section aria-label="أصناف الطلب" style={sx`display:flex;flex-direction:column;gap:10px`}>
     {items.map((item, index) => item.kind === "manual" ? <fieldset className="admin-order-item-editor-row" key={item.order_item_id || `manual-${index}`} disabled={disabled} style={sx`border:1px solid #E7DCF2;border-radius:10px;padding:12px;display:grid;grid-template-columns:var(--admin-order-item-editor-grid,minmax(130px,1fr) minmax(130px,1fr) 90px 120px auto);gap:10px;align-items:end`}>
       <legend style={sx`font-size:13px;font-weight:800;padding-inline:4px`}>صنف يدوي</legend>
@@ -93,12 +88,12 @@ function CatalogItemsEditor({ items, products, onChange, disabled }) {
       <Button variant="danger" aria-label={`حذف ${item.name}`} disabled={disabled || items.length === 1} onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))}>حذف</Button>
     </fieldset> : <fieldset className="admin-order-item-editor-row" key={`${item.product_id}-${item.variant_id || "base"}`} disabled={disabled} style={sx`border:1px solid #E7DCF2;border-radius:10px;padding:12px;display:grid;grid-template-columns:var(--admin-order-item-editor-grid,minmax(130px,1fr) 90px 120px auto);gap:10px;align-items:end`}>
       <legend style={sx`font-size:13px;font-weight:800;padding-inline:4px`}>{item.product_name}{item.variant_description ? ` · ${item.variant_description}` : ""}</legend>
-      <span style={sx`font-size:12px;color:#766669`}>{item.sku || "بدون SKU"}</span>
+      <span style={sx`font-size:12px;color:#766669`}>{item.variant_description || item.sku || "بدون خيارات"}</span>
       <label style={filterStyle}>الكمية<input aria-label={`كمية ${item.product_name}`} inputMode="numeric" value={item.quantity} onChange={(event) => update(index, "quantity", event.target.value)} style={input} /></label>
       <label style={filterStyle}>سعر الطلب<input aria-label={`سعر ${item.product_name}`} inputMode="decimal" value={item.unit_price} onChange={(event) => update(index, "unit_price", event.target.value)} style={input} /></label>
       <Button variant="danger" aria-label={`حذف ${item.product_name}`} disabled={disabled || items.length === 1} onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))}>حذف</Button>
     </fieldset>)}
-    <div style={sx`display:flex;gap:8px;align-items:end;flex-wrap:wrap`}><label style={{ ...filterStyle, ...sx`min-width:240px;flex:1` }}>إضافة منتج من الكتالوج<select aria-label="إضافة منتج من الكتالوج" value={productId} onChange={(event) => setProductId(event.target.value)} disabled={disabled} style={input}><option value="">اختر منتجاً</option>{products.map((product) => <option key={product.id} value={product.id}>{product.name} · {product.sku || "—"}</option>)}</select></label><Button variant="secondary" disabled={disabled || !productId} onClick={add}>إضافة</Button></div>
+    <CatalogItemPicker products={products} disabled={disabled} onAdd={(item) => onChange([...items, item])} />
   </section>;
 }
 
@@ -132,7 +127,7 @@ export function OrderDetailPage() {
     if (!draft.reason.trim()) { feedback.error("سبب التعديل مطلوب."); return; }
     if (!draft.items.length || draft.items.some((item) => !isWholeQuantity(item.quantity) || !isMoney(item.unit_price))) { feedback.error("راجِع الكمية وسعر كل صنف."); return; }
     setBusy(true); try {
-      const row = await adminApi.updateOrder(orderId, { ...draft, customer_email: draft.customer_email.trim() || null, customer_notes: draft.customer_notes.trim() || null, admin_notes: draft.admin_notes.trim() || null, discount: draft.discount || "0", delivery_fee: draft.delivery_fee || "0", items: draft.items.map((item) => item.kind === "manual" ? { kind: "manual", order_item_id: item.order_item_id, name: item.name, description: item.description.trim() || null, quantity: Number(item.quantity), unit_price: item.unit_price } : { kind: "catalog", product_id: item.product_id, variant_id: item.variant_id || null, quantity: Number(item.quantity), unit_price: item.unit_price }) });
+      const row = await adminApi.updateOrder(orderId, { ...draft, customer_email: draft.customer_email.trim() || null, customer_notes: draft.customer_notes.trim() || null, admin_notes: draft.admin_notes.trim() || null, discount: draft.discount || "0", delivery_fee: draft.delivery_fee || "0", items: draft.items.map((item) => item.kind === "manual" ? { kind: "manual", order_item_id: item.order_item_id, name: item.name, description: item.description.trim() || null, quantity: Number(item.quantity), unit_price: item.unit_price } : { kind: "catalog", product_id: item.product_id, variant_id: item.variant_id || null, selected_option_value_ids: item.selected_option_value_ids || [], quantity: Number(item.quantity), unit_price: item.unit_price }) });
       setOrder(row); setDraft(initialDraft(row)); setNextStatus(row.status); feedback.success("تم حفظ تعديلات الطلب.");
     } catch (error) { feedback.error(error.message || "تعذّر حفظ تعديلات الطلب."); } finally { setBusy(false); }
   };

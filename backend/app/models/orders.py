@@ -140,6 +140,9 @@ class OrderItem(Base):
     sku: Mapped[str | None] = mapped_column(String(64), nullable=True)
     original_sku: Mapped[str | None] = mapped_column(String(64), nullable=True)
     variant_description: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    selected_option_value_ids: Mapped[list[int]] = mapped_column(
+        JSON, default=list, server_default="[]", nullable=False
+    )
     original_variant_description: Mapped[str | None] = mapped_column(String(200), nullable=True)
     manual_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     original_unit_price: Mapped[Decimal] = mapped_column(

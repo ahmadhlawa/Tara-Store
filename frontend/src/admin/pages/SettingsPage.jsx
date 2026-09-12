@@ -33,6 +33,7 @@ export default function SettingsPage() {
       setForm({
         ...Object.fromEntries(TEXT_KEYS.map((key) => [key, row[key] ?? ""])),
         ...Object.fromEntries(BOOLEAN_KEYS.map((key) => [key, row[key] !== false])),
+        low_stock_threshold: row.low_stock_threshold ?? 5,
       });
     }).catch((error) => feedback.error(error.message || "تعذّر تحميل روابط المتجر."));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -44,6 +45,7 @@ export default function SettingsPage() {
     try {
       const payload = Object.fromEntries(TEXT_KEYS.map((key) => [key, form[key].trim() || null]));
       BOOLEAN_KEYS.forEach((key) => { payload[key] = !!form[key]; });
+      payload.low_stock_threshold = Number(form.low_stock_threshold);
       await adminApi.updateSettings(payload);
       feedback.success("تم حفظ روابط المتجر.");
     } catch (error) {
@@ -63,6 +65,14 @@ export default function SettingsPage() {
         actions={<Button onClick={save} disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ"}</Button>}
       />
       {feedback.node}
+      <section style={{ ...card, ...sx`margin-bottom:16px` }}>
+        <h2 style={sx`margin:0 0 14px;font-size:16px;font-weight:800`}>إعدادات المخزون</h2>
+        <div style={sx`max-width:320px`}>
+          <Field title="حد تنبيه المخزون المنخفض" hint="الحد الافتراضي للمنتجات التي لا تملك حداً خاصاً">
+            <input type="number" min="0" value={form.low_stock_threshold} onChange={(event) => update("low_stock_threshold", event.target.value)} style={input} />
+          </Field>
+        </div>
+      </section>
       <section style={{ ...card, ...sx`margin-bottom:16px` }}>
         <h2 style={sx`margin:0 0 14px;font-size:16px;font-weight:800`}>بيانات التواصل</h2>
         <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px`}>

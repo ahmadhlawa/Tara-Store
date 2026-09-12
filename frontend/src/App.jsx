@@ -52,7 +52,6 @@ export default function App() {
           <Route path="category/:slug" element={lazyRoute(CatalogPage, { mode: "category" })} />
           <Route path="offers" element={lazyRoute(CatalogPage, { mode: "offers" })} />
           <Route path="packages" element={lazyRoute(CatalogPage, { mode: "packages" })} />
-          <Route path="molds" element={lazyRoute(CatalogPage, { mode: "molds" })} />
           <Route path="search" element={lazyRoute(CatalogPage, { mode: "search" })} />
           <Route path="product/:slug" element={lazyRoute(ProductDetailPage)} />
           <Route path="cart" element={lazyRoute(CartRoutePage, null, { title: "سلة التسوق", noindex: true })} />

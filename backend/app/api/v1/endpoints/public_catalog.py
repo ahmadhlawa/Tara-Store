@@ -67,6 +67,7 @@ def _product_page(
     sort: str = "featured",
     **filters,
 ) -> Page[ProductPublicOut]:
+    filters["in_stock"] = True
     stmt = catalog_service.apply_product_filters(
         catalog_service.product_list_query(active_only=True), **filters
     )
@@ -101,11 +102,6 @@ def bestselling_products(db: DbSession, pagination: PageParams) -> Page[ProductP
 @router.get("/products/packages", response_model=Page[ProductPublicOut])
 def package_products(db: DbSession, pagination: PageParams) -> Page[ProductPublicOut]:
     return _product_page(db, pagination, product_type=ProductType.PACKAGE.value)
-
-
-@router.get("/products/molds", response_model=Page[ProductPublicOut])
-def silicone_mold_products(db: DbSession, pagination: PageParams) -> Page[ProductPublicOut]:
-    return _product_page(db, pagination, product_type=ProductType.SILICONE_MOLD.value)
 
 
 @router.get("/products", response_model=Page[ProductPublicOut])
@@ -143,7 +139,9 @@ def list_products(
 
 @router.get("/products/{slug}", response_model=ProductPublicDetail)
 def get_product(slug: str, db: DbSession) -> dict:
-    stmt = catalog_service.product_detail_query(active_only=True).where(Product.slug == slug)
+    stmt = catalog_service.product_detail_query(active_only=True).where(
+        Product.slug == slug, catalog_service.publicly_available_condition()
+    )
     product = db.execute(stmt).scalars().unique().one_or_none()
     if product is None:
         raise _NOT_FOUND
@@ -161,7 +159,8 @@ def related_products(
         raise _NOT_FOUND
     stmt = (
         catalog_service.product_list_query(active_only=True)
-        .where(Product.id != product.id, Product.category_id == product.category_id)
+        .where(Product.id != product.id, Product.category_id == product.category_id,
+               catalog_service.publicly_available_condition())
         .order_by(Product.is_featured.desc(), Product.sort_order.asc(), Product.id.desc())
         .limit(limit)
     )

@@ -47,16 +47,16 @@ describe("order and invoice domain", () => {
   it("keeps manager-only actions separate from normal admin actions", () => {
     expect(canCreateManualOrder({ role: "super_admin" })).toBe(true);
     expect(canCreateManualOrder({ role: "admin" })).toBe(false);
-    expect(canCompleteOrder({ role: "admin" }, { is_locked: false, status: "pending" })).toBe(true);
-    expect(canEditIncompleteOrder({ role: "admin" }, { source: "website", is_locked: false, status: "pending" })).toBe(false);
-    expect(canEditIncompleteOrder({ role: "admin" }, { source: "website", is_locked: false, status: "preparing" })).toBe(true);
-    expect(canEditIncompleteOrder({ role: "super_admin" }, { source: "whatsapp", is_locked: false, status: "preparing" })).toBe(true);
-    expect(canEditIncompleteOrder({ role: "admin" }, { source: "whatsapp", is_locked: false, status: "preparing" })).toBe(false);
+    expect(canCompleteOrder({ role: "admin" }, { is_locked: false, status: "confirmed" })).toBe(true);
+    expect(canEditIncompleteOrder({ role: "admin" }, { source: "website", is_locked: false, status: "completed" })).toBe(false);
+    expect(canEditIncompleteOrder({ role: "admin" }, { source: "website", is_locked: false, status: "ready" })).toBe(true);
+    expect(canEditIncompleteOrder({ role: "super_admin" }, { source: "whatsapp", is_locked: false, status: "ready" })).toBe(true);
+    expect(canEditIncompleteOrder({ role: "admin" }, { source: "whatsapp", is_locked: false, status: "ready" })).toBe(false);
     expect(canEditIncompleteOrder({ role: "super_admin" }, { source: "whatsapp", is_locked: false, status: "cancelled" })).toBe(false);
     expect(canReopenOrder({ role: "admin" }, { status: "completed" })).toBe(false);
     expect(canReopenOrder({ role: "super_admin" }, { status: "completed", is_locked: false })).toBe(false);
     expect(canReopenOrder({ role: "super_admin" }, { status: "completed", is_locked: true })).toBe(true);
-    const reopened = { source: "website", status: "preparing", is_locked: false, completed_at: "2026-08-04T00:00:00Z" };
+    const reopened = { source: "website", status: "ready", is_locked: false, completed_at: "2026-08-04T00:00:00Z" };
     expect(canEditIncompleteOrder({ role: "admin" }, reopened)).toBe(false);
     expect(canCompleteOrder({ role: "admin" }, reopened)).toBe(false);
     expect(canEditIncompleteOrder({ role: "super_admin" }, reopened)).toBe(true);
@@ -120,7 +120,7 @@ describe("order and invoice components", () => {
 
     expect(screen.getByText("₪ 5.75")).toBeInTheDocument();
     expect(screen.getByText("مكتمل")).toBeInTheDocument();
-    expect(screen.getByText("مدفوع جزئياً")).toBeInTheDocument();
+    expect(screen.getByText("غير مدفوع")).toBeInTheDocument();
   });
 
   // The Arabic strings here are display labels only. The values are the contract the
@@ -129,9 +129,7 @@ describe("order and invoice components", () => {
   it("offers only the payment status values the API accepts", () => {
     expect(PAYMENT_STATUSES.map(([value]) => value)).toEqual([
       "unpaid",
-      "partially_paid",
       "paid",
-      "partially_refunded",
       "refunded",
     ]);
   });

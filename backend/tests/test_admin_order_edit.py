@@ -5,7 +5,7 @@ from decimal import Decimal
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models import Invoice, Order, OrderItem, Product
+from app.models import Invoice, Order, OrderItem, Product, ProductOption, ProductOptionValue
 from tests.conftest import auth, make_product
 
 
@@ -619,6 +619,46 @@ def test_super_admin_saves_mixed_manual_order_without_invoice_or_manual_catalog_
     assert db.get(Product, product.id).stock_quantity == 18
     assert db.query(Product).count() == products_before
     assert db.query(Invoice).filter(Invoice.order_id == body["id"]).count() == 0
+
+
+def test_manual_order_resolves_and_snapshots_simple_product_options(
+    client: TestClient, db: Session, super_token: str
+) -> None:
+    product = make_product(db, slug="manual-simple-options", name="شمعة لافندر", price="70.00", stock=10)
+    size = ProductOption(product_id=product.id, name="الحجم", affects_price=True, sort_order=0)
+    large = ProductOptionValue(value="كبير", price_override=Decimal("90.00"), sort_order=0)
+    size.values.append(large)
+    db.add(size)
+    db.commit()
+
+    base_response = client.post(
+        "/api/v1/admin/orders/manual",
+        headers=auth(super_token),
+        json=_manual_order_payload(product, items=[{
+            "kind": "catalog", "product_id": product.id, "quantity": 1,
+        }]),
+    )
+    assert base_response.status_code == 201, base_response.text
+    base_item = base_response.json()["items"][0]
+    assert base_item["selected_option_value_ids"] == []
+    assert base_item["variant_description"] is None
+    assert base_item["unit_price"] == 70
+
+    response = client.post(
+        "/api/v1/admin/orders/manual",
+        headers=auth(super_token),
+        json=_manual_order_payload(product, items=[{
+            "kind": "catalog", "product_id": product.id,
+            "selected_option_value_ids": [large.id], "quantity": 2,
+        }]),
+    )
+
+    assert response.status_code == 201, response.text
+    item = response.json()["items"][0]
+    assert item["selected_option_value_ids"] == [large.id]
+    assert item["variant_description"] == "الحجم: كبير"
+    assert item["unit_price"] == 90
+    assert item["line_total"] == 180
 
 
 def _manual_edit_payload(order: dict, items: list[dict]) -> dict:

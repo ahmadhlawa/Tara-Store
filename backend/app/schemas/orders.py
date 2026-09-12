@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 import re
 from typing import Annotated, Any, Literal
@@ -80,6 +81,7 @@ class OrderItemOut(APIModel):
     product_name: str
     sku: str | None = None
     variant_description: str | None = None
+    selected_option_value_ids: list[int] = Field(default_factory=list)
     unit_price: Money
     quantity: int
     line_total: Money
@@ -224,6 +226,7 @@ class AdminCatalogOrderItemInput(APIModel):
     kind: Literal["catalog"] = "catalog"
     product_id: int
     variant_id: int | None = None
+    selected_option_value_ids: list[int] = Field(default_factory=list)
     quantity: int = Field(gt=0, le=999)
     unit_price: Money | None = Field(default=None, ge=0)
 
@@ -267,7 +270,7 @@ class OrderAdminUpdate(APIModel):
     admin_notes: str | None = Field(default=None, max_length=2000)
     discount: Money = Field(ge=0)
     delivery_fee: Money = Field(ge=0)
-    status: OrderStatus
+    status: Literal["new", "confirmed", "ready", "delivered", "completed", "cancelled"]
     reason: str | None = Field(default=None, max_length=500)
     items: list[AdminOrderItemInput] = Field(min_length=1, max_length=100)
 
@@ -293,7 +296,7 @@ class OrderAdminUpdate(APIModel):
 
 
 class OrderStatusUpdate(APIModel):
-    status: OrderStatus
+    status: Literal["new", "confirmed", "ready", "delivered", "completed", "cancelled"]
     note: str | None = Field(default=None, max_length=500)
 
 
@@ -312,6 +315,7 @@ class ManualCatalogOrderItemInput(APIModel):
     kind: Literal["catalog"] = "catalog"
     product_id: int
     variant_id: int | None = None
+    selected_option_value_ids: list[int] = Field(default_factory=list)
     quantity: int = Field(gt=0, le=999)
     unit_price: Money | None = Field(default=None, ge=0)
 
@@ -330,7 +334,7 @@ ManualOrderItemInputUnion = Annotated[
 
 
 class ManualOrderCreate(APIModel):
-    source: Literal["whatsapp", "phone", "walk_in", "social", "other"]
+    source: Literal["website", "whatsapp", "other"]
     source_note: str | None = Field(default=None, max_length=250)
     customer_name: str = Field(min_length=3, max_length=150)
     customer_phone: str = Field(min_length=7, max_length=40)
@@ -374,4 +378,11 @@ class DashboardSummary(APIModel):
     orders_by_status: dict[str, int]
     revenue_total: Money
     low_stock_products: int
+    period_start: date
+    period_end: date
+    period_sales_total: Money
+    period_orders_total: int
+    sales_by_day: list[dict[str, Any]] = Field(default_factory=list)
+    orders_by_day: list[dict[str, Any]] = Field(default_factory=list)
+    low_stock_items: list[dict[str, Any]] = Field(default_factory=list)
     recent_orders: list[OrderAdminListOut] = Field(default_factory=list)

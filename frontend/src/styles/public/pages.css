@@ -672,6 +672,64 @@
   text-align: start;
 }
 
+/* Checkout stays dense without changing the shared form treatment elsewhere. */
+.vs-checkout__form {
+  gap: 12px;
+}
+
+.vs-checkout .vs-panel {
+  gap: 10px;
+  padding: 16px;
+}
+
+.vs-checkout .vs-field {
+  gap: 4px;
+}
+
+.vs-checkout__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 10px 12px;
+}
+
+.vs-checkout__notes {
+  grid-column: 1 / -1;
+}
+
+.vs-checkout .vs-textarea {
+  padding-block: 9px;
+  line-height: 1.55;
+}
+
+.vs-checkout .vs-payopt {
+  padding: 10px 12px;
+}
+
+.vs-checkout .vs-form__note {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.vs-checkout .vs-return-policy {
+  font-size: 12.5px;
+  line-height: 1.65;
+  padding: 11px 12px;
+}
+
+.vs-checkout .vs-return-policy h2 {
+  margin-block-end: 4px;
+}
+
+.vs-checkout .vs-return-policy p + p {
+  margin-block-start: 4px;
+}
+
+@media (max-width: 599px) {
+  .vs-checkout__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .vs-spinner {
   width: 17px;
   height: 17px;
@@ -823,65 +881,35 @@
 
 /* â”€â”€ contact and tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-.vs-contact {
-  max-width: 620px;
-  margin-inline: auto;
+.vs-contact-page__header { text-align: center; max-width: 620px; margin: 0 auto 40px; }
+.vs-contact-page__eyebrow { display: block; margin-bottom: 8px; color: var(--vs-accent); font-size: 13px; font-weight: 600; letter-spacing: .04em; }
+.vs-contact-page__layout { direction: ltr; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .82fr); gap: clamp(28px, 6vw, 76px); align-items: center; max-width: 1040px; margin-inline: auto; }
+.vs-contact-methods { direction: rtl; }
+.vs-contact-methods h2 { margin: 0 0 8px; font-size: clamp(22px, 3vw, 30px); font-weight: 600; }
+.vs-contact-methods > p { margin: 0 0 24px; color: var(--vs-ink-4); line-height: 1.8; }
+.vs-contact-methods__list { display: grid; gap: 14px; }
+.vs-contact-method { display: grid; grid-template-columns: 52px 1fr auto; gap: 14px; align-items: center; min-height: 82px; padding: 14px 16px; color: var(--vs-ink); background: color-mix(in srgb, var(--vs-surface) 92%, var(--vs-accent)); border: 1px solid var(--vs-border); border-radius: var(--vs-r-lg); text-decoration: none; box-shadow: 0 10px 28px rgba(86, 55, 67, .06); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.vs-contact-method:hover { transform: translateY(-2px); border-color: var(--vs-accent); box-shadow: 0 14px 32px rgba(86, 55, 67, .1); }
+.vs-contact-method:focus-visible { outline: 3px solid color-mix(in srgb, var(--vs-accent) 35%, transparent); outline-offset: 3px; }
+.vs-contact-method__icon { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; color: var(--vs-accent); background: var(--vs-surface); }
+.vs-contact-method__icon svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.vs-contact-method strong, .vs-contact-method small { display: block; }
+.vs-contact-method strong { margin-bottom: 3px; font-size: 16px; }
+.vs-contact-method small { color: var(--vs-ink-4); direction: ltr; text-align: right; }
+.vs-contact-method__arrow { color: var(--vs-accent); font-size: 22px; }
+.vs-contact-note { display: flex; align-items: center; justify-content: center; padding: 8px; }
+.vs-contact-note img { display: block; width: min(100%, 430px); height: auto; border-radius: 24px; object-fit: contain; filter: drop-shadow(0 18px 28px rgba(86, 55, 67, .12)); }
+
+@media (max-width: 760px) {
+  .vs-contact-page__header { margin-bottom: 28px; }
+  .vs-contact-page__layout { grid-template-columns: 1fr; gap: 30px; }
+  .vs-contact-note { padding: 4px 18px 12px; }
+  .vs-contact-note img { width: min(100%, 360px); }
 }
 
-.vs-contact__side {
-  background: var(--vs-surface);
-  border: 1px solid var(--vs-border);
-  border-radius: var(--vs-r-lg);
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.vs-contact__title {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.vs-contact__socials {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-block-start: 6px;
-}
-
-.vs-contact__whatsapp {
-  align-self: flex-start;
-  margin-block-start: 6px;
-}
-
-.vs-contact__map {
-  max-width: 620px;
-  margin: 22px auto 0;
-  padding: 22px;
-  background: var(--vs-surface);
-  border: 1px solid var(--vs-border);
-  border-radius: var(--vs-r-lg);
-  display: grid;
-  gap: 16px;
-}
-
-.vs-contact__map iframe {
-  display: block;
-  width: 100%;
-  height: min(360px, 62vw);
-  min-height: 220px;
-  border: 1px solid var(--vs-border);
-  border-radius: var(--vs-r-md);
-}
-
-@media (max-width: 479px) {
-  .vs-contact__map {
-    padding: 16px;
-  }
-  .vs-contact__whatsapp {
-    align-self: stretch;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .vs-contact-method { transition: none; }
+  .vs-contact-method:hover { transform: none; }
 }
 
 .vs-track__form {

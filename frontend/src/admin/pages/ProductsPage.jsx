@@ -16,9 +16,8 @@ import {
 } from "../ui.jsx";
 
 const TYPE_LABELS = {
-  standard: "منتج عادي",
-  package: "بكج",
-  silicone_mold: "قالب سيليكون",
+  standard: "عادي",
+  package: "باكيج",
 };
 
 export default function ProductsPage() {
@@ -73,7 +72,7 @@ export default function ProductsPage() {
     <>
       <PageHeader
         title="المنتجات"
-        description="أضف المنتجات والبكجات وقوالب السيليكون وعدّل أسعارها ومخزونها."
+        description="أضف المنتجات والباكيجات وعدّل أسعارها ومخزونها."
         actions={<Button onClick={() => navigate("/admin/products/new")}>منتج جديد</Button>}
       />
       {feedback.node}

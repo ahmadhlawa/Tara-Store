@@ -65,7 +65,6 @@ export const checkoutService = {
       client_reference: clientReference,
       customer_name: customer.name,
       customer_phone: customer.phone,
-      customer_email: customer.email || null,
       address: customer.address,
       delivery_area_id: customer.deliveryAreaId ?? null,
       coupon_code: customer.couponCode || null,

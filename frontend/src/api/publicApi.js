@@ -14,7 +14,6 @@ export const publicApi = {
   newProducts: (params) => api.get("/products/new", { params }),
   bestsellers: (params) => api.get("/products/bestsellers", { params }),
   packages: (params) => api.get("/products/packages", { params }),
-  molds: (params) => api.get("/products/molds", { params }),
 
   heroSlides: () => api.get("/hero-slides"),
   homeSections: () => api.get("/home-sections"),

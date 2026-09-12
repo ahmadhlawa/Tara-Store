@@ -66,7 +66,6 @@ export function StoreProvider({ children }) {
   const [checkoutForm, setCheckoutForm] = useState({
     name: "",
     phone: "",
-    email: "",
     areaId: null,
     address: "",
     notes: "",

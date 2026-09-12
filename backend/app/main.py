@@ -37,7 +37,7 @@ def _public_url(base: str, path: str = "") -> str:
 
 def _sitemap_xml(base: str, db: Session) -> bytes:
     root = ElementTree.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
-    paths = ["/", "/shop", "/offers", "/packages", "/molds", "/categories", "/contact"]
+    paths = ["/", "/shop", "/offers", "/packages", "/categories", "/contact"]
     paths.extend(
         f"/category/{quote(slug, safe='')}"
         for slug in db.execute(select(Category.slug).where(Category.is_active.is_(True))).scalars()

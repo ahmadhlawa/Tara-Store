@@ -5,7 +5,7 @@ from sqlalchemy import event, inspect
 from sqlalchemy.orm import Session
 
 from app.core.enums import ProductType
-from app.models import Category, PackageItem, Product, ProductImage, ProductOption
+from app.models import Category, PackageItem, Product, ProductImage, ProductOption, ProductVariant
 from app.services import catalog as catalog_service
 from tests.conftest import auth, make_product
 
@@ -184,21 +184,57 @@ def test_product_filters_and_pagination(client: TestClient, db: Session, categor
     make_product(db, slug="p1", name="منتج ١", price="10.00", category_id=category.id, is_featured=True)
     make_product(db, slug="p2", name="منتج ٢", price="200.00", category_id=category.id)
     make_product(db, slug="p3", name="منتج ٣", price="50.00", stock=0, category_id=category.id)
-    make_product(db, slug="mold", name="قالب", product_type=ProductType.SILICONE_MOLD.value)
+    make_product(db, slug="regular", name="عادي")
     make_product(db, slug="kit", name="بكج", product_type=ProductType.PACKAGE.value)
 
     assert client.get("/api/v1/products", params={"is_featured": True}).json()["total"] == 1
     assert client.get("/api/v1/products", params={"in_stock": True}).json()["total"] == 4
-    assert client.get("/api/v1/products", params={"max_price": 60}).json()["total"] == 2
-    assert client.get("/api/v1/products", params={"category": "resin"}).json()["total"] == 3
-    assert client.get("/api/v1/products/molds").json()["total"] == 1
+    assert client.get("/api/v1/products", params={"max_price": 60}).json()["total"] == 1
+    assert client.get("/api/v1/products", params={"category": "resin"}).json()["total"] == 2
     assert client.get("/api/v1/products/packages").json()["total"] == 1
 
     page = client.get("/api/v1/products", params={"page": 2, "page_size": 2}).json()
-    assert page["page"] == 2 and page["pages"] == 3 and len(page["items"]) == 2
+    assert page["page"] == 2 and page["pages"] == 2 and len(page["items"]) == 2
 
     cheapest = client.get("/api/v1/products", params={"sort": "price-asc"}).json()
     assert cheapest["items"][0]["price"] == 10
+
+
+def test_dashboard_low_stock_uses_global_override_and_variants(
+    client: TestClient, db: Session, admin_token: str
+) -> None:
+    inherited = make_product(db, slug="inherited-alert", stock=4, low_stock_threshold=None)
+    overridden = make_product(db, slug="override-alert", stock=2, low_stock_threshold=1)
+    variant_product = make_product(db, slug="variant-alert", stock=100)
+    db.add_all([
+        ProductVariant(product_id=variant_product.id, title="ك5", stock_quantity=5),
+        ProductVariant(product_id=variant_product.id, title="ك6", stock_quantity=6),
+    ])
+    db.commit()
+    client.patch("/api/v1/admin/settings", headers=auth(admin_token), json={"low_stock_threshold": 5})
+    result = client.get("/api/v1/admin/dashboard", headers=auth(admin_token))
+    assert result.status_code == 200
+    body = result.json()
+    assert body["low_stock_products"] == 2
+    ids = {item["product_id"] for item in body["low_stock_items"]}
+    assert ids == {inherited.id, variant_product.id}
+    assert len(body["sales_by_day"]) == len(body["orders_by_day"]) == 30
+    assert overridden.id not in ids
+
+
+def test_public_catalog_uses_variant_stock_and_hides_unavailable_detail(client: TestClient, db: Session) -> None:
+    product = make_product(db, slug="variant-stock", stock=0)
+    db.add_all([
+        ProductVariant(product_id=product.id, title="نفد", stock_quantity=0),
+        ProductVariant(product_id=product.id, title="متاح", stock_quantity=2),
+    ])
+    db.commit()
+    assert client.get("/api/v1/products").json()["total"] == 1
+    assert client.get("/api/v1/products/variant-stock").status_code == 200
+    db.query(ProductVariant).update({ProductVariant.stock_quantity: 0})
+    db.commit()
+    assert client.get("/api/v1/products").json()["total"] == 0
+    assert client.get("/api/v1/products/variant-stock").status_code == 404
 
 
 def test_variants_belong_to_their_product_and_carry_their_own_stock(
@@ -332,10 +368,10 @@ def test_public_list_query_loads_only_compact_relations_without_n_plus_one(db: S
     finally:
         event.remove(engine, "before_cursor_execute", record)
 
-    assert len(statements) == 5  # product + four bounded select-in relationship queries
-    assert not any("product_specifications" in sql or "product_variants" in sql for sql in statements)
+        assert len(statements) == 6  # product + five bounded select-in relationship queries
+    assert not any("product_specifications" in sql for sql in statements)
     assert all(item["has_options"] and item["package_item_count"] == 1 for item in payloads)
-    assert all({"specifications", "variants"}.issubset(inspect(row).unloaded) for row in rows)
+    assert all("specifications" in inspect(row).unloaded and "variants" not in inspect(row).unloaded for row in rows)
 
 
 def test_admin_list_query_does_not_load_public_or_detail_only_relations(db: Session) -> None:

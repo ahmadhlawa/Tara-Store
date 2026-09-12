@@ -22,7 +22,6 @@ export const footerLinks = {
       ["كل المنتجات", "/shop"],
       ["العروض", "/offers"],
       ["البكجات", "/packages"],
-      ["قوالب سيليكون", "/molds"],
     ],
   },
   service: {
@@ -72,11 +71,16 @@ export const invoiceStatusLabels = {
 };
 
 export const orderStatusLabels = {
-  pending: "بانتظار المراجعة",
-  confirmed: "تم التأكيد",
-  processing: "قيد التحضير",
-  ready: "جاهز للشحن",
-  shipped: "مع مندوب التوصيل",
-  delivered: "تم التوصيل",
-  cancelled: "ملغى",
+  new: "طلب جديد",
+  confirmed: "طلب مؤكد",
+  ready: "جاهز",
+  delivered: "تم تسليمه",
+  completed: "مكتمل",
+  cancelled: "طلب ملغى",
+  pending: "طلب مؤكد",
+  reviewing: "طلب مؤكد",
+  processing: "جاهز",
+  preparing: "جاهز",
+  shipped: "تم تسليمه",
+  out_for_delivery: "تم تسليمه",
 };

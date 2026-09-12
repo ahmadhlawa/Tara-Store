@@ -56,9 +56,9 @@ def test_calculate_order_totals_rejects_negative_money_and_nonpositive_quantitie
     ("total", "paid", "refunded", "status", "remaining"),
     [
         ("10.00", "0.00", "0.00", PaymentStatus.UNPAID, "10.00"),
-        ("10.00", "4.00", "0.00", PaymentStatus.PARTIALLY_PAID, "6.00"),
+        ("10.00", "4.00", "0.00", PaymentStatus.UNPAID, "6.00"),
         ("10.00", "10.00", "0.00", PaymentStatus.PAID, "0.00"),
-        ("10.00", "10.00", "3.00", PaymentStatus.PARTIALLY_REFUNDED, "3.00"),
+        ("10.00", "10.00", "3.00", PaymentStatus.REFUNDED, "3.00"),
         ("10.00", "10.00", "10.00", PaymentStatus.REFUNDED, "10.00"),
     ],
 )

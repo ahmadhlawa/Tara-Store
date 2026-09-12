@@ -32,7 +32,6 @@ describe("checkout confirmation", () => {
       client_reference: "checkout-ref-0001",
       customer_name: "Customer",
       customer_phone: "0591234567",
-      customer_email: null,
       address: "A valid address",
       delivery_area_id: null,
       coupon_code: null,

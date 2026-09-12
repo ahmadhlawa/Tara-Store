@@ -130,8 +130,8 @@ def price_lines(db: Session, requested: list[tuple]) -> list[PricedLine]:
             if any(value_id not in allowed for value_id in selected_ids):
                 raise DomainError("قيمة الخيار لا تنتمي إلى هذا المنتج.", code="option_value_mismatch")
             axes = [allowed[value_id][0].id for value_id in selected_ids]
-            if len(selected_ids) != len(product.options) or len(set(axes)) != len(product.options):
-                raise DomainError("يجب اختيار قيمة واحدة من كل خيار.", code="options_required")
+            if len(set(axes)) != len(selected_ids):
+                raise DomainError("يمكن اختيار قيمة واحدة فقط من كل خيار.", code="duplicate_option_axis")
             selected_values = [allowed[value_id][1] for value_id in selected_ids]
         elif selected_ids:
             raise DomainError("قيم الخيارات المنفصلة غير صالحة لهذا المنتج.", code="option_value_mismatch")

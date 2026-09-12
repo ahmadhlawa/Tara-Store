@@ -64,7 +64,7 @@ class Product(TimestampMixin, Base):
 
     stock_quantity: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     track_inventory: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    low_stock_threshold: Mapped[int] = mapped_column(Integer, default=3, nullable=False)
+    low_stock_threshold: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

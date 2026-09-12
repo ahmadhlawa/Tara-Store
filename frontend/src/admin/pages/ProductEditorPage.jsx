@@ -28,7 +28,7 @@ const EMPTY = {
   cost_price: "",
   stock_quantity: 0,
   track_inventory: true,
-  low_stock_threshold: 3,
+  low_stock_threshold: "",
   is_active: true,
   is_featured: false,
   is_new: false,
@@ -193,7 +193,7 @@ export default function ProductEditorPage() {
         cost_price: num(form.cost_price),
         stock_quantity: Number(form.stock_quantity) || 0,
         track_inventory: !!form.track_inventory,
-        low_stock_threshold: Number(form.low_stock_threshold) || 0,
+        low_stock_threshold: form.low_stock_threshold === "" ? null : Number(form.low_stock_threshold),
         is_active: !!form.is_active,
         is_featured: !!form.is_featured,
         is_new: !!form.is_new,
@@ -288,9 +288,8 @@ export default function ProductEditorPage() {
           </Field>
           <Field title="نوع المنتج">
             <select value={form.product_type} onChange={(e) => update({ product_type: e.target.value })} style={input}>
-              <option value="standard">منتج عادي</option>
-              <option value="package">بكج</option>
-              <option value="silicone_mold">قالب سيليكون</option>
+              <option value="standard">عادي</option>
+              <option value="package">باكيج</option>
             </select>
           </Field>
         </div>
@@ -437,7 +436,7 @@ export default function ProductEditorPage() {
             {!isNew && product?.sku && <p style={sx`margin:0;font-size:13px;color:#766669`}>SKU: {product.sku}</p>}
             <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px`}>
               <Field title="سعر التكلفة" hint="داخلي — لا يظهر في المتجر"><input type="number" step="0.01" value={form.cost_price ?? ""} onChange={(e) => update({ cost_price: e.target.value })} style={input} /></Field>
-              <Field title="حد التنبيه"><input type="number" value={form.low_stock_threshold} onChange={(e) => update({ low_stock_threshold: e.target.value })} style={input} /></Field>
+              <Field title="حد تنبيه المخزون" hint="اتركه فارغاً لاستخدام الحد العام"><input type="number" min="0" value={form.low_stock_threshold ?? ""} onChange={(e) => update({ low_stock_threshold: e.target.value })} style={input} /></Field>
               <Field title="ترتيب العرض"><input type="number" value={form.sort_order} onChange={(e) => update({ sort_order: e.target.value })} style={input} /></Field>
             </div>
             <div style={sx`display:flex;gap:18px;flex-wrap:wrap`}>

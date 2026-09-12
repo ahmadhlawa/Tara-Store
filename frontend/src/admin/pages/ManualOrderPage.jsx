@@ -4,8 +4,9 @@ import sx from "../../sx.js";
 import { adminApi } from "../../api/adminApi.js";
 import { Button, Field, PageHeader, Spinner, card, input, textarea, useFeedback } from "../ui.jsx";
 import { ORDER_SOURCES, PAYMENT_METHODS, calculateOrderTotals, formatMoney, isMoney, isWholeQuantity, orderSourceLabels } from "../orderInvoice/domain.js";
+import CatalogItemPicker from "../orderInvoice/CatalogItemPicker.jsx";
 
-const manualSources = ORDER_SOURCES.filter(([value]) => value !== "website");
+const manualSources = ORDER_SOURCES;
 const blankManualItem = () => ({ kind: "manual", name: "", description: "", quantity: "1", unit_price: "" });
 const initialValues = () => ({
   source: "whatsapp", source_note: "", customer_name: "", customer_phone: "", customer_email: "", address: "",
@@ -14,23 +15,16 @@ const initialValues = () => ({
 });
 
 function OrderLines({ items, products, catalogQuery, onCatalogQueryChange, onCatalogSearch, onChange, disabled }) {
-  const [productId, setProductId] = useState("");
   const update = (index, values) => onChange(items.map((item, itemIndex) => itemIndex === index ? { ...item, ...values } : item));
-  const addCatalog = () => {
-    const product = products.find((row) => String(row.id) === productId);
-    if (!product || items.some((item) => item.kind === "catalog" && item.product_id === product.id && !item.variant_id)) return;
-    onChange([...items, { kind: "catalog", product_id: product.id, product_name: product.name, sku: product.sku, quantity: "1", unit_price: String(product.price ?? "0.00") }]);
-    setProductId("");
-  };
   return <section aria-label="أصناف الطلب اليدوي" style={sx`display:flex;flex-direction:column;gap:10px`}>
     {items.map((item, index) => <fieldset key={`${item.kind}-${item.product_id || index}`} disabled={disabled} style={sx`border:1px solid #E7DCF2;border-radius:10px;padding:12px;display:grid;grid-template-columns:minmax(140px,1fr) 90px 120px auto;gap:10px;align-items:end`}>
       <legend style={sx`font-size:13px;font-weight:800;padding-inline:4px`}>{item.kind === "catalog" ? item.product_name : `صنف يدوي ${index + 1}`}</legend>
-      {item.kind === "manual" ? <><Field title="اسم الصنف"><input aria-label={`اسم الصنف اليدوي ${index + 1}`} required value={item.name} onChange={(event) => update(index, { name: event.target.value })} style={input} /></Field><Field title="الوصف"><input aria-label={`وصف الصنف اليدوي ${index + 1}`} value={item.description} onChange={(event) => update(index, { description: event.target.value })} style={input} /></Field></> : <span style={sx`font-size:12px;color:#766669;align-self:center`}>{item.sku || "بدون SKU"}</span>}
+      {item.kind === "manual" ? <><Field title="اسم الصنف"><input aria-label={`اسم الصنف اليدوي ${index + 1}`} required value={item.name} onChange={(event) => update(index, { name: event.target.value })} style={input} /></Field><Field title="الوصف"><input aria-label={`وصف الصنف اليدوي ${index + 1}`} value={item.description} onChange={(event) => update(index, { description: event.target.value })} style={input} /></Field></> : <span style={sx`font-size:12px;color:#766669;align-self:center`}>{item.variant_description || item.sku || "بدون خيارات"}</span>}
       <Field title="الكمية"><input aria-label={`كمية الصنف ${index + 1}`} inputMode="numeric" required value={item.quantity} onChange={(event) => update(index, { quantity: event.target.value })} style={input} /></Field>
-      <Field title="سعر القطعة"><input aria-label={item.kind === "manual" ? `سعر الصنف اليدوي ${index + 1}` : `سعر الصنف ${index + 1}`} inputMode="decimal" required value={item.unit_price} onChange={(event) => update(index, { unit_price: event.target.value })} style={input} /></Field>
-      <Button variant="danger" aria-label={`حذف الصنف ${index + 1}`} disabled={disabled} onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))}>حذف</Button>
+      <Field title="سعر القطعة" hint={item.kind === "catalog" ? "سعر الكتالوج؛ تغييره يُعد تجاوزاً إدارياً." : undefined}><input aria-label={item.kind === "manual" ? `سعر الصنف اليدوي ${index + 1}` : `سعر الصنف ${index + 1}`} inputMode="decimal" required value={item.unit_price} onChange={(event) => update(index, { unit_price: event.target.value })} style={input} /></Field>
+      <div style={sx`display:flex;gap:8px;align-items:center`}><span style={sx`font-size:12px;font-weight:800`}>الإجمالي: {isMoney(item.unit_price) && isWholeQuantity(item.quantity) ? formatMoney(Number(item.unit_price) * Number(item.quantity)) : "—"}</span><Button variant="danger" aria-label={`حذف الصنف ${index + 1}`} disabled={disabled} onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))}>حذف</Button></div>
     </fieldset>)}
-    <div style={sx`display:flex;gap:8px;align-items:end;flex-wrap:wrap`}><Field title="بحث في الكتالوج"><input aria-label="بحث في الكتالوج" type="search" value={catalogQuery} onChange={(event) => onCatalogQueryChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); onCatalogSearch(); } }} disabled={disabled} style={input} /></Field><Button variant="secondary" disabled={disabled} onClick={onCatalogSearch}>بحث</Button><Field title="إضافة منتج من الكتالوج"><select aria-label="إضافة منتج من الكتالوج" value={productId} onChange={(event) => setProductId(event.target.value)} disabled={disabled} style={input}><option value="">اختر منتجاً</option>{products.map((product) => <option key={product.id} value={product.id}>{product.name} · {product.sku || "—"}</option>)}</select></Field><Button variant="secondary" disabled={disabled || !productId} onClick={addCatalog}>إضافة المنتج</Button><Button variant="secondary" disabled={disabled} onClick={() => onChange([...items, blankManualItem()])}>إضافة صنف يدوي</Button></div>
+    <div style={sx`display:flex;gap:8px;align-items:end;flex-wrap:wrap`}><Field title="بحث في الكتالوج"><input aria-label="بحث في الكتالوج" type="search" value={catalogQuery} onChange={(event) => onCatalogQueryChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); onCatalogSearch(); } }} disabled={disabled} style={input} /></Field><Button variant="secondary" disabled={disabled} onClick={onCatalogSearch}>بحث</Button><CatalogItemPicker products={products} disabled={disabled} onAdd={(item) => onChange([...items, item])} /><Button variant="secondary" disabled={disabled} onClick={() => onChange([...items, blankManualItem()])}>إضافة صنف يدوي</Button></div>
   </section>;
 }
 
@@ -62,7 +56,7 @@ export default function ManualOrderPage() {
     const payload = {
       source: values.source, source_note: values.source_note.trim() || null, customer_name: values.customer_name.trim(), customer_phone: values.customer_phone.trim(), customer_email: values.customer_email.trim() || null, address: values.address.trim(), payment_method: values.payment_method,
       customer_notes: values.customer_notes.trim() || null, admin_notes: values.admin_notes.trim() || null, discount: values.discount, delivery_fee: values.delivery_fee,
-      items: values.items.map((item) => item.kind === "catalog" ? { kind: "catalog", product_id: item.product_id, variant_id: item.variant_id || null, quantity: Number(item.quantity), unit_price: item.unit_price } : { kind: "manual", name: item.name.trim(), description: item.description.trim() || null, quantity: Number(item.quantity), unit_price: item.unit_price }),
+      items: values.items.map((item) => item.kind === "catalog" ? { kind: "catalog", product_id: item.product_id, variant_id: item.variant_id || null, selected_option_value_ids: item.selected_option_value_ids || [], quantity: Number(item.quantity), unit_price: item.unit_price } : { kind: "manual", name: item.name.trim(), description: item.description.trim() || null, quantity: Number(item.quantity), unit_price: item.unit_price }),
       ...(values.complete ? { completion: { payment_method: values.payment_method, paid_amount: values.paid_amount, payment_details: values.payment_details.trim() || null, invoice_notes: values.invoice_notes.trim() || null } } : {}),
     };
     setBusy(true);

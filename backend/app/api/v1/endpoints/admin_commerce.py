@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query, status
 from sqlalchemy import exists, func, or_, select
@@ -239,15 +239,15 @@ def list_orders(
     admin: CurrentAdmin,
     pagination: PageParams,
     q: Annotated[str | None, Query(max_length=120)] = None,
-    order_status: Annotated[OrderStatus | None, Query(alias="status")] = None,
-    source: OrderSource | None = None,
-    payment_status: PaymentStatus | None = None,
+    order_status: Annotated[Literal["new", "confirmed", "ready", "delivered", "completed", "cancelled"] | None, Query(alias="status")] = None,
+    source: Literal["website", "whatsapp", "other"] | None = None,
+    payment_status: Literal["unpaid", "paid", "refunded"] | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
 ) -> Page[OrderAdminListOut]:
     stmt = select(Order)
     if order_status is not None:
-        stmt = stmt.where(Order.status == order_status.value)
+        stmt = stmt.where(Order.status == order_status)
     if q:
         needle = f"%{q}%"
         stmt = stmt.where(
@@ -256,7 +256,7 @@ def list_orders(
             | (Order.customer_phone.like(needle))
         )
     if source is not None:
-        stmt = stmt.where(Order.source == source.value)
+        stmt = stmt.where(Order.source == source)
     active_invoice_exists = exists(
         select(Invoice.id).where(Invoice.order_id == Order.id, Invoice.status == "active")
     )
@@ -266,12 +266,12 @@ def list_orders(
         .scalar_subquery()
     )
     if payment_status is not None:
-        if payment_status == PaymentStatus.UNPAID:
+        if payment_status == PaymentStatus.UNPAID.value:
             stmt = stmt.where(
-                or_(active_payment_status == payment_status.value, ~active_invoice_exists)
+                or_(active_payment_status == payment_status, ~active_invoice_exists)
             )
         else:
-            stmt = stmt.where(active_payment_status == payment_status.value)
+            stmt = stmt.where(active_payment_status == payment_status)
     if date_from is not None:
         stmt = stmt.where(Order.created_at >= date_from)
     if date_to is not None:
@@ -343,6 +343,7 @@ def create_manual_order(payload: ManualOrderCreate, db: DbSession, admin: SuperA
                 orders_service.ManualCatalogOrderItemDraft(
                     product_id=item.product_id,
                     variant_id=item.variant_id,
+                    selected_option_value_ids=tuple(item.selected_option_value_ids),
                     quantity=item.quantity,
                     unit_price=item.unit_price,
                 )
@@ -399,7 +400,7 @@ def edit_order(
         admin_notes=payload.admin_notes,
         discount=payload.discount,
         delivery_fee=payload.delivery_fee,
-        status=payload.status.value,
+        status=payload.status,
         reason=payload.reason,
         items=tuple(
             orders_service.AdminOrderItemDraft(
@@ -407,6 +408,7 @@ def edit_order(
                 order_item_id=None,
                 product_id=item.product_id,
                 variant_id=item.variant_id,
+                selected_option_value_ids=tuple(item.selected_option_value_ids),
                 name=None,
                 description=None,
                 quantity=item.quantity,
@@ -418,6 +420,7 @@ def edit_order(
                 order_item_id=item.order_item_id,
                 product_id=None,
                 variant_id=None,
+                selected_option_value_ids=(),
                 name=item.name,
                 description=item.description,
                 quantity=item.quantity,
@@ -439,7 +442,7 @@ def update_order_status(
 ):
     order = _load_order(db, order_id)
     orders_service.change_status(
-        db, order, payload.status.value, admin=admin, note=payload.note
+        db, order, payload.status, admin=admin, note=payload.note
     )
     db.commit()
     return get_order(order_id, db, admin)

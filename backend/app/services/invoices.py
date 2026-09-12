@@ -62,10 +62,10 @@ def derive_payment_status(
     if paid > total or refunded > paid:
         raise DomainError("Payment amounts are outside the invoice bounds.", code="payment_out_of_bounds")
     if refunded > 0:
-        return PaymentStatus.REFUNDED if refunded == paid else PaymentStatus.PARTIALLY_REFUNDED
+        return PaymentStatus.REFUNDED
     if paid == 0:
         return PaymentStatus.UNPAID
-    return PaymentStatus.PAID if paid == total else PaymentStatus.PARTIALLY_PAID
+    return PaymentStatus.PAID if paid == total else PaymentStatus.UNPAID
 
 
 def validate_payment_update(

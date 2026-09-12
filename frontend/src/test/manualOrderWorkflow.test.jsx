@@ -9,7 +9,7 @@ const admin = { ...manager, role: "admin" };
 const product = { id: 7, name: "راتنج شفاف", sku: "RES-1000", price: "12.50" };
 const dashboard = { products_total: 0, products_active: 0, categories_total: 0, coupons_active: 0, orders_total: 0, orders_pending: 0, revenue_total: 0, low_stock_products: 0, recent_orders: [] };
 const mixedOfflineOrder = {
-  id: 18, order_number: "ORD-18", source: "whatsapp", status: "preparing", is_locked: false,
+  id: 18, order_number: "ORD-18", source: "whatsapp", status: "ready", is_locked: false,
   customer_name: "سارة أحمد", customer_phone: "0591234567", customer_email: null, address: "رام الله، شارع الإرسال 10",
   payment_method: "cash_on_delivery", payment_status: "unpaid", customer_notes: null, admin_notes: null,
   discount: "0.00", delivery_fee: "0.00", created_at: "2026-08-04T10:00:00Z", activities: [],
@@ -41,17 +41,79 @@ describe("manual order workspace", () => {
     await waitFor(() => expect(calls.some((call) => new URL(`http://test${call.path}`).searchParams.get("q") === "راتنج")).toBe(true));
   });
 
+  it("loads configured choices and applies their catalog price", async () => {
+    authStorage.save("manager-token", manager);
+    stubApi({
+      "/api/v1/auth/me": manager,
+      "/api/v1/admin/products": page([product]),
+      "/api/v1/admin/products/7": {
+        ...product, track_inventory: false, variants: [],
+        options: [{ id: 10, name: "الحجم", affects_price: true, values: [{ id: 11, value: "كبير", price_override: "90.00" }] }],
+      },
+    });
+    renderApp("/admin/orders/manual");
+
+    await userEvent.selectOptions(await screen.findByLabelText("إضافة منتج من الكتالوج"), "7");
+    await userEvent.selectOptions(await screen.findByLabelText("الحجم"), "11");
+    await userEvent.click(screen.getByRole("button", { name: "إضافة المنتج" }));
+
+    expect(screen.getByText("الحجم: كبير")).toBeInTheDocument();
+    expect(screen.getByLabelText("سعر الصنف 1")).toHaveValue("90.00");
+  });
+
+  it("allows an optional standalone choice to remain empty at the base price", async () => {
+    authStorage.save("manager-token", manager);
+    stubApi({
+      "/api/v1/auth/me": manager,
+      "/api/v1/admin/products": page([product]),
+      "/api/v1/admin/products/7": {
+        ...product, price: "70.00", track_inventory: false, variants: [],
+        options: [{ id: 10, name: "إضافات", affects_price: true, values: [{ id: 11, value: "30", price_override: "100.00" }] }],
+      },
+    });
+    renderApp("/admin/orders/manual");
+
+    await userEvent.selectOptions(await screen.findByLabelText("إضافة منتج من الكتالوج"), "7");
+    expect(await screen.findByText("إضافات (اختياري)")).toBeInTheDocument();
+    const add = screen.getByRole("button", { name: "إضافة المنتج" });
+    expect(add).toBeEnabled();
+    await userEvent.click(add);
+
+    expect(screen.getByLabelText("سعر الصنف 1")).toHaveValue("70.00");
+  });
+
+  it("blocks a variant-backed required option until a valid variant is selected", async () => {
+    authStorage.save("manager-token", manager);
+    stubApi({
+      "/api/v1/auth/me": manager,
+      "/api/v1/admin/products": page([product]),
+      "/api/v1/admin/products/7": {
+        ...product, price: "70.00", track_inventory: true, stock_quantity: 5,
+        options: [{ id: 10, name: "الحجم", values: [{ id: 11, value: "كبير" }] }],
+        variants: [{ id: 20, title: "كبير", option_value_ids: [11], price_override: "90.00", stock_quantity: 5, is_active: true }],
+      },
+    });
+    renderApp("/admin/orders/manual");
+
+    await userEvent.selectOptions(await screen.findByLabelText("إضافة منتج من الكتالوج"), "7");
+    expect(await screen.findByText("الحجم *")).toBeInTheDocument();
+    const add = screen.getByRole("button", { name: "إضافة المنتج" });
+    expect(add).toBeDisabled();
+    await userEvent.selectOptions(screen.getByLabelText("الحجم"), "11");
+    expect(add).toBeEnabled();
+  });
+
   it("lets a manager save a mixed manual order with customer, source, totals, notes, and completion", async () => {
     authStorage.save("manager-token", manager);
     const calls = stubApi({
       "/api/v1/auth/me": manager,
       "/api/v1/admin/products": page([product]),
+      "/api/v1/admin/products/7": { ...product, options: [], variants: [], track_inventory: false },
       "POST /api/v1/admin/orders/manual": { id: 18, order_number: "ORD-18" },
     });
     renderApp("/admin/orders/manual");
 
     expect(await screen.findByRole("heading", { name: "طلب يدوي جديد" })).toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText("المصدر"), "phone");
     await userEvent.type(screen.getByLabelText("اسم العميل"), "سارة أحمد");
     await userEvent.type(screen.getByLabelText("الهاتف"), "0591234567");
     await userEvent.type(screen.getByLabelText("العنوان"), "رام الله، شارع الإرسال 10");
@@ -72,7 +134,7 @@ describe("manual order workspace", () => {
 
     const created = calls.find((call) => call.method === "POST" && call.path === "/api/v1/admin/orders/manual");
     expect(JSON.parse(created.body)).toMatchObject({
-      source: "phone", customer_name: "سارة أحمد", customer_phone: "0591234567", discount: "1.00",
+      source: "whatsapp", customer_name: "سارة أحمد", customer_phone: "0591234567", discount: "1.00",
       customer_notes: "اتصال قبل التوصيل", admin_notes: "دخلها المدير",
       items: [
         { kind: "catalog", product_id: 7, quantity: 1, unit_price: "12.50" },
@@ -104,7 +166,7 @@ describe("manual order workspace", () => {
 
     const request = calls.find((call) => call.method === "PATCH" && call.path === "/api/v1/admin/orders/18");
     expect(JSON.parse(request.body).items).toEqual([
-      { kind: "catalog", product_id: 7, variant_id: null, quantity: 2, unit_price: "12.50" },
+      { kind: "catalog", product_id: 7, variant_id: null, selected_option_value_ids: [], quantity: 2, unit_price: "12.50" },
       { kind: "manual", order_item_id: 72, name: "Custom Wedding Card", description: "Gold foil", quantity: 15, unit_price: "6.00" },
     ]);
   }, 15000);

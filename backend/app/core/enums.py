@@ -22,16 +22,23 @@ class AdminRole(StrEnum):
 class ProductType(StrEnum):
     STANDARD = "standard"
     PACKAGE = "package"
-    SILICONE_MOLD = "silicone_mold"
 
 
 class OrderStatus(StrEnum):
     NEW = "new"
-    REVIEWING = "reviewing"
-    PREPARING = "preparing"
-    OUT_FOR_DELIVERY = "out_for_delivery"
+    CONFIRMED = "confirmed"
+    READY = "ready"
+    DELIVERED = "delivered"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+
+    # Read-only compatibility for status-history rows written before 0018.
+    PENDING = "pending"
+    REVIEWING = "reviewing"
+    PROCESSING = "processing"
+    PREPARING = "preparing"
+    OUT_FOR_DELIVERY = "out_for_delivery"
+    SHIPPED = "shipped"
 
 
 class OrderSource(StrEnum):
@@ -45,10 +52,12 @@ class OrderSource(StrEnum):
 
 class PaymentStatus(StrEnum):
     UNPAID = "unpaid"
-    PARTIALLY_PAID = "partially_paid"
     PAID = "paid"
-    PARTIALLY_REFUNDED = "partially_refunded"
     REFUNDED = "refunded"
+
+    # Read compatibility only; new calculations never emit these values.
+    PARTIALLY_PAID = "partially_paid"
+    PARTIALLY_REFUNDED = "partially_refunded"
 
 
 class PaymentMethod(StrEnum):
@@ -77,6 +86,7 @@ class HomeSectionType(StrEnum):
     NEW_PRODUCTS = "new_products"
     BESTSELLERS = "bestsellers"
     PACKAGES = "packages"
+    # Legacy instance-profile compatibility; migrated rows become featured products.
     SILICONE_MOLDS = "silicone_molds"
     CATEGORIES = "categories"
     CUSTOM_TEXT = "custom_text"

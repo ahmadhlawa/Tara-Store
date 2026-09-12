@@ -54,14 +54,6 @@ const SECTIONS = {
     more: "/packages",
     limit: 6,
   },
-  silicone_molds: {
-    kind: "products",
-    layout: "split",
-    source: "molds",
-    fallbackTitle: "قوالب سيليكون",
-    more: "/molds",
-    limit: 4,
-  },
   custom_text: { kind: "text", fallbackTitle: "" },
 };
 
@@ -70,7 +62,6 @@ const LOADERS = {
   newest: (limit) => catalogService.newest(limit),
   bestsellers: (limit) => catalogService.bestsellers(limit),
   packages: (limit) => catalogService.packages({ page_size: limit }),
-  molds: (limit) => catalogService.molds({ page_size: limit }),
 };
 
 function RevealSection({ className, children }) {

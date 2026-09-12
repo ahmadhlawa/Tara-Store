@@ -177,7 +177,7 @@ class ProductBase(APIModel):
     cost_price: Money | None = None
     stock_quantity: int = Field(default=0, ge=0)
     track_inventory: bool = True
-    low_stock_threshold: int = Field(default=3, ge=0)
+    low_stock_threshold: int | None = Field(default=None, ge=0)
     is_active: bool = True
     is_featured: bool = False
     is_new: bool = False
@@ -271,7 +271,7 @@ class ProductPublicDetail(ProductPublicOut):
 class ProductAdminOut(ProductPublicDetail):
     cost_price: Money | None = None
     is_active: bool
-    low_stock_threshold: int
+    low_stock_threshold: int | None
     sort_order: int
     created_at: UTCDateTime
     updated_at: UTCDateTime
@@ -290,7 +290,7 @@ class ProductAdminListOut(APIModel):
     cost_price: Money | None = None
     stock_quantity: int
     track_inventory: bool
-    low_stock_threshold: int
+    low_stock_threshold: int | None
     is_active: bool
     is_featured: bool
     is_new: bool

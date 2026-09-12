@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { LOGO_URL, STORE_NAME_AR } from "../brand.js";
 import sx from "../sx.js";
 import { useAdminAuth } from "./AdminAuth.jsx";
 import { Button } from "./ui.jsx";
+import { adminApi } from "../api/adminApi.js";
 
 const NAV = [
   { to: "/admin", label: "لوحة التحكم", end: true },
@@ -31,6 +32,8 @@ export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [stockAlerts, setStockAlerts] = useState({ count: 0, items: [] });
 
   const items = NAV.filter((item) => !item.superOnly || isSuperAdmin);
 
@@ -38,6 +41,7 @@ export default function AdminLayout() {
   // whatever title index.html shipped with.
   useEffect(() => {
     document.title = "لوحة إدارة المتجر";
+    adminApi.dashboard().then((data) => setStockAlerts({ count: data.low_stock_products || 0, items: data.low_stock_items || [] })).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -82,6 +86,16 @@ export default function AdminLayout() {
           <img src={LOGO_URL} alt={STORE_NAME_AR} style={sx`width:34px;height:34px;object-fit:contain;display:block;flex:0 0 auto`} />
           <strong style={sx`font-size:17px;color:var(--admin-primary)`}>لوحة إدارة المتجر</strong>
           <div style={sx`margin-inline-start:auto;display:flex;align-items:center;gap:12px`}>
+            <div style={sx`position:relative`}>
+              <button type="button" aria-label="تنبيهات المخزون المنخفض" aria-expanded={alertsOpen} onClick={() => setAlertsOpen((open) => !open)} style={sx`position:relative;width:44px;height:44px;border:1px solid #E7DCF2;border-radius:10px;background:#fff;color:var(--admin-primary);cursor:pointer`}>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+                {stockAlerts.count > 0 && <span style={sx`position:absolute;top:-5px;inset-inline-end:-5px;min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;border-radius:10px;background:#B42318;color:white;font-size:11px;font-weight:800;display:grid;place-items:center`}>{stockAlerts.count}</span>}
+              </button>
+              {alertsOpen && <div style={sx`position:absolute;top:50px;inset-inline-end:0;width:min(360px,calc(100vw - 32px));max-height:420px;overflow:auto;background:#fff;border:1px solid #E7DCF2;border-radius:12px;box-shadow:0 12px 32px rgba(51,31,61,.16);padding:10px;z-index:80`}>
+                <strong style={sx`display:block;padding:4px 6px 10px`}>المخزون المنخفض</strong>
+                {stockAlerts.items.length ? stockAlerts.items.map((item) => <Link key={`${item.product_id}-${item.variant_name || "product"}`} to={`/admin/products/${item.product_id}`} onClick={() => setAlertsOpen(false)} style={sx`display:flex;justify-content:space-between;gap:12px;padding:10px 6px;border-top:1px solid #F3EBE0;color:inherit;text-decoration:none`}><span><b>{item.product_name}</b>{item.variant_name && <small style={sx`display:block;color:#766669`}>{item.variant_name}</small>}{item.sku && <small style={sx`display:block;color:#766669`}>SKU: {item.sku}</small>}</span><small style={sx`white-space:nowrap`}>المخزون: {item.stock}<br/>التنبيه: {item.threshold}</small></Link>) : <span style={sx`display:block;padding:10px 6px;color:#4C7C63`}>المخزون بحالة جيدة.</span>}
+              </div>}
+            </div>
             <span style={sx`display:var(--desk);font-size:13px;color:#766669`}>{admin?.full_name} · {isSuperAdmin ? "مدير أعلى" : "مدير"}</span>
             <Button variant="ghost" onClick={logout}>خروج</Button>
           </div>

@@ -10,7 +10,7 @@ from __future__ import annotations
 import secrets
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Literal, Protocol
@@ -32,6 +32,7 @@ from app.models import (
 )
 from app.services import audit as audit_service
 from app.services import invoices as invoices_service
+from app.services import store_settings as settings_service
 from app.services.errors import DomainError, NotFoundError, PermissionDeniedError
 from app.services.pricing import PricedLine, money, price_cart, price_lines
 
@@ -190,6 +191,9 @@ def record_order_activity(
 # Statuses that mean stock is currently committed to the order.
 _STOCK_HELD_STATUSES = {
     OrderStatus.NEW.value,
+    OrderStatus.CONFIRMED.value,
+    OrderStatus.READY.value,
+    OrderStatus.DELIVERED.value,
     "pending", "confirmed", "processing", "ready", "shipped", "delivered",
 }
 
@@ -218,6 +222,7 @@ class AdminOrderItemDraft:
     description: str | None
     quantity: int
     unit_price: Decimal | None
+    selected_option_value_ids: tuple[int, ...] = ()
 
     def __post_init__(self) -> None:
         if self.kind == "catalog" and self.product_id is None:
@@ -250,6 +255,7 @@ class ManualCatalogOrderItemDraft:
     variant_id: int | None
     quantity: int
     unit_price: Decimal | None
+    selected_option_value_ids: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -292,13 +298,9 @@ def generate_order_number(db: Session) -> str:
 
 def create_manual_order(db: Session, *, draft: ManualOrderDraft, admin: AdminUser) -> Order:
     """Create an incomplete manager-entered order without issuing an invoice."""
-    if draft.source == OrderSource.WEBSITE.value:
-        raise DomainError("Manual orders cannot use the website source.", code="invalid_manual_source")
     if draft.source not in {
+        OrderSource.WEBSITE.value,
         OrderSource.WHATSAPP.value,
-        OrderSource.PHONE.value,
-        OrderSource.WALK_IN.value,
-        OrderSource.SOCIAL.value,
         OrderSource.OTHER.value,
     }:
         raise DomainError("Manual order source is invalid.", code="invalid_manual_source")
@@ -308,19 +310,19 @@ def create_manual_order(db: Session, *, draft: ManualOrderDraft, admin: AdminUse
         raise DomainError("An order must contain at least one item.", code="empty_order")
 
     catalog_drafts = [item for item in draft.items if isinstance(item, ManualCatalogOrderItemDraft)]
-    catalog_keys = [(item.product_id, item.variant_id) for item in catalog_drafts]
+    catalog_keys = [(item.product_id, item.variant_id, item.selected_option_value_ids) for item in catalog_drafts]
     if len(catalog_keys) != len(set(catalog_keys)):
         raise DomainError("Duplicate catalog items are not allowed.", code="duplicate_order_item")
     priced_catalog = price_lines(
-        db, [(item.product_id, item.variant_id, item.quantity) for item in catalog_drafts]
+        db, [(item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids) for item in catalog_drafts]
     )
     priced_by_key = {
-        (line.product.id, line.variant.id if line.variant else None): line for line in priced_catalog
+        (line.product.id, line.variant.id if line.variant else None, tuple(value.id for value in line.selected_option_values)): line for line in priced_catalog
     }
     items: list[OrderItem] = []
     for item in draft.items:
         if isinstance(item, ManualCatalogOrderItemDraft):
-            line = priced_by_key[(item.product_id, item.variant_id)]
+            line = priced_by_key[(item.product_id, item.variant_id, item.selected_option_value_ids)]
             unit_price = money(item.unit_price if item.unit_price is not None else line.unit_price)
             items.append(
                 OrderItem(
@@ -332,6 +334,7 @@ def create_manual_order(db: Session, *, draft: ManualOrderDraft, admin: AdminUse
                     sku=line.sku,
                     original_sku=line.sku,
                     variant_description=line.variant_description,
+                    selected_option_value_ids=[value.id for value in line.selected_option_values],
                     original_variant_description=line.variant_description,
                     original_unit_price=line.unit_price,
                     unit_price=unit_price,
@@ -600,7 +603,10 @@ def change_status(
     admin: AdminUser | None = None,
     note: str | None = None,
 ) -> Order:
-    if new_status not in {s.value for s in OrderStatus}:
+    if new_status not in {
+        OrderStatus.NEW.value, OrderStatus.CONFIRMED.value, OrderStatus.READY.value,
+        OrderStatus.DELIVERED.value, OrderStatus.COMPLETED.value, OrderStatus.CANCELLED.value,
+    }:
         raise DomainError("حالة الطلب غير معروفة.", code="invalid_status")
 
     old_status = order.status
@@ -812,7 +818,7 @@ def reopen_completed_order(
     if invoice is None:
         raise DomainError("Completed orders require an active invoice.", code="active_invoice_required")
 
-    order.status = OrderStatus.REVIEWING.value
+    order.status = OrderStatus.CONFIRMED.value
     order.is_locked = False
     order.locked_at = None
     order.updated_at = utcnow()
@@ -901,9 +907,9 @@ def update_order_notes(
 _PATCHABLE_INCOMPLETE_STATUSES = frozenset(
     {
         OrderStatus.NEW.value,
-        OrderStatus.REVIEWING.value,
-        OrderStatus.PREPARING.value,
-        OrderStatus.OUT_FOR_DELIVERY.value,
+        OrderStatus.CONFIRMED.value,
+        OrderStatus.READY.value,
+        OrderStatus.DELIVERED.value,
         OrderStatus.CANCELLED.value,
     }
 )
@@ -912,8 +918,8 @@ _EDITABLE_CURRENT_STATUSES = _PATCHABLE_INCOMPLETE_STATUSES - {
 }
 
 
-def _item_key(product_id: int, variant_id: int | None) -> tuple[int, int | None]:
-    return product_id, variant_id
+def _item_key(product_id: int, variant_id: int | None, selected_ids=()) -> tuple:
+    return product_id, variant_id, tuple(selected_ids or ())
 
 
 def _item_snapshot(item: OrderItem) -> dict[str, Any]:
@@ -923,6 +929,7 @@ def _item_snapshot(item: OrderItem) -> dict[str, Any]:
         "item_kind": item.item_kind,
         "product_id": item.product_id,
         "variant_id": item.variant_id,
+        "selected_option_value_ids": item.selected_option_value_ids,
         "product_name": item.product_name,
         "name": item.product_name,
         "manual_description": item.manual_description,
@@ -948,7 +955,7 @@ def rebuild_order_items(
 ) -> list[OrderItem]:
     catalog_drafts = [item for item in drafts if item.kind == "catalog"]
     catalog_keys = [
-        _item_key(item.product_id, item.variant_id)
+        _item_key(item.product_id, item.variant_id, item.selected_option_value_ids)
         for item in catalog_drafts
         if item.product_id is not None
     ]
@@ -956,18 +963,18 @@ def rebuild_order_items(
         raise DomainError("Duplicate catalog items are not allowed.", code="duplicate_order_item")
 
     priced_by_key = {
-        _item_key(line.product.id, line.variant.id if line.variant else None): line
+        _item_key(line.product.id, line.variant.id if line.variant else None, [value.id for value in line.selected_option_values]): line
         for line in price_lines(
             db,
             [
-                (item.product_id, item.variant_id, item.quantity)
+                (item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids)
                 for item in catalog_drafts
                 if item.product_id is not None
             ],
         )
     }
     old_catalog = {
-        _item_key(item.product_id, item.variant_id): item
+        _item_key(item.product_id, item.variant_id, item.selected_option_value_ids): item
         for item in order.items
         if item.product_id is not None
     }
@@ -986,7 +993,7 @@ def rebuild_order_items(
     for draft in drafts:
         if draft.kind == "catalog":
             assert draft.product_id is not None
-            key = _item_key(draft.product_id, draft.variant_id)
+            key = _item_key(draft.product_id, draft.variant_id, draft.selected_option_value_ids)
             priced = priced_by_key[key]
             old = old_catalog.get(key)
             unit_price = money(
@@ -1004,6 +1011,7 @@ def rebuild_order_items(
                     sku=old.sku if old is not None else priced.sku,
                     original_sku=old.original_sku if old is not None else priced.sku,
                     variant_description=(old.variant_description if old is not None else priced.variant_description),
+                    selected_option_value_ids=list(draft.selected_option_value_ids),
                     original_variant_description=(
                         old.original_variant_description if old is not None else priced.variant_description
                     ),
@@ -1100,7 +1108,7 @@ def edit_incomplete_order(
         raise DomainError("Ø§Ù„Ø·Ù„Ø¨ ÙŠØ¬Ø¨ Ø£Ù† ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ Ù…Ù†ØªØ¬ ÙˆØ§Ø­Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.", code="empty_order")
 
     requested_keys = [
-        _item_key(item.product_id, item.variant_id)
+        _item_key(item.product_id, item.variant_id, item.selected_option_value_ids)
         for item in draft.items
         if item.kind == "catalog" and item.product_id is not None
     ]
@@ -1114,13 +1122,13 @@ def edit_incomplete_order(
     old_discount = money(order.discount)
     old_delivery_fee = money(order.delivery_fee)
     old_by_key = {
-        _item_key(item.product_id, item.variant_id): item
+        _item_key(item.product_id, item.variant_id, item.selected_option_value_ids): item
         for item in old_items
         if item.product_id is not None
     }
     old_keys = set(old_by_key)
     requested_by_key = {
-        _item_key(item.product_id, item.variant_id): item
+        _item_key(item.product_id, item.variant_id, item.selected_option_value_ids): item
         for item in draft.items
         if item.kind == "catalog" and item.product_id is not None
     }
@@ -1173,7 +1181,7 @@ def edit_incomplete_order(
     priced_lines = price_lines(
         db,
         [
-            (item.product_id, item.variant_id, item.quantity)
+            (item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids)
             for item in draft.items
             if item.kind == "catalog" and item.product_id is not None
         ],
@@ -1197,7 +1205,7 @@ def edit_incomplete_order(
         record_order_activity(
             db, order_id=order.id, invoice_id=None, actor_admin_id=admin.id,
             event_type="order_item_added", before_data=None,
-            after_data={"line": _item_snapshot(next(item for item in new_items if _item_key(item.product_id, item.variant_id) == key))}, reason=reason,
+            after_data={"line": _item_snapshot(next(item for item in new_items if _item_key(item.product_id, item.variant_id, item.selected_option_value_ids) == key))}, reason=reason,
         )
     for key in old_keys - set(requested_by_key):
         record_order_activity(
@@ -1205,7 +1213,7 @@ def edit_incomplete_order(
             event_type="order_item_removed", before_data={"line": _item_snapshot(old_by_key[key])},
             after_data=None, reason=reason,
         )
-    new_by_key = {_item_key(item.product_id, item.variant_id): item for item in new_items}
+    new_by_key = {_item_key(item.product_id, item.variant_id, item.selected_option_value_ids): item for item in new_items}
     for key in quantity_changed:
         record_order_activity(
             db, order_id=order.id, invoice_id=None, actor_admin_id=admin.id,
@@ -1335,15 +1343,50 @@ def dashboard_summary(db: Session) -> dict[str, object]:
 
     by_status = {
         status: _count(Order, Order.status == status)
-        for status in (s.value for s in OrderStatus)
+        for status in ("new", "confirmed", "ready", "delivered", "completed", "cancelled")
     }
 
-    low_stock = _count(
-        Product,
-        Product.track_inventory.is_(True),
-        Product.is_active.is_(True),
-        Product.stock_quantity <= Product.low_stock_threshold,
-    )
+    global_threshold = settings_service.get_or_create_settings(db).low_stock_threshold
+    tracked_products = db.execute(
+        select(Product).options(selectinload(Product.variants)).where(
+            Product.track_inventory.is_(True), Product.is_active.is_(True)
+        ).order_by(Product.name.asc())
+    ).scalars().unique().all()
+    low_stock_items = []
+    low_product_ids = set()
+    for product in tracked_products:
+        threshold = product.low_stock_threshold if product.low_stock_threshold is not None else global_threshold
+        active_variants = [variant for variant in product.variants if variant.is_active]
+        sources = active_variants or [product]
+        for source in sources:
+            if source.stock_quantity <= threshold:
+                low_product_ids.add(product.id)
+                low_stock_items.append({
+                    "product_id": product.id, "product_name": product.name,
+                    "sku": source.sku or product.sku,
+                    "variant_name": source.title if active_variants else None,
+                    "stock": source.stock_quantity, "threshold": threshold,
+                })
+
+    period_end = utcnow().date()
+    period_start = period_end - timedelta(days=29)
+    start_at = datetime.combine(period_start, time.min)
+    end_at = datetime.combine(period_end + timedelta(days=1), time.min)
+    daily_rows = db.execute(
+        select(func.date(Order.created_at), func.count(Order.id),
+               func.coalesce(func.sum(Order.total), 0)).where(
+            Order.created_at >= start_at, Order.created_at < end_at,
+        ).group_by(func.date(Order.created_at))
+    ).all()
+    daily_sales_rows = db.execute(
+        select(func.date(Order.created_at), func.coalesce(func.sum(Order.total), 0)).where(
+            Order.created_at >= start_at, Order.created_at < end_at,
+            Order.status != OrderStatus.CANCELLED.value,
+        ).group_by(func.date(Order.created_at))
+    ).all()
+    order_counts = {str(day): int(count) for day, count, _ in daily_rows}
+    sales_totals = {str(day): money(Decimal(str(total))) for day, total in daily_sales_rows}
+    days = [period_start + timedelta(days=offset) for offset in range(30)]
 
     recent = (
         db.execute(select(Order).order_by(Order.id.desc()).limit(5)).scalars().all()
@@ -1358,6 +1401,13 @@ def dashboard_summary(db: Session) -> dict[str, object]:
         "orders_by_status": by_status,
         "orders_pending": by_status[OrderStatus.NEW.value],
         "revenue_total": money(Decimal(str(revenue))),
-        "low_stock_products": low_stock,
+        "low_stock_products": len(low_product_ids),
+        "low_stock_items": low_stock_items,
+        "period_start": period_start,
+        "period_end": period_end,
+        "period_sales_total": money(sum((Decimal(str(sales_totals.get(str(day), 0))) for day in days), Decimal("0"))),
+        "period_orders_total": sum(order_counts.values()),
+        "sales_by_day": [{"date": day, "total": sales_totals.get(str(day), 0)} for day in days],
+        "orders_by_day": [{"date": day, "count": order_counts.get(str(day), 0)} for day in days],
         "recent_orders": recent,
     }

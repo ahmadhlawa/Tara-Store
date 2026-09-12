@@ -108,7 +108,4 @@ export const catalogService = {
   async packages(params) {
     return page(await publicApi.packages(params));
   },
-  async molds(params) {
-    return page(await publicApi.molds(params));
-  },
 };

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Numeric, String, Text
+from sqlalchemy import Boolean, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
@@ -31,6 +31,7 @@ STORE_SETTINGS_DEFAULTS: dict[str, object] = {
     "tax_enabled": False,
     "tax_rate": Decimal("0.000"),
     "prices_include_tax": False,
+    "low_stock_threshold": 5,
 }
 
 
@@ -88,6 +89,7 @@ class StoreSettings(TimestampMixin, Base):
 
     maintenance_mode: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     order_notifications_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    low_stock_threshold: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
 
     # ── Arabic display name ──────────────────────────────────────────────────
     # The storefront is Arabic and RTL, but the registered/latin name is often what the
