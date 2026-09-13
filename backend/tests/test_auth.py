@@ -126,6 +126,31 @@ def test_login_is_rate_limited(client: TestClient, monkeypatch) -> None:
     login_rate_limit._hits.clear()
 
 
+def test_login_limit_is_scoped_to_identifier_and_success_clears_failures(
+    client: TestClient, normal_admin: AdminUser, monkeypatch
+) -> None:
+    monkeypatch.setattr(settings, "LOGIN_RATE_LIMIT", 2)
+    login_rate_limit._hits.clear()
+    wrong = {"email": ADMIN_EMAIL, "password": "not-the-password"}
+    assert client.post("/api/v1/auth/login", json=wrong).status_code == 401
+    # A different account from the same IP is not treated as a failed attempt for this one.
+    assert client.post(
+        "/api/v1/auth/login", json={"email": "other@example.com", "password": TEST_PASSWORD}
+    ).status_code == 401
+    assert client.post(
+        "/api/v1/auth/login", json={"email": ADMIN_EMAIL, "password": TEST_PASSWORD}
+    ).status_code == 200
+    assert client.post("/api/v1/auth/login", json=wrong).status_code == 401
+    login_rate_limit._hits.clear()
+
+
+def test_api_responses_include_baseline_security_headers(client: TestClient) -> None:
+    response = client.get("/health")
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+    assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
+
+
 def test_a_token_stops_working_once_the_admin_is_deactivated(
     client: TestClient, db: Session, normal_admin: AdminUser
 ) -> None:

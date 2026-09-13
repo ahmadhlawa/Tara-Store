@@ -123,7 +123,18 @@ def price_lines(db: Session, requested: list[tuple]) -> list[PricedLine]:
                 raise DomainError("الخيار المحدد غير متاح.", code="variant_inactive")
 
         selected_values: list[ProductOptionValue] = []
-        if product.options and not legacy_variant_product:
+        if variant is not None and product.options:
+            variant_value_ids = {value.id for value in variant.option_values}
+            if selected_ids and (
+                len(selected_ids) != len(set(selected_ids)) or set(selected_ids) != variant_value_ids
+            ):
+                raise DomainError(
+                    "قيم الخيارات لا تطابق النسخة المحددة.", code="variant_option_mismatch"
+                )
+            # Legacy carts omitted these ids; resolve them from the authoritative
+            # variant so the persisted snapshot always records its configuration.
+            selected_values = list(variant.option_values)
+        elif product.options and not legacy_variant_product:
             if len(selected_ids) != len(set(selected_ids)):
                 raise DomainError("لا يمكن تكرار قيمة الخيار.", code="duplicate_option_value")
             allowed = {value.id: (option, value) for option in product.options for value in option.values}

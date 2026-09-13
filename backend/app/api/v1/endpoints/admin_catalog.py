@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.api.crud import apply_updates, get_or_404
 from app.api.deps import CurrentAdmin, DbSession, PageParams
@@ -43,6 +43,7 @@ from app.schemas.catalog import (
 from app.schemas.common import MessageResponse, Page
 from app.services import audit as audit_service
 from app.services import catalog as catalog_service
+from app.services import store_settings as settings_service
 from app.services.errors import ConflictError, DomainError
 from app.services.slugs import unique_slug
 
@@ -83,6 +84,8 @@ def list_categories(
 
 @router.post("/categories", response_model=CategoryAdminOut, status_code=status.HTTP_201_CREATED)
 def create_category(payload: CategoryCreate, db: DbSession, admin: CurrentAdmin):
+    if payload.parent_id is not None:
+        get_or_404(db, Category, payload.parent_id, "القسم الأب غير موجود.")
     category = Category(
         **payload.model_dump(exclude={"slug"}),
         slug=unique_slug(db, Category, payload.slug or payload.name),
@@ -107,6 +110,15 @@ def update_category(category_id: int, payload: CategoryUpdate, db: DbSession, ad
     category = get_or_404(db, Category, category_id, "القسم غير موجود.")
     if payload.parent_id is not None and payload.parent_id == category.id:
         raise DomainError("لا يمكن أن يكون القسم أباً لنفسه.", code="category_self_parent")
+    if payload.parent_id is not None:
+        parent = get_or_404(db, Category, payload.parent_id, "القسم الأب غير موجود.")
+        ancestor = parent
+        seen: set[int] = set()
+        while ancestor.parent_id is not None:
+            if ancestor.id in seen or ancestor.parent_id == category.id:
+                raise DomainError("لا يمكن إنشاء حلقة في شجرة الأقسام.", code="category_cycle")
+            seen.add(ancestor.id)
+            ancestor = get_or_404(db, Category, ancestor.parent_id, "القسم الأب غير موجود.")
     data = payload.model_dump(exclude_unset=True)
     if data.get("slug"):
         data["slug"] = unique_slug(db, Category, data["slug"], exclude_id=category.id)
@@ -138,6 +150,11 @@ def delete_category(category_id: int, db: DbSession, admin: CurrentAdmin):
         raise ConflictError(
             "لا يمكن حذف قسم يحتوي على منتجات. انقل المنتجات أولاً.",
             code="category_has_products",
+        )
+    if db.execute(select(Category.id).where(Category.parent_id == category.id).limit(1)).first() is not None:
+        raise ConflictError(
+            "لا يمكن حذف قسم يحتوي على أقسام فرعية. انقل الأقسام الفرعية أولاً.",
+            code="category_has_children",
         )
     audit_service.record(
         db,
@@ -175,6 +192,7 @@ def list_products(
         str, Query(pattern="^(featured|newest|price-asc|price-desc|name|sort_order)$")
     ] = "newest",
 ) -> Page[ProductAdminListOut]:
+    global_threshold = settings_service.get_or_create_settings(db).low_stock_threshold
     stmt = catalog_service.apply_product_filters(
         catalog_service.product_list_query(active_only=False, public=False),
         q=q,
@@ -185,14 +203,24 @@ def list_products(
     if low_stock:
         stmt = stmt.where(
             Product.track_inventory.is_(True),
-            Product.stock_quantity <= Product.low_stock_threshold,
+            Product.stock_quantity <= func.coalesce(
+                Product.low_stock_threshold,
+                global_threshold,
+            ),
         )
     stmt = catalog_service.apply_product_sort(stmt, sort)
     rows, total = catalog_service.paginate(
         db, stmt, offset=pagination.offset, limit=pagination.page_size
     )
     items = [
-        ProductAdminListOut.model_validate(catalog_service.admin_product_list_payload(p))
+        ProductAdminListOut.model_validate(
+            {
+                **catalog_service.admin_product_list_payload(p),
+                "effective_low_stock_threshold": (
+                    p.low_stock_threshold if p.low_stock_threshold is not None else global_threshold
+                ),
+            }
+        )
         for p in rows
     ]
     return Page.build(items, total, pagination.page, pagination.page_size)
@@ -623,6 +651,15 @@ def _attach_option_values(
         raise DomainError(
             "لا يمكن اختيار أكثر من قيمة من نفس الخيار للنسخة الواحدة.",
             code="option_axis_conflict",
+        )
+    requested = set(value_ids)
+    if any(
+        candidate is not variant
+        and {value.id for value in candidate.option_values} == requested
+        for candidate in product.variants
+    ):
+        raise ConflictError(
+            "توجد نسخة بنفس مجموعة الخيارات بالفعل.", code="variant_combination_taken"
         )
     variant.option_values = [db.get(ProductOptionValue, value_id) for value_id in value_ids]
 

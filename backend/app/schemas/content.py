@@ -6,7 +6,7 @@ from typing import Any, Literal
 from pydantic import Field, field_validator, model_validator
 
 from app.core.enums import HomeSectionType
-from app.schemas.common import APIModel, UTCDateTime
+from app.schemas.common import APIModel, UTCDateTime, safe_internal_path, safe_resource_url
 
 _MAX_CONFIG_KEYS = 20
 _SCRIPTISH = ("<script", "javascript:", "onerror=", "onload=", "<iframe")
@@ -34,6 +34,9 @@ class HeroSlideBase(APIModel):
     sort_order: int = 0
     starts_at: datetime | None = None
     ends_at: datetime | None = None
+
+    _validate_image_url = field_validator("image_url")(safe_resource_url)
+    _validate_button_url = field_validator("button_url")(safe_internal_path)
 
     @model_validator(mode="after")
     def _window_is_ordered(self):
@@ -67,6 +70,9 @@ class HeroSlideUpdate(APIModel):
     sort_order: int | None = None
     starts_at: datetime | None = None
     ends_at: datetime | None = None
+
+    _validate_image_url = field_validator("image_url")(safe_resource_url)
+    _validate_button_url = field_validator("button_url")(safe_internal_path)
 
 
 class HeroSlideOut(APIModel):

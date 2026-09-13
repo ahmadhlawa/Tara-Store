@@ -142,17 +142,29 @@ def test_location_url_can_be_cleared_and_restored_through_store_settings(
         "/api/v1/admin/settings", headers=auth(admin_token), json={"location_url": location}
     ).status_code == 200
     assert client.get("/api/v1/store/settings").json()["location_url"] == location
-
     assert client.patch(
         "/api/v1/admin/settings", headers=auth(admin_token), json={"location_url": None}
     ).status_code == 200
     assert client.get("/api/v1/store/settings").json()["location_url"] is None
-
     assert client.patch(
         "/api/v1/admin/settings", headers=auth(admin_token), json={"location_url": location}
     ).status_code == 200
     assert client.get("/api/v1/store/settings").json()["location_url"] == location
 
+
+def test_admin_rejects_unsafe_configured_urls(client: TestClient, admin_token: str) -> None:
+    headers = auth(admin_token)
+    assert client.patch(
+        "/api/v1/admin/settings", headers=headers, json={"instagram_url": "javascript:alert(1)"}
+    ).status_code == 422
+    assert client.patch(
+        "/api/v1/admin/settings", headers=headers, json={"logo_url": "data:text/html,x"}
+    ).status_code == 422
+    assert client.post(
+        "/api/v1/admin/hero-slides",
+        headers=headers,
+        json={"image_url": "/media/hero.png", "button_url": "javascript:alert(1)"},
+    ).status_code == 422
 
 def test_only_published_static_pages_are_public(client: TestClient, db: Session) -> None:
     db.add(StaticPage(title="من نحن", slug="about", content="نص", is_published=True))

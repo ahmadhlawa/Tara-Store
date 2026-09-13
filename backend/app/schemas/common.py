@@ -5,10 +5,50 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Annotated, Generic, TypeVar
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, PlainSerializer
 
 T = TypeVar("T")
+
+
+def safe_resource_url(value: str | None) -> str | None:
+    """Allow local media paths and credential-free HTTP(S) resources only."""
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return value
+    if any(char.isspace() or ord(char) < 32 for char in value):
+        raise ValueError("URL must not contain whitespace or control characters")
+    if value.startswith("/"):
+        if value.startswith("//") or "\\" in value:
+            raise ValueError("URL must be a safe local path")
+        return value
+    parsed = urlsplit(value)
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
+        raise ValueError("URL must use http, https, or a local path")
+    if parsed.username or parsed.password:
+        raise ValueError("URL must not contain credentials")
+    return value
+
+
+def safe_external_url(value: str | None) -> str | None:
+    value = safe_resource_url(value)
+    if value and value.startswith("/"):
+        raise ValueError("URL must use http or https")
+    return value
+
+
+def safe_internal_path(value: str | None) -> str | None:
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return value
+    if not value.startswith("/") or value.startswith("//") or "\\" in value:
+        raise ValueError("URL must be a safe local path")
+    return value
 
 
 def _iso_utc(value: datetime) -> str:

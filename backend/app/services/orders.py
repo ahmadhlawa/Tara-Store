@@ -320,7 +320,8 @@ def create_manual_order(db: Session, *, draft: ManualOrderDraft, admin: AdminUse
         db, [(item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids) for item in catalog_drafts]
     )
     priced_by_key = {
-        (line.product.id, line.variant.id if line.variant else None, tuple(value.id for value in line.selected_option_values)): line for line in priced_catalog
+        (item.product_id, item.variant_id, item.selected_option_value_ids): line
+        for item, line in zip(catalog_drafts, priced_catalog, strict=True)
     }
     items: list[OrderItem] = []
     for item in draft.items:
@@ -546,6 +547,7 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
                 sku=line.sku,
                 original_sku=line.sku,
                 variant_description=line.variant_description,
+                selected_option_value_ids=[value.id for value in line.selected_option_values],
                 original_variant_description=line.variant_description,
                 original_unit_price=line.unit_price,
                 unit_price=line.unit_price,
@@ -966,14 +968,18 @@ def rebuild_order_items(
         raise DomainError("Duplicate catalog items are not allowed.", code="duplicate_order_item")
 
     priced_by_key = {
-        _item_key(line.product.id, line.variant.id if line.variant else None, [value.id for value in line.selected_option_values]): line
-        for line in price_lines(
-            db,
-            [
-                (item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids)
-                for item in catalog_drafts
-                if item.product_id is not None
-            ],
+        _item_key(item.product_id, item.variant_id, item.selected_option_value_ids): line
+        for item, line in zip(
+            catalog_drafts,
+            price_lines(
+                db,
+                [
+                    (item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids)
+                    for item in catalog_drafts
+                    if item.product_id is not None
+                ],
+            ),
+            strict=True,
         )
     }
     old_catalog = {
@@ -1014,7 +1020,7 @@ def rebuild_order_items(
                     sku=old.sku if old is not None else priced.sku,
                     original_sku=old.original_sku if old is not None else priced.sku,
                     variant_description=(old.variant_description if old is not None else priced.variant_description),
-                    selected_option_value_ids=list(draft.selected_option_value_ids),
+                    selected_option_value_ids=[value.id for value in priced.selected_option_values],
                     original_variant_description=(
                         old.original_variant_description if old is not None else priced.variant_description
                     ),

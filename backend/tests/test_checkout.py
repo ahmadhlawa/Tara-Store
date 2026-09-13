@@ -403,12 +403,18 @@ def test_configurable_product_requires_variant_and_snapshots_arabic_labels(
         "/api/v1/orders",
         json=_order_payload(
             product,
-            items=[{"product_id": product.id, "variant_id": variant.id, "quantity": 1}],
+            items=[{
+                "product_id": product.id,
+                "variant_id": variant.id,
+                "selected_option_value_ids": [scent.values[0].id, size.values[0].id],
+                "quantity": 1,
+            }],
         ),
     )
     assert created.status_code == 201, created.text
     item = created.json()["items"][0]
     assert item["unit_price"] == 125
+    assert set(item["selected_option_value_ids"]) == {scent.values[0].id, size.values[0].id}
     assert item["variant_description"] == "الرائحة: فراولة، الحجم: كبير"
 
     scent.values[0].value = "مسك"
