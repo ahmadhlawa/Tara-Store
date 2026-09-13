@@ -5,6 +5,7 @@ import { page, renderApp, respond, stubApi } from "./utils.jsx";
 import { authStorage } from "../storage/authStorage.js";
 import { api, setAuthToken, setUnauthorizedHandler } from "../api/client.js";
 import { CategoriesPage, orderCategoriesForAdmin } from "../admin/pages/CatalogScreens.jsx";
+import { orderAxisTicks, salesAxisTicks } from "../admin/pages/DashboardPage.jsx";
 
 const ADMIN = {
   id: 1,
@@ -26,10 +27,36 @@ const DASHBOARD = {
   orders_by_status: { pending: 1 },
   revenue_total: 500,
   low_stock_products: 0,
+  monthly_sales: 500,
+  previous_month_sales: 0,
+  recent_orders_total: 4,
+  recent_orders_by_status: { new: 4 },
+  average_order_value: 125,
+  best_sales_day: null,
+  sales_by_day: [],
+  orders_by_day: [],
+  low_stock_items: [],
   recent_orders: [],
 };
 
 const signedIn = () => authStorage.save("valid-token", ADMIN);
+
+describe("dashboard chart scales", () => {
+  it("uses readable daily-sales ticks rather than the period total", () => {
+    expect(salesAxisTicks([83])).toEqual([0, 50, 100]);
+    expect(salesAxisTicks([83, 305])).toEqual([0, 100, 200, 300, 400]);
+    expect(salesAxisTicks([0])).toEqual([0, 1]);
+  });
+
+  it("uses unique integer order ticks for empty, small, and larger series", () => {
+    expect(orderAxisTicks([0])).toEqual([0, 1]);
+    expect(orderAxisTicks([1])).toEqual([0, 1]);
+    expect(orderAxisTicks([2])).toEqual([0, 1, 2]);
+    expect(orderAxisTicks([3])).toEqual([0, 1, 2, 3]);
+    expect(orderAxisTicks([7])).toEqual([0, 2, 4, 6, 8]);
+    expect(orderAxisTicks([11])).toEqual([0, 5, 10, 15]);
+  });
+});
 
 describe("admin category hierarchy", () => {
   const categories = [
@@ -141,7 +168,7 @@ describe("admin workspace", () => {
     renderApp("/admin");
 
     expect(await screen.findByRole("heading", { name: "لوحة التحكم" })).toBeInTheDocument();
-    expect(screen.getByText("4")).toBeInTheDocument();
+    expect(within(screen.getByRole("heading", { name: "أحدث الطلبات" }).closest("section")).getAllByText("4").length).toBeGreaterThan(0);
   });
 
   it("renders the product management route with its data", async () => {

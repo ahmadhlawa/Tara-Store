@@ -46,8 +46,8 @@ router = APIRouter(prefix="/admin", tags=["admin-commerce"])
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 @router.get("/dashboard", response_model=DashboardSummary)
-def dashboard(db: DbSession, admin: CurrentAdmin):
-    summary = orders_service.dashboard_summary(db)
+def dashboard(db: DbSession, admin: CurrentAdmin, days: int = 30):
+    summary = orders_service.dashboard_summary(db, days=days)
     summary["recent_orders"] = [_order_list_payload(db, order) for order in summary["recent_orders"]]
     return summary
 

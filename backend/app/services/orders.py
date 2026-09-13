@@ -8,16 +8,19 @@ none of them do.
 from __future__ import annotations
 
 import secrets
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Literal, Protocol
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.config import settings
 from app.core.enums import AdminRole, OrderSource, OrderStatus, PaymentMethod, ProductType
 from app.db.base import utcnow
 from app.models import (
@@ -1326,8 +1329,11 @@ def edit_incomplete_order(
     return order
 
 
-def dashboard_summary(db: Session) -> dict[str, object]:
+def dashboard_summary(db: Session, *, days: int = 30) -> dict[str, object]:
     from app.models import Category, Coupon, Product
+
+    if days not in {7, 30, 90}:
+        days = 30
 
     def _count(model, *conditions):
         stmt = select(func.count()).select_from(model)
@@ -1348,7 +1354,7 @@ def dashboard_summary(db: Session) -> dict[str, object]:
 
     global_threshold = settings_service.get_or_create_settings(db).low_stock_threshold
     tracked_products = db.execute(
-        select(Product).options(selectinload(Product.variants)).where(
+        select(Product).options(selectinload(Product.variants), selectinload(Product.images)).where(
             Product.track_inventory.is_(True), Product.is_active.is_(True)
         ).order_by(Product.name.asc())
     ).scalars().unique().all()
@@ -1366,27 +1372,61 @@ def dashboard_summary(db: Session) -> dict[str, object]:
                     "sku": source.sku or product.sku,
                     "variant_name": source.title if active_variants else None,
                     "stock": source.stock_quantity, "threshold": threshold,
+                    "image_url": product.primary_image_url,
                 })
 
-    period_end = utcnow().date()
-    period_start = period_end - timedelta(days=29)
-    start_at = datetime.combine(period_start, time.min)
-    end_at = datetime.combine(period_end + timedelta(days=1), time.min)
-    daily_rows = db.execute(
-        select(func.date(Order.created_at), func.count(Order.id),
-               func.coalesce(func.sum(Order.total), 0)).where(
+    store_timezone = ZoneInfo(settings.STORE_TIMEZONE)
+
+    def _utc_boundary(day: date) -> datetime:
+        return datetime.combine(day, time.min, tzinfo=store_timezone).astimezone(timezone.utc).replace(tzinfo=None)
+
+    def _store_date(timestamp: datetime) -> date:
+        return timestamp.replace(tzinfo=timezone.utc).astimezone(store_timezone).date()
+
+    period_end = utcnow().replace(tzinfo=timezone.utc).astimezone(store_timezone).date()
+    period_start = period_end - timedelta(days=days - 1)
+    start_at = _utc_boundary(period_start)
+    end_at = _utc_boundary(period_end + timedelta(days=1))
+    daily_orders = db.execute(
+        select(Order.created_at, Order.total, Order.status).where(
             Order.created_at >= start_at, Order.created_at < end_at,
-        ).group_by(func.date(Order.created_at))
+        )
     ).all()
-    daily_sales_rows = db.execute(
-        select(func.date(Order.created_at), func.coalesce(func.sum(Order.total), 0)).where(
-            Order.created_at >= start_at, Order.created_at < end_at,
-            Order.status != OrderStatus.CANCELLED.value,
-        ).group_by(func.date(Order.created_at))
-    ).all()
-    order_counts = {str(day): int(count) for day, count, _ in daily_rows}
-    sales_totals = {str(day): money(Decimal(str(total))) for day, total in daily_sales_rows}
-    days = [period_start + timedelta(days=offset) for offset in range(30)]
+    order_counts: dict[str, int] = defaultdict(int)
+    raw_sales_totals: dict[str, Decimal] = defaultdict(Decimal)
+    for created_at, total, status in daily_orders:
+        bucket = str(_store_date(created_at))
+        order_counts[bucket] += 1
+        if status != OrderStatus.CANCELLED.value:
+            raw_sales_totals[bucket] += Decimal(str(total))
+    sales_totals = {day: money(total) for day, total in raw_sales_totals.items()}
+    period_days = [period_start + timedelta(days=offset) for offset in range(days)]
+
+    month_start = period_end.replace(day=1)
+    previous_month_end = month_start - timedelta(days=1)
+    previous_month_start = previous_month_end.replace(day=1)
+    next_day = _utc_boundary(period_end + timedelta(days=1))
+    month_sales, previous_month_sales = [
+        money(Decimal(str(db.execute(
+            select(func.coalesce(func.sum(Order.total), 0)).where(
+                Order.created_at >= _utc_boundary(start),
+                Order.created_at < end,
+                Order.status != OrderStatus.CANCELLED.value,
+            )
+        ).scalar_one())))
+        for start, end in ((month_start, next_day), (previous_month_start, _utc_boundary(month_start)))
+    ]
+    recent_start = _utc_boundary(period_end - timedelta(days=6))
+    recent_statuses = {
+        status: _count(Order, Order.status == status, Order.created_at >= recent_start, Order.created_at < next_day)
+        for status in ("new", "confirmed", "ready", "delivered", "completed", "cancelled")
+    }
+    period_sales_total = money(sum((Decimal(str(sales_totals.get(str(day), 0))) for day in period_days), Decimal("0")))
+    period_orders_total = sum(order_counts.values())
+    best_day = max(period_days, key=lambda day: sales_totals.get(str(day), 0), default=None)
+    best_sales_day = None if best_day is None or not sales_totals.get(str(best_day), 0) else {
+        "date": best_day, "total": sales_totals[str(best_day)]
+    }
 
     recent = (
         db.execute(select(Order).order_by(Order.id.desc()).limit(5)).scalars().all()
@@ -1403,11 +1443,17 @@ def dashboard_summary(db: Session) -> dict[str, object]:
         "revenue_total": money(Decimal(str(revenue))),
         "low_stock_products": len(low_product_ids),
         "low_stock_items": low_stock_items,
+        "monthly_sales": month_sales,
+        "previous_month_sales": previous_month_sales,
+        "recent_orders_total": sum(recent_statuses.values()),
+        "recent_orders_by_status": recent_statuses,
         "period_start": period_start,
         "period_end": period_end,
-        "period_sales_total": money(sum((Decimal(str(sales_totals.get(str(day), 0))) for day in days), Decimal("0"))),
-        "period_orders_total": sum(order_counts.values()),
-        "sales_by_day": [{"date": day, "total": sales_totals.get(str(day), 0)} for day in days],
-        "orders_by_day": [{"date": day, "count": order_counts.get(str(day), 0)} for day in days],
+        "period_sales_total": period_sales_total,
+        "period_orders_total": period_orders_total,
+        "average_order_value": money(period_sales_total / period_orders_total) if period_orders_total else money(0),
+        "best_sales_day": best_sales_day,
+        "sales_by_day": [{"date": day, "total": sales_totals.get(str(day), 0)} for day in period_days],
+        "orders_by_day": [{"date": day, "count": order_counts.get(str(day), 0)} for day in period_days],
         "recent_orders": recent,
     }

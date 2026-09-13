@@ -7,6 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
 from urllib.parse import urlsplit, urlunsplit
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -32,6 +33,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
 
     DATABASE_URL: str = "sqlite+pysqlite:///./data/tara_store_dev.db"
+    STORE_TIMEZONE: str = "Asia/Hebron"
 
     # NoDecode keeps pydantic-settings from JSON-decoding this inside the env/dotenv
     # source, which would reject the documented comma-separated form before the
@@ -95,6 +97,15 @@ class Settings(BaseSettings):
         if parsed.username or parsed.password or parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
             raise ValueError("PUBLIC_BASE_URL must be an origin without credentials, path, query or fragment")
         return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), "", "", ""))
+
+    @field_validator("STORE_TIMEZONE")
+    @classmethod
+    def _validate_store_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError("STORE_TIMEZONE must be a valid IANA timezone") from exc
+        return value
 
     @model_validator(mode="after")
     def _validate_production_safety(self) -> "Settings":
