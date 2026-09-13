@@ -378,10 +378,16 @@ class DashboardSummary(APIModel):
     orders_by_status: dict[str, int]
     revenue_total: Money
     low_stock_products: int
+    monthly_sales: Money
+    previous_month_sales: Money
+    recent_orders_total: int
+    recent_orders_by_status: dict[str, int]
     period_start: date
     period_end: date
     period_sales_total: Money
     period_orders_total: int
+    average_order_value: Money
+    best_sales_day: dict[str, Any] | None = None
     sales_by_day: list[dict[str, Any]] = Field(default_factory=list)
     orders_by_day: list[dict[str, Any]] = Field(default_factory=list)
     low_stock_items: list[dict[str, Any]] = Field(default_factory=list)

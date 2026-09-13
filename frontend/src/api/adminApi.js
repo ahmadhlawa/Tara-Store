@@ -8,7 +8,9 @@ export const adminApi = {
   login: (email, password) => api.post("/auth/login", { email, password }),
   me: () => api.get("/auth/me", authed),
 
-  dashboard: () => api.get("/admin/dashboard", authed),
+  dashboard: (days = 30) => days === 30
+    ? api.get("/admin/dashboard", authed)
+    : api.get("/admin/dashboard", withParams({ days })),
 
   listProducts: (params) => api.get("/admin/products", withParams(params)),
   getProduct: (id) => api.get(`/admin/products/${id}`, authed),

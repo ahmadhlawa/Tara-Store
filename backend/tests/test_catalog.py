@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+from datetime import datetime
+from decimal import Decimal
+
 from fastapi.testclient import TestClient
+import pytest
 from sqlalchemy import event, inspect
 from sqlalchemy.orm import Session
 
-from app.core.enums import ProductType
-from app.models import Category, PackageItem, Product, ProductImage, ProductOption, ProductVariant
+from app.core.enums import OrderStatus, ProductType
+from app.models import Category, Order, PackageItem, Product, ProductImage, ProductOption, ProductVariant
 from app.services import catalog as catalog_service
+from app.services import orders as orders_service
 from tests.conftest import auth, make_product
 
 
@@ -220,6 +225,47 @@ def test_dashboard_low_stock_uses_global_override_and_variants(
     assert ids == {inherited.id, variant_product.id}
     assert len(body["sales_by_day"]) == len(body["orders_by_day"]) == 30
     assert overridden.id not in ids
+
+
+def test_dashboard_buckets_utc_orders_by_tara_local_calendar_day(
+    client: TestClient, db: Session, admin_token: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Late-UTC orders after midnight in Hebron belong to the following local day."""
+    db.add_all([
+        Order(
+            order_number=f"ORD-DASH-{index}", public_token=f"dashboard-{index}",
+            customer_name="Customer", customer_phone="0590000000", address="Address",
+            subtotal=Decimal(str(total)), total=Decimal(str(total)), status=OrderStatus.COMPLETED.value,
+            created_at=created_at, updated_at=created_at,
+        )
+        for index, total, created_at in (
+            (1, "83.00", datetime(2026, 9, 12, 16, 33)),
+            (2, "105.00", datetime(2026, 9, 12, 21, 44)),
+            (3, "200.00", datetime(2026, 9, 12, 21, 48)),
+        )
+    ])
+    db.commit()
+    monkeypatch.setattr(orders_service, "utcnow", lambda: datetime(2026, 9, 13, 18, 0))
+
+    response = client.get("/api/v1/admin/dashboard", headers=auth(admin_token))
+    assert response.status_code == 200, response.text
+    summary = response.json()
+    sales = {row["date"]: row["total"] for row in summary["sales_by_day"]}
+    orders = {row["date"]: row["count"] for row in summary["orders_by_day"]}
+
+    assert sales["2026-09-12"] == "83.00"
+    assert orders["2026-09-12"] == 1
+    assert sales["2026-09-13"] == "305.00"
+    assert orders["2026-09-13"] == 2
+    assert summary["period_sales_total"] == 388
+    assert summary["period_orders_total"] == 3
+    for days in (7, 90):
+        period_response = client.get(
+            "/api/v1/admin/dashboard", params={"days": days}, headers=auth(admin_token)
+        )
+        assert period_response.status_code == 200
+        assert len(period_response.json()["sales_by_day"]) == days
+        assert len(period_response.json()["orders_by_day"]) == days
 
 
 def test_public_catalog_uses_variant_stock_and_hides_unavailable_detail(client: TestClient, db: Session) -> None:

@@ -1,145 +1,94 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import sx from "../../sx.js";
 import { adminApi } from "../../api/adminApi.js";
 import { orderStatusLabels } from "../../store.js";
-import { formatDateTime } from "../../utils/format.js";
-import { Badge, Notice, PageHeader, Spinner, Table, card } from "../ui.jsx";
+import { Notice, PageHeader, Spinner } from "../ui.jsx";
 
-const STATUS_TONE = {
-  pending: "warn",
-  confirmed: "good",
-  processing: "neutral",
-  ready: "neutral",
-  shipped: "neutral",
-  delivered: "good",
-  cancelled: "bad",
+const money = new Intl.NumberFormat("ar-PS", { maximumFractionDigits: 0 });
+const shortDate = new Intl.DateTimeFormat("ar-PS", { day: "numeric", month: "short" });
+const longDate = new Intl.DateTimeFormat("ar-PS", { day: "numeric", month: "long", year: "numeric" });
+const STATUS_COLORS = ["#59415d", "#8c778f", "#b6a9b5", "#d5cbd1", "#9c887d", "#c7b8a7"];
+const formatMoney = (value) => `${money.format(Number(value) || 0)} ₪`;
+const dateValue = (value) => new Date(`${value}T00:00:00`);
+
+const niceStep = (value) => {
+  const magnitude = 10 ** Math.floor(Math.log10(value));
+  const normalized = value / magnitude;
+  return ([1, 2, 5, 10].find((candidate) => normalized <= candidate) || 10) * magnitude;
 };
 
-function Stat({ title, value, hint }) {
-  return (
-    <div className="admin-dashboard-stat" style={{ ...card, ...sx`display:flex;flex-direction:column;gap:6px` }}>
-      <span style={sx`font-size:12.5px;color:#766669`}>{title}</span>
-      <strong style={sx`font-size:26px;color:var(--admin-primary)`}>{value}</strong>
-      {hint && <span style={sx`font-size:12px;color:#8A7F95`}>{hint}</span>}
-    </div>
-  );
+export const salesAxisTicks = (values) => {
+  const maximum = Math.max(...values.map((value) => Number(value) || 0), 0);
+  if (!maximum) return [0, 1];
+  const step = niceStep(maximum / 4);
+  const ceiling = Math.ceil(maximum / step) * step;
+  return Array.from({ length: Math.round(ceiling / step) + 1 }, (_, index) => index * step);
+};
+
+export const orderAxisTicks = (values) => {
+  const maximum = Math.max(...values.map((value) => Number(value) || 0), 0);
+  if (!maximum) return [0, 1];
+  const step = Math.max(1, Math.round(niceStep(maximum / 4)));
+  const ceiling = Math.ceil(maximum / step) * step;
+  return Array.from({ length: Math.floor(ceiling / step) + 1 }, (_, index) => index * step);
+};
+
+function Sparkline({ data }) {
+  const values = data.map((row) => Number(row.total) || 0);
+  const max = Math.max(...values, 1);
+  const points = values.map((value, index) => `${(index * 176) / Math.max(values.length - 1, 1)},${45 - (value / max) * 39}`).join(" ");
+  return <svg className="dashboard-sparkline" viewBox="0 0 176 48" role="img" aria-label="اتجاه المبيعات"><defs><linearGradient id="sparklineArea" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#80618c" stopOpacity=".28" /><stop offset="1" stopColor="#80618c" stopOpacity="0" /></linearGradient></defs><polygon points={`0,48 ${points} 176,48`} fill="url(#sparklineArea)" /><polyline points={points} /></svg>;
 }
 
-function TrendChart({ title, totalLabel, data, valueKey }) {
-  const width = 720;
-  const height = 190;
-  const values = data.map((row) => Number(row[valueKey]) || 0);
-  const max = Math.max(...values, 1);
-  const points = values.map((value, index) => {
-    const x = 12 + (index * (width - 24)) / Math.max(values.length - 1, 1);
-    const y = height - 24 - (value / max) * (height - 44);
-    return `${x},${y}`;
-  }).join(" ");
-  return (
-    <section style={{ ...card, ...sx`min-width:0` }}>
-      <div style={sx`display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px`}>
-        <div><h2 style={sx`margin:0 0 4px;font-size:16px`}>{title}</h2><span style={sx`font-size:12px;color:#766669`}>آخر 30 يوماً · يومياً</span></div>
-        <strong style={sx`color:var(--admin-primary);font-size:20px`}>{totalLabel}</strong>
-      </div>
-      <div style={sx`overflow-x:auto`}>
-        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${title}: ${totalLabel}`} style={sx`display:block;width:100%;min-width:520px;height:auto`}>
-          <line x1="12" y1={height - 24} x2={width - 12} y2={height - 24} stroke="#E7DCF2" />
-          <polyline points={points} fill="none" stroke="var(--admin-primary)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
-          {data.map((row, index) => {
-            const [x, y] = points.split(" ")[index].split(",");
-            return <circle key={row.date} cx={x} cy={y} r="3.5" fill="var(--admin-primary)"><title>{row.date}: {row[valueKey]}</title></circle>;
-          })}
-          <text x="12" y={height - 6} fontSize="11" fill="#766669">{data[0]?.date}</text>
-          <text x={width - 12} y={height - 6} textAnchor="end" fontSize="11" fill="#766669">{data.at(-1)?.date}</text>
-        </svg>
-      </div>
-    </section>
-  );
+function OrdersDonut({ statuses }) {
+  const rows = Object.entries(statuses || {}).filter(([, count]) => count > 0);
+  const total = rows.reduce((sum, [, count]) => sum + count, 0);
+  let offset = 0;
+  return <div className="dashboard-donut-wrap"><div className="dashboard-donut-visual"><svg className="dashboard-donut" viewBox="0 0 42 42" role="img" aria-label={`توزيع ${total} طلبات`}><circle className="dashboard-donut__track" cx="21" cy="21" r="15.9" />{rows.map(([status, count], index) => { const length = (count / total) * 100; const circle = <circle key={status} cx="21" cy="21" r="15.9" pathLength="100" stroke={STATUS_COLORS[index]} strokeDasharray={`${length} ${100 - length}`} strokeDashoffset={-offset} />; offset += length; return circle; })}</svg><strong>{total}</strong></div><div className="dashboard-status-list">{rows.map(([status, count], index) => <span key={status}><i style={{ background: STATUS_COLORS[index] }} />{orderStatusLabels[status] || status} <b>{count}</b></span>)}</div></div>;
 }
+
+function SalesOrdersChart({ sales, orders }) {
+  const [tooltipIndex, setTooltipIndex] = useState(null);
+  const width = 900, height = 290, left = 62, right = 54, top = 18, bottom = 38;
+  const tooltipWidth = 190, tooltipHeight = 80, tooltipGap = 12;
+  const salesTicks = salesAxisTicks(sales.map((row) => row.total));
+  const ordersTicks = orderAxisTicks(orders.map((row) => row.count));
+  const salesMax = salesTicks.at(-1);
+  const ordersMax = ordersTicks.at(-1);
+  const x = (index) => left + (index * (width - left - right)) / Math.max(sales.length - 1, 1);
+  const y = (value, max) => top + (1 - value / max) * (height - top - bottom);
+  const salesPoints = sales.map((row, index) => `${x(index)},${y(Number(row.total) || 0, salesMax)}`).join(" ");
+  const orderPoints = orders.map((row, index) => `${x(index)},${y(Number(row.count) || 0, ordersMax)}`).join(" ");
+  const labelEvery = Math.max(1, Math.ceil(sales.length / 6));
+  const tooltip = tooltipIndex === null ? null : sales[tooltipIndex];
+  const pointX = tooltip ? x(tooltipIndex) : 0;
+  const pointY = tooltip ? y(Number(tooltip.total) || 0, salesMax) : 0;
+  const tooltipX = tooltip
+    ? Math.max(left + 2, Math.min(width - right - tooltipWidth - 2,
+      pointX + tooltipGap + tooltipWidth > width - right ? pointX - tooltipWidth - tooltipGap : pointX + tooltipGap))
+    : 0;
+  const tooltipY = tooltip
+    ? Math.max(top + 2, Math.min(height - bottom - tooltipHeight - 2, pointY - tooltipHeight - tooltipGap))
+    : 0;
+  const orderCount = tooltip ? orders[tooltipIndex]?.count || 0 : 0;
+  return <div className="dashboard-chart-scroll"><svg className="dashboard-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="رسم المبيعات والطلبات بمقياسين منفصلين"><defs><linearGradient id="salesArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#735277" stopOpacity=".24" /><stop offset="1" stopColor="#735277" stopOpacity="0" /></linearGradient><filter id="salesGlow"><feGaussianBlur stdDeviation="2.2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter><filter id="tooltipShadow"><feDropShadow dx="0" dy="5" stdDeviation="6" floodColor="#4d3656" floodOpacity=".16" /></filter></defs>{salesTicks.map((tick) => { const lineY = y(tick, salesMax); return <g key={tick}><line x1={left} x2={width - right} y1={lineY} y2={lineY} className="dashboard-chart__grid" /><text x={left - 10} y={lineY + 4} textAnchor="end">{money.format(tick)}</text></g>; })}{ordersTicks.map((tick) => <text key={tick} x={width - right + 10} y={y(tick, ordersMax) + 4}>{tick}</text>)}{sales.length > 1 && <polygon points={`${left},${height - bottom} ${salesPoints} ${width - right},${height - bottom}`} fill="url(#salesArea)" />}<polyline points={orderPoints} className="dashboard-chart__orders" /><polyline points={salesPoints} className="dashboard-chart__sales" filter="url(#salesGlow)" />{sales.map((row, index) => <g key={row.date}><circle cx={x(index)} cy={y(Number(row.total) || 0, salesMax)} r="10" className="dashboard-chart__hit" onMouseEnter={() => setTooltipIndex(index)} onFocus={() => setTooltipIndex(index)} onMouseLeave={() => setTooltipIndex(null)} onBlur={() => setTooltipIndex(null)} tabIndex="0"><title>{shortDate.format(dateValue(row.date))} — المبيعات: {formatMoney(row.total)}، الطلبات: {orders[index]?.count || 0}</title></circle>{(index % labelEvery === 0 || index === sales.length - 1) && <text x={x(index)} y={height - 12} textAnchor="middle">{shortDate.format(dateValue(row.date))}</text>}</g>)}{tooltip && <g className="dashboard-chart__tooltip" transform={`translate(${tooltipX} ${tooltipY})`} filter="url(#tooltipShadow)"><rect width={tooltipWidth} height={tooltipHeight} rx="11" /><foreignObject width={tooltipWidth} height={tooltipHeight}><div xmlns="http://www.w3.org/1999/xhtml" className="dashboard-chart__tooltip-panel" dir="rtl"><div className="dashboard-chart__tooltip-date">{shortDate.format(dateValue(tooltip.date))}</div><div className="dashboard-chart__tooltip-row"><span>المبيعات:</span><bdi dir="ltr">{formatMoney(tooltip.total)}</bdi></div><div className="dashboard-chart__tooltip-row"><span>الطلبات:</span><bdi dir="ltr">{orderCount}</bdi></div></div></foreignObject></g>}<text className="dashboard-chart__axis" x="8" y="12">المبيعات (₪)</text><text className="dashboard-chart__axis" x={width - 8} y="12" textAnchor="end">الطلبات</text></svg></div>;
+}
+
+function KpiCard({ title, children, className = "" }) { return <section className={`dashboard-card dashboard-kpi ${className}`}><h2>{title}</h2>{children}</section>; }
 
 export default function DashboardPage() {
+  const [period, setPeriod] = useState(30);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    adminApi
-      .dashboard()
-      .then(setData)
-      .catch((cause) => setError(cause.message || "تعذّر تحميل الملخّص."));
-  }, []);
-
+  useEffect(() => { let ignore = false; setError(""); adminApi.dashboard(period).then((result) => { if (!ignore) setData(result); }).catch((cause) => { if (!ignore) setError(cause.message || "تعذّر تحميل لوحة التحكم."); }); return () => { ignore = true; }; }, [period]);
+  const comparison = useMemo(() => { const previous = Number(data?.previous_month_sales) || 0; return previous ? ((Number(data.monthly_sales) - previous) / previous) * 100 : null; }, [data]);
   if (error) return <Notice kind="error">{error}</Notice>;
   if (!data) return <Spinner />;
-
-  return (
-    <>
-      <PageHeader title="لوحة التحكم" description="ملخّص سريع لحالة المتجر." />
-      <div className="admin-dashboard-stats" style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px`}>
-        <Stat title="إجمالي الطلبات" value={data.orders_total} hint={`${data.orders_pending} بانتظار المراجعة`} />
-        <Stat title="إجمالي المبيعات" value={Math.round(data.revenue_total)} hint="الطلبات غير الملغاة" />
-        <Stat title="المنتجات الفعّالة" value={data.products_active} hint={`من ${data.products_total} منتجاً`} />
-        <Stat title="مخزون منخفض" value={data.low_stock_products} hint="منتجات وصلت حد التنبيه" />
-        <Stat title="الأقسام" value={data.categories_total} />
-        <Stat title="أكواد خصم فعّالة" value={data.coupons_active} />
-      </div>
-
-      <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px;margin-bottom:20px`}>
-        <TrendChart title="المبيعات" totalLabel={Math.round(data.period_sales_total || 0)} data={data.sales_by_day || []} valueKey="total" />
-        <TrendChart title="الطلبات" totalLabel={data.period_orders_total || 0} data={data.orders_by_day || []} valueKey="count" />
-      </div>
-
-      <section style={{ ...card, ...sx`margin-bottom:20px` }}>
-        <h2 style={sx`margin:0 0 12px;font-size:16px;font-weight:800`}>المخزون المنخفض</h2>
-        {(data.low_stock_items || []).length ? (
-          <div style={sx`display:flex;flex-direction:column;gap:8px`}>
-            {data.low_stock_items.map((item) => (
-              <Link key={`${item.product_id}-${item.variant_name || "product"}`} to={`/admin/products/${item.product_id}`} style={sx`display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #E7DCF2;border-radius:10px;text-decoration:none;color:inherit`}>
-                <span><strong>{item.product_name}</strong>{item.variant_name && <small style={sx`display:block;color:#766669`}>{item.variant_name}</small>}</span>
-                <span style={sx`font-size:13px;text-align:end`}>المخزون: {item.stock}<small style={sx`display:block;color:#766669`}>التنبيه عند: {item.threshold}</small></span>
-              </Link>
-            ))}
-          </div>
-        ) : <p style={sx`margin:0;color:#4C7C63`}>المخزون بحالة جيدة.</p>}
-      </section>
-
-      <div className="admin-dashboard-orders" style={card}>
-        <h2 style={sx`margin:0 0 12px;font-size:16px;font-weight:800`}>أحدث الطلبات</h2>
-        <div className="admin-dashboard-orders-table">
-          <Table
-          columns={[
-            {
-              key: "order_number",
-              title: "رقم الطلب",
-              render: (row) => (
-                <Link to={`/admin/orders/${row.id}`} style={sx`font-weight:700`}>{row.order_number}</Link>
-              ),
-            },
-            { key: "customer_name", title: "العميل" },
-            {
-              key: "status",
-              title: "الحالة",
-              render: (row) => (
-                <Badge tone={STATUS_TONE[row.status]}>{orderStatusLabels[row.status] || row.status}</Badge>
-              ),
-            },
-            { key: "total", title: "الإجمالي", render: (row) => Math.round(row.total) },
-            { key: "created_at", title: "التاريخ", render: (row) => formatDateTime(row.created_at) },
-          ]}
-            rows={data.recent_orders}
-            empty="لا توجد طلبات بعد."
-          />
-        </div>
-        <div className="admin-dashboard-orders-mobile">
-          {data.recent_orders.length ? data.recent_orders.map((row) => (
-            <Link key={row.id} to={`/admin/orders/${row.id}`} className="admin-dashboard-order-row">
-              <span className="admin-dashboard-order-row__number">{row.order_number}</span>
-              <span className="admin-dashboard-order-row__customer">{row.customer_name}</span>
-              <Badge tone={STATUS_TONE[row.status]}>{orderStatusLabels[row.status] || row.status}</Badge>
-            </Link>
-          )) : <div className="admin-dashboard-order-empty">لا توجد طلبات بعد.</div>}
-        </div>
-      </div>
-    </>
-  );
+  const lowStock = data.low_stock_items || [];
+  return <div className="dashboard-page"><PageHeader title="لوحة التحكم" description="نظرة تشغيلية سريعة على أداء متجر تارا." /><div className="dashboard-kpi-grid">
+    <KpiCard title="أداء المبيعات الشهري" className="dashboard-kpi--sales"><strong className="dashboard-kpi__value">{formatMoney(data.monthly_sales)}</strong><p className={comparison > 0 ? "is-positive" : comparison < 0 ? "is-negative" : ""}>{comparison === null ? "لا توجد بيانات مقارنة" : `${comparison > 0 ? "+" : ""}${comparison.toFixed(1)}% مقارنة بالشهر الماضي`}</p><Sparkline data={data.sales_by_day || []} /></KpiCard>
+    <KpiCard title="أحدث الطلبات" className="dashboard-kpi--orders"><div className="dashboard-kpi__heading"><strong className="dashboard-kpi__value">{data.recent_orders_total}</strong><span>آخر 7 أيام</span></div>{data.recent_orders_total ? <OrdersDonut statuses={data.recent_orders_by_status} /> : <p className="dashboard-empty">لا توجد طلبات حديثة</p>}</KpiCard>
+    <div className="dashboard-kpi-stack"><KpiCard title="مخزون حرج" className={data.low_stock_products ? "dashboard-kpi--stock is-critical" : "dashboard-kpi--stock"}><Link className="dashboard-kpi-link" to="/admin/products?stock=low"><strong className="dashboard-kpi__value">{data.low_stock_products}</strong><span>{data.low_stock_products ? "منتجات بحاجة لإعادة تعبئة" : "المخزون بحالة جيدة"}</span><span className="dashboard-thumbnails">{lowStock.slice(0, 3).map((item) => item.image_url ? <img key={`${item.product_id}-${item.variant_name || "base"}`} src={item.image_url} alt="" /> : <i key={`${item.product_id}-${item.variant_name || "base"}`}>{item.product_name.slice(0, 1)}</i>)}</span></Link></KpiCard><KpiCard title="أكواد الخصم النشطة" className="dashboard-kpi--coupons"><Link className="dashboard-kpi-link dashboard-kpi-link--row" to="/admin/coupons"><strong className="dashboard-kpi__value">{data.coupons_active}</strong><span>{data.coupons_active ? "كود متاح للاستخدام" : "لا توجد أكواد نشطة"}</span></Link></KpiCard></div>
+  </div><section className="dashboard-card dashboard-analytics"><header className="dashboard-analytics__header"><div><h2>تحليل المبيعات والطلبات</h2><p>آخر {period} يوماً · البيانات اليومية</p></div><div className="dashboard-periods" aria-label="الفترة الزمنية">{[7, 30, 90].map((days) => <button key={days} className={period === days ? "is-active" : ""} aria-pressed={period === days} onClick={() => setPeriod(days)}>{days} أيام</button>)}</div></header><div className="dashboard-legend"><span><i className="sales" />المبيعات</span><span><i className="orders" />الطلبات</span></div><SalesOrdersChart sales={data.sales_by_day || []} orders={data.orders_by_day || []} /><div className="dashboard-insights"><div><span>متوسط قيمة الطلب</span><strong>{formatMoney(data.average_order_value)}</strong></div><div><span>أعلى يوم مبيعات</span><strong>{data.best_sales_day ? longDate.format(dateValue(data.best_sales_day.date)) : "لا توجد مبيعات"}</strong>{data.best_sales_day && <small>{formatMoney(data.best_sales_day.total)}</small>}</div></div></section>
+  <section className="dashboard-card dashboard-stock"><h2>جدول المخزون المنخفض</h2>{lowStock.length ? <div className="dashboard-table-scroll"><table><thead><tr><th>المنتج</th><th>الاسم</th><th>المتغير</th><th>المخزون</th><th>حد التنبيه</th><th>الإجراء</th></tr></thead><tbody>{lowStock.map((item) => <tr key={`${item.product_id}-${item.variant_name || "base"}`}><td>{item.image_url ? <img src={item.image_url} alt="" /> : <span className="dashboard-product-placeholder">{item.product_name.slice(0, 1)}</span>}</td><td><b>{item.product_name}</b>{item.sku && <small>{item.sku}</small>}</td><td>{item.variant_name || "—"}</td><td><strong>{item.stock}</strong></td><td>{item.threshold}</td><td><Link to={`/admin/products/${item.product_id}`}>تعديل</Link></td></tr>)}</tbody></table></div> : <p className="dashboard-stock__empty">المخزون بحالة جيدة، لا توجد منتجات منخفضة.</p>}</section></div>;
 }
