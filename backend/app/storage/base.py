@@ -7,6 +7,7 @@ import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from io import BytesIO
+from pathlib import Path
 
 from PIL import Image, ImageSequence, UnidentifiedImageError
 
@@ -47,9 +48,22 @@ _PIL_FORMATS = {
     "image/vnd.microsoft.icon": "ICO",
 }
 
+ALLOWED_EXTENSION_FORMATS: dict[str, set[str]] = {
+    ".jpg": {"JPEG"},
+    ".jpeg": {"JPEG"},
+    ".png": {"PNG"},
+    ".webp": {"WEBP"},
+    ".gif": {"GIF"},
+    ".ico": {"ICO"},
+}
+
 
 def validate_image_upload(
-    data: bytes, max_bytes: int, max_pixels: int = 40_000_000
+    data: bytes,
+    max_bytes: int,
+    max_pixels: int = 40_000_000,
+    *,
+    filename: str | None = None,
 ) -> tuple[str, str]:
     """Return `(content_type, extension)` or raise a DomainError."""
     if not data:
@@ -65,11 +79,24 @@ def validate_image_upload(
             "نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, WebP, GIF, ICO.",
             code="unsupported_media_type",
         )
+    allowed_filename_formats = None
+    if filename is not None:
+        allowed_filename_formats = ALLOWED_EXTENSION_FORMATS.get(Path(filename).suffix.lower())
+        if allowed_filename_formats is None:
+            raise DomainError(
+                "نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, WebP, GIF, ICO.",
+                code="unsupported_media_type",
+            )
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
             with Image.open(BytesIO(data)) as image:
-                if image.format != _PIL_FORMATS[content_type]:
+                decoded_format = (image.format or "").upper()
+                if (
+                    decoded_format != _PIL_FORMATS[content_type]
+                    or allowed_filename_formats is not None
+                    and decoded_format not in allowed_filename_formats
+                ):
                     raise DomainError(
                         "تنسيق الصورة الفعلي لا يطابق ترويسة الملف.",
                         code="image_format_mismatch",

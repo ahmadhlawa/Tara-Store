@@ -75,7 +75,10 @@ async def upload_media(
     # The declared content type and the file name are both attacker-controlled;
     # the real type comes from the bytes.
     content_type, extension = validate_image_upload(
-        data, settings.MAX_UPLOAD_SIZE_BYTES, settings.MAX_IMAGE_PIXELS
+        data,
+        settings.MAX_UPLOAD_SIZE_BYTES,
+        settings.MAX_IMAGE_PIXELS,
+        filename=file.filename,
     )
 
     # The catalog importer resolves a product image by `original_filename`, so two rows

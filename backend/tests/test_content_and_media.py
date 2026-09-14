@@ -2,10 +2,12 @@
 
 import struct
 import zlib
+from io import BytesIO
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -242,6 +244,44 @@ def _png_bytes() -> bytes:
     return gradient_png(8, 8, (255, 0, 0), (0, 0, 255))
 
 
+def _jpeg_bytes() -> bytes:
+    output = BytesIO()
+    Image.new("RGB", (8, 8), "purple").save(output, format="JPEG")
+    return output.getvalue()
+
+
+@pytest.mark.parametrize("filename", ["photo.jpg", "photo.jpeg"])
+def test_media_accepts_jpeg_filename_aliases_and_reload(
+    client: TestClient, admin_token: str, filename: str
+) -> None:
+    uploaded = client.post(
+        "/api/v1/admin/media",
+        headers=auth(admin_token),
+        files={"file": (filename, _jpeg_bytes(), "image/jpeg")},
+    )
+    assert uploaded.status_code == 201, uploaded.text
+    body = uploaded.json()
+    assert body["content_type"] == "image/jpeg"
+    assert body["stored_key"].endswith(".jpg")
+
+    reloaded = client.get("/api/v1/admin/media", headers=auth(admin_token))
+    assert reloaded.status_code == 200
+    assert filename in {item["original_filename"] for item in reloaded.json()["items"]}
+
+
+def test_media_rejects_png_renamed_as_jpeg(
+    client: TestClient, admin_token: str, media_root: Path
+) -> None:
+    response = client.post(
+        "/api/v1/admin/media",
+        headers=auth(admin_token),
+        files={"file": ("renamed.jpg", _png_bytes(), "image/jpeg")},
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "image_format_mismatch"
+    assert list(media_root.iterdir()) == []
+
+
 def test_local_upload_returns_a_usable_url_and_writes_the_file(
     client: TestClient, db: Session, admin_token: str, media_root: Path
 ) -> None:
@@ -276,7 +316,7 @@ def test_media_list_searches_filenames_and_paginates(
         response = client.post(
             "/api/v1/admin/media",
             headers=auth(admin_token),
-            files={"file": (filename, _png_bytes(), "image/png")},
+            files={"file": (filename, _jpeg_bytes(), "image/jpeg")},
         )
         assert response.status_code == 201
 
@@ -300,12 +340,12 @@ def test_media_rename_is_logical_and_validated(
     first = client.post(
         "/api/v1/admin/media",
         headers=auth(admin_token),
-        files={"file": ("OLD.jpg", _png_bytes(), "image/png")},
+        files={"file": ("OLD.jpg", _jpeg_bytes(), "image/jpeg")},
     ).json()
     client.post(
         "/api/v1/admin/media",
         headers=auth(admin_token),
-        files={"file": ("taken.jpg", _png_bytes(), "image/png")},
+        files={"file": ("taken.jpg", _jpeg_bytes(), "image/jpeg")},
     )
     renamed = client.patch(
         f"/api/v1/admin/media/{first['id']}",
@@ -340,7 +380,7 @@ def test_upload_rejects_disallowed_content_regardless_of_the_declared_type(
     response = client.post(
         "/api/v1/admin/media",
         headers=auth(admin_token),
-        files={"file": ("payload.png", b"#!/bin/sh\necho hi\n", "image/png")},
+        files={"file": ("payload.jpg", b"#!/bin/sh\necho hi\n", "image/jpeg")},
     )
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "unsupported_media_type"

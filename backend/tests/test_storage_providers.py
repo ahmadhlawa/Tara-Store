@@ -324,6 +324,7 @@ def image_bytes(format_name: str) -> bytes:
     ("format_name", "content_type", "extension"),
     [
         ("JPEG", "image/jpeg", ".jpg"),
+        ("JPEG", "image/jpeg", ".jpeg"),
         ("PNG", "image/png", ".png"),
         ("WEBP", "image/webp", ".webp"),
         ("GIF", "image/gif", ".gif"),
@@ -333,9 +334,11 @@ def image_bytes(format_name: str) -> bytes:
 def test_upload_validation_decodes_supported_images(
     format_name: str, content_type: str, extension: str
 ) -> None:
-    assert validate_image_upload(image_bytes(format_name), 1024 * 1024) == (
+    assert validate_image_upload(
+        image_bytes(format_name), 1024 * 1024, filename=f"upload{extension}"
+    ) == (
         content_type,
-        extension,
+        ".jpg" if format_name == "JPEG" else extension,
     )
 
 
