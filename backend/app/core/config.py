@@ -133,7 +133,7 @@ class Settings(BaseSettings):
                 raise ValueError("production LOCAL_MEDIA_ROOT must not resolve to the backend root")
         if not 1 <= self.ACCESS_TOKEN_EXPIRE_MINUTES <= 60:
             raise ValueError("production access tokens must expire within 60 minutes")
-        self.LOGIN_RATE_LIMIT = self.LOGIN_RATE_LIMIT or 10
+        self.LOGIN_RATE_LIMIT = self.LOGIN_RATE_LIMIT or 5
         self.ORDER_CREATE_RATE_LIMIT = self.ORDER_CREATE_RATE_LIMIT or 10
         self.ORDER_LOOKUP_RATE_LIMIT = self.ORDER_LOOKUP_RATE_LIMIT or 60
         return self

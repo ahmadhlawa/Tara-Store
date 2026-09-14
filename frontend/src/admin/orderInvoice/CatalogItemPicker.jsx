@@ -42,7 +42,7 @@ export default function CatalogItemPicker({ products, disabled, onAdd }) {
 
   const add = () => {
     if (!product || !complete) return;
-    onAdd({ kind: "catalog", product_id: product.id, product_name: product.name, variant_id: variant?.id || null, selected_option_value_ids: variants.length ? [] : selectedIds, variant_description: description, sku, quantity: "1", unit_price: String(unitPrice) });
+    onAdd({ kind: "catalog", product_id: product.id, product_name: product.name, variant_id: variant?.id || null, selected_option_value_ids: variant?.option_value_ids || selectedIds, variant_description: description, sku, quantity: "1", unit_price: String(unitPrice) });
     setProductId("");
   };
 

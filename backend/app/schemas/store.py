@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from urllib.parse import urlparse
-
 from pydantic import EmailStr, Field, field_validator
 
-from app.schemas.common import APIModel, Money, UTCDateTime
+from app.schemas.common import APIModel, Money, UTCDateTime, safe_external_url, safe_resource_url
 
 THEME_COLOR_FIELDS = (
     "theme_primary_color", "theme_secondary_color", "theme_soft_color",
@@ -143,15 +141,10 @@ class StoreSettingsUpdate(APIModel):
     tax_rate: Decimal | None = Field(default=None, ge=0, le=100)
     prices_include_tax: bool | None = None
 
-    @field_validator("location_url", "instagram_url", "facebook_url", "tiktok_url", "youtube_url")
-    @classmethod
-    def validate_social_url(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        parsed = urlparse(value)
-        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-            raise ValueError("must be a valid http or https URL")
-        return value
+    _validate_resource_urls = field_validator("logo_url", "favicon_url")(safe_resource_url)
+    _validate_social_urls = field_validator(
+        "location_url", "instagram_url", "facebook_url", "tiktok_url", "youtube_url"
+    )(safe_external_url)
 
     @field_validator(*THEME_COLOR_FIELDS)
     @classmethod

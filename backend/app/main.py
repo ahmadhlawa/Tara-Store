@@ -95,6 +95,14 @@ def create_app(config=settings) -> FastAPI:
             response = await call_next(request)
             status_code = response.status_code
             response.headers["X-Request-ID"] = request_id
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+            response.headers["Permissions-Policy"] = "camera=(), geolocation=(), microphone=()"
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'"
+            )
+            if production:
+                response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
             return response
         finally:
             request_logger.info(

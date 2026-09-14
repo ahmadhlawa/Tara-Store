@@ -150,7 +150,7 @@ export function StoreProvider({ children }) {
   const addToCart = useCallback(
     (product, qty = 1, variant = null) => {
       if (!product) return;
-      const selectedOptionValueIds = variant?.selected_option_value_ids || [];
+      const selectedOptionValueIds = variant?.option_value_ids || variant?.selected_option_value_ids || [];
       const unit = variant?.price_override != null ? Number(variant.price_override) : (product.sale ?? product.price);
       const key = lineKey(product.id, variant?.id, selectedOptionValueIds);
       const next = cart.slice();

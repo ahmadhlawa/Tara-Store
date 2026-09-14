@@ -127,7 +127,7 @@ export default function ProductsPage() {
                     <Badge>غير متتبّع</Badge>
                   ) : row.stock_quantity <= 0 ? (
                     <Badge tone="bad">نفد</Badge>
-                  ) : row.stock_quantity <= row.low_stock_threshold ? (
+                  ) : row.stock_quantity <= (row.effective_low_stock_threshold ?? row.low_stock_threshold ?? 0) ? (
                     <Badge tone="warn">{row.stock_quantity}</Badge>
                   ) : (
                     row.stock_quantity

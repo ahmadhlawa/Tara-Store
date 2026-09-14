@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from hashlib import sha256
 from ipaddress import ip_address
 from threading import Lock
 from time import monotonic
@@ -40,13 +41,18 @@ class RateLimiter:
         self._hits: dict[str, deque[float]] = defaultdict(deque)
         self._lock = Lock()
 
-    def __call__(self, request: Request) -> None:
+    def _key(self, request: Request, identifier: str | None = None) -> str:
+        if not identifier:
+            return client_ip(request)
+        digest = sha256(identifier.strip().casefold().encode("utf-8")).hexdigest()
+        return f"{client_ip(request)}:{digest}"
+
+    def _check(self, key: str, *, record: bool = False) -> deque[float] | None:
         limit = getattr(settings, self.limit_setting)
         if limit <= 0:
-            return
+            return None
         now = monotonic()
         cutoff = now - settings.RATE_LIMIT_WINDOW_SECONDS
-        key = client_ip(request)
         with self._lock:
             if key not in self._hits and len(self._hits) >= self._MAX_CLIENTS:
                 self._hits.pop(next(iter(self._hits)))
@@ -59,7 +65,28 @@ class RateLimiter:
                     detail={"code": "rate_limited", "message": "Too many requests. Please try again later."},
                     headers={"Retry-After": str(settings.RATE_LIMIT_WINDOW_SECONDS)},
                 )
-            hits.append(now)
+            if record:
+                hits.append(now)
+            return hits
+
+    def check(self, request: Request, *, identifier: str | None = None) -> None:
+        """Reject a request already over its limit without recording a hit."""
+        self._check(self._key(request, identifier))
+
+    def record_failure(self, request: Request, *, identifier: str | None = None) -> None:
+        """Record a failed sensitive action after its credentials were checked."""
+        key = self._key(request, identifier)
+        self._check(key, record=True)
+
+    def clear(self, request: Request, *, identifier: str | None = None) -> None:
+        key = self._key(request, identifier)
+        with self._lock:
+            self._hits.pop(key, None)
+
+    def __call__(self, request: Request) -> None:
+        """Compatibility path for endpoints limited per request, not per failure."""
+        key = self._key(request)
+        self._check(key, record=True)
 
 
 login_rate_limit = RateLimiter("login", "LOGIN_RATE_LIMIT")

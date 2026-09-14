@@ -225,6 +225,9 @@ def test_dashboard_low_stock_uses_global_override_and_variants(
     assert ids == {inherited.id, variant_product.id}
     assert len(body["sales_by_day"]) == len(body["orders_by_day"]) == 30
     assert overridden.id not in ids
+    listed = client.get("/api/v1/admin/products", headers=auth(admin_token)).json()["items"]
+    inherited_row = next(row for row in listed if row["id"] == inherited.id)
+    assert inherited_row["effective_low_stock_threshold"] == 5
 
 
 def test_dashboard_buckets_utc_orders_by_tara_local_calendar_day(
@@ -376,6 +379,43 @@ def test_listing_flags_products_that_need_an_option_chosen(
     assert listed[with_options.slug]["has_options"] is True
 
     assert client.get(f"/api/v1/products/{with_options.slug}").json()["has_options"] is True
+
+
+def test_categories_reject_cycles_and_deletion_with_children(
+    client: TestClient, db: Session, admin_token: str
+) -> None:
+    parent = Category(name="Parent", slug="parent")
+    child = Category(name="Child", slug="child", parent=parent)
+    db.add_all([parent, child])
+    db.commit()
+
+    cycle = client.patch(
+        f"/api/v1/admin/categories/{parent.id}", headers=auth(admin_token), json={"parent_id": child.id}
+    )
+    assert cycle.status_code == 400
+    assert cycle.json()["error"]["code"] == "category_cycle"
+    deleted = client.delete(f"/api/v1/admin/categories/{parent.id}", headers=auth(admin_token))
+    assert deleted.status_code == 409
+    assert deleted.json()["error"]["code"] == "category_has_children"
+
+
+def test_duplicate_variant_combination_is_rejected(
+    client: TestClient, db: Session, admin_token: str
+) -> None:
+    product = make_product(db, slug="unique-combo", name="Unique combo")
+    options = client.put(
+        f"/api/v1/admin/products/{product.id}/options",
+        headers=auth(admin_token),
+        json=[{"name": "Size", "values": [{"value": "Small"}, {"value": "Large"}]}],
+    ).json()
+    value_id = options[0]["values"][0]["id"]
+    payload = {"title": "Small", "option_value_ids": [value_id]}
+    assert client.post(f"/api/v1/admin/products/{product.id}/variants", headers=auth(admin_token), json=payload).status_code == 201
+    duplicate = client.post(
+        f"/api/v1/admin/products/{product.id}/variants", headers=auth(admin_token), json=payload
+    )
+    assert duplicate.status_code == 409
+    assert duplicate.json()["error"]["code"] == "variant_combination_taken"
 
 
 def test_public_list_query_loads_only_compact_relations_without_n_plus_one(db: Session) -> None:

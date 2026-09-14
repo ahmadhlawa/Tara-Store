@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic import Field, field_validator, model_validator
 
 from app.core.enums import ProductType
-from app.schemas.common import APIModel, Money, UTCDateTime
+from app.schemas.common import APIModel, Money, UTCDateTime, safe_resource_url
 
 
 # ── Categories ────────────────────────────────────────────────────────────────
@@ -16,6 +16,8 @@ class CategoryBase(APIModel):
     is_featured: bool = False
     show_on_home: bool = False
     sort_order: int = 0
+
+    _validate_image_url = field_validator("image_url")(safe_resource_url)
 
 
 class CategoryCreate(CategoryBase):
@@ -32,6 +34,8 @@ class CategoryUpdate(APIModel):
     is_featured: bool | None = None
     show_on_home: bool | None = None
     sort_order: int | None = None
+
+    _validate_image_url = field_validator("image_url")(safe_resource_url)
 
 
 class CategoryOut(APIModel):
@@ -58,6 +62,8 @@ class ProductImageIn(APIModel):
     url: str = Field(min_length=1, max_length=500)
     alt_text: str | None = Field(default=None, max_length=250)
     sort_order: int = 0
+
+    _validate_url = field_validator("url")(safe_resource_url)
 
 
 class ProductImageOut(ProductImageIn):
@@ -291,6 +297,7 @@ class ProductAdminListOut(APIModel):
     stock_quantity: int
     track_inventory: bool
     low_stock_threshold: int | None
+    effective_low_stock_threshold: int
     is_active: bool
     is_featured: bool
     is_new: bool
