@@ -52,13 +52,36 @@
   }
 }
 
-/* Capped so a square photograph cannot outrun the information column and leave
-   a column of empty page beside it on a product with little copy. */
-.vs-gallery__main {
+.vs-gallery__main,
+.vs-quick__media {
+  aspect-ratio: 5 / 4;
   border-radius: var(--vs-r-lg);
   overflow: hidden;
   background: var(--vs-surface-2);
-  max-height: 460px;
+  isolation: isolate;
+}
+
+.vs-gallery__main .vs-media--backdrop,
+.vs-quick__media .vs-media--backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: blur(14px);
+  opacity: 0.62;
+  transform: scale(1.07);
+}
+
+.vs-gallery__main .vs-media--foreground,
+.vs-quick__media .vs-media--foreground {
+  position: relative;
+  z-index: 2;
+  object-fit: contain;
+  object-position: center;
+  background: transparent;
 }
 
 .vs-gallery__thumbs {
@@ -83,6 +106,18 @@
 
 .vs-thumb[aria-pressed="true"] {
   border-color: var(--vs-primary);
+}
+
+.vs-thumb .vs-media {
+  object-fit: cover;
+  object-position: center;
+}
+
+@media (max-width: 899px) {
+  .vs-gallery__main,
+  .vs-quick__media {
+    aspect-ratio: 1 / 1;
+  }
 }
 
 /* info column ----------------------------------------------------------- */

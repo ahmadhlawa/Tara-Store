@@ -14,20 +14,33 @@ export default function Media({
   fetchPriority,
   className = "",
   imgClass = "",
+  backdrop = false,
   children,
 }) {
   const style = ratio ? { aspectRatio: ratio } : undefined;
   return (
     <div className={`vs-mediabox ${className}`.trim()} style={style}>
       {src ? (
-        <img
-          className={`vs-media ${imgClass}`.trim()}
-          src={src}
-          alt={alt}
-          loading={eager ? "eager" : "lazy"}
-          fetchPriority={fetchPriority}
-          decoding="async"
-        />
+        <>
+          {backdrop && (
+            <img
+              className="vs-media vs-media--backdrop"
+              src={src}
+              alt=""
+              aria-hidden="true"
+              loading={eager ? "eager" : "lazy"}
+              decoding="async"
+            />
+          )}
+          <img
+            className={`vs-media ${backdrop ? "vs-media--foreground" : ""} ${imgClass}`.trim()}
+            src={src}
+            alt={alt}
+            loading={eager ? "eager" : "lazy"}
+            fetchPriority={fetchPriority}
+            decoding="async"
+          />
+        </>
       ) : (
         <span
           className={`vs-media--fallback ${imgClass}`.trim()}

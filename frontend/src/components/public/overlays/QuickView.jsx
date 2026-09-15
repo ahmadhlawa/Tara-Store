@@ -75,11 +75,11 @@ export default function QuickView({ slug, open, onClose }) {
           <div className="vs-quick__gallery">
             <Media
               className="vs-quick__media"
-              ratio="1 / 1"
               src={activeImage?.url || view.imageUrl}
               fallback={view.bg}
               alt={view.name}
               eager
+              backdrop
             />
             {images.length > 1 && (
               <div className="vs-quick__thumbs">

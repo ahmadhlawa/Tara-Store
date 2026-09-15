@@ -17,11 +17,11 @@ export default function Gallery({ images, fallback, alt }) {
     <div className="vs-gallery">
       <Media
         className="vs-gallery__main"
-        ratio="1 / 1"
         src={active?.url}
         fallback={fallback}
         alt={alt}
         eager
+        backdrop
       />
       {list.length > 1 && (
         <div className="vs-gallery__thumbs" role="group" aria-label="صور المنتج">

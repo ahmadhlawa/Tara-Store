@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useStore } from "../../../app/StoreProvider.jsx";
-import { useCategoryNav } from "../../../hooks/useStorefront.js";
 import { useLogoFit } from "../../../hooks/useLogoFit.js";
 import { footerLinks } from "../../../store.js";
 import { whatsappHref } from "../../../utils/format.js";
@@ -31,7 +30,6 @@ function validExternalUrl(value) {
  */
 export default function Footer() {
   const { settings } = useStore();
-  const categories = useCategoryNav();
   const year = new Date().getFullYear();
   // The same viewport as the header's, so the mark is the size of the mark here
   // too — and the file's white box is cropped back to it instead of sitting on
@@ -60,10 +58,38 @@ export default function Footer() {
     },
   ].filter(Boolean);
 
+  const informationLinks = footerLinks.policies.items.filter(([, href]) => href !== "/page/terms");
+
   return (
     <footer className="vs-footer">
+      <div className="vs-footer__transition" aria-hidden="true">
+        <img
+          src="/branding/footer/floral-divider.png"
+          alt=""
+          aria-hidden="true"
+          width="1536"
+          height="1536"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+
       <div className="vs-container vs-footer__top">
+        <nav className="vs-footer__social-area" aria-label="روابط التواصل الاجتماعي">
+          <h2 className="vs-footer__title">تابعونا</h2>
+          {socials.length > 0 && (
+            <div className="vs-footer__social-row">
+              {socials.map((item) => (
+                <a key={item.key} href={item.href} target="_blank" rel="noopener noreferrer" aria-label={item.label} title={item.label}>
+                  <SocialIcon name={item.key} />
+                </a>
+              ))}
+            </div>
+          )}
+        </nav>
+
         <div className="vs-footer__brand">
+          <img className="vs-footer__sprig vs-footer__sprig--start" src="/branding/footer/botanical-sprig.png" alt="" aria-hidden="true" width="1536" height="1536" loading="lazy" decoding="async" />
           {settings.logoUrl ? (
             <span className="vs-logo__box vs-footer__logo" ref={logoBox}>
               <img className="vs-logo__img" src={settings.logoUrl} alt={settings.storeName} style={logoStyle} />
@@ -72,65 +98,46 @@ export default function Footer() {
             <span className="vs-footer__name">{settings.storeName}</span>
           )}
           {(settings.seoDescription || settings.tagline) && (
-            <p className="vs-footer__desc">{settings.seoDescription || settings.tagline}</p>
+            <>
+              <p className="vs-footer__desc">{settings.seoDescription || settings.tagline}</p>
+              <span className="vs-footer__signature-ornament" aria-hidden="true">♡</span>
+            </>
           )}
+          <img className="vs-footer__sprig vs-footer__sprig--end" src="/branding/footer/botanical-sprig.png" alt="" aria-hidden="true" width="1536" height="1536" loading="lazy" decoding="async" />
         </div>
 
-        {categories.length > 0 && (
-          <nav className="vs-footer__col" aria-label="الأقسام">
-            <h2 className="vs-footer__title">الأقسام</h2>
-            {categories.slice(0, 6).map((category) => (
-              <Link key={category.slug} to={category.href}>
-                {category.name}
-              </Link>
-            ))}
-          </nav>
-        )}
-
-        {Object.entries(footerLinks).map(([key, column]) => (
-          <nav key={key} className="vs-footer__col" aria-label={column.title}>
-            <h2 className="vs-footer__title">{column.title}</h2>
-            {column.items.map(([label, href]) => (
+        <div className="vs-footer__essentials">
+          <nav className="vs-footer__col" aria-label="معلومات">
+            <h2 className="vs-footer__title">معلومات</h2>
+            {informationLinks.map(([label, href]) => (
               <Link key={href} to={href}>
                 {label}
               </Link>
             ))}
           </nav>
-        ))}
 
-        <div className="vs-footer__col">
-          <h2 className="vs-footer__title">الدفع والتوصيل</h2>
-          {contact.map((item) => (
-            <span key={item.key}>{item.node}</span>
-          ))}
-          <div className="vs-footer__pay">
-            <span>الدفع عند الاستلام</span>
+          <div className="vs-footer__col">
+            <h2 className="vs-footer__title">الدفع والتوصيل</h2>
+            {contact.map((item) => (
+              <span key={item.key}>{item.node}</span>
+            ))}
+            <div className="vs-footer__pay">
+              <span>الدفع عند الاستلام</span>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="vs-footer__bottom">
         <div className="vs-container vs-footer__bottom-row">
-          <span>
+          <Link to="/page/terms">الشروط والأحكام</Link>
+          <div className="vs-footer__credit">
+            <img src="/branding/tfn.png" alt="TFN Technologies Team" />
+            <span>Developed by TFN Technologies Team</span>
+          </div>
+          <span className="vs-footer__copyright">
             © {year} {settings.storeName} — جميع الحقوق محفوظة
           </span>
-          {socials.length > 0 && (
-            <div className="vs-footer__social-row" aria-label="روابط التواصل الاجتماعي">
-              {socials.map((item) => (
-                <a key={item.key} href={item.href} target="_blank" rel="noopener noreferrer" aria-label={item.label} title={item.label}>
-                  <SocialIcon name={item.key} />
-                </a>
-              ))}
-            </div>
-          )}
-          <Link to="/page/terms">الشروط والأحكام</Link>
-        </div>
-      </div>
-
-      <div className="vs-footer__credit">
-        <div className="vs-container vs-footer__credit-row">
-          <img src="/branding/tfn.png" alt="TFN Technologies Team" />
-          <span>Developed by TFN Technologies Team</span>
         </div>
       </div>
     </footer>
