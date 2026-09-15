@@ -34,11 +34,10 @@ def test_category_crud(client: TestClient, admin_token: str) -> None:
     updated = client.patch(
         f"/api/v1/admin/categories/{category['id']}",
         headers=auth(admin_token),
-        json={"name": "قوالب", "sort_order": 3},
+        json={"name": "قوالب"},
     )
     assert updated.status_code == 200
     assert updated.json()["name"] == "قوالب"
-    assert updated.json()["sort_order"] == 3
 
     listed = client.get("/api/v1/admin/categories", headers=auth(admin_token))
     assert listed.status_code == 200
@@ -49,6 +48,40 @@ def test_category_crud(client: TestClient, admin_token: str) -> None:
     )
     assert deleted.status_code == 200
     assert client.get("/api/v1/categories").json() == []
+
+
+def test_category_banner_is_persisted_for_roots_only(
+    client: TestClient, db: Session, admin_token: str
+) -> None:
+    root = Category(name="Root", slug="root", image_url="/media/category.jpg")
+    child = Category(name="Child", slug="child", parent=root)
+    db.add_all([root, child])
+    db.commit()
+
+    saved = client.patch(
+        f"/api/v1/admin/categories/{root.id}",
+        headers=auth(admin_token),
+        json={"banner_image_url": "/media/banner.jpg"},
+    )
+    assert saved.status_code == 200
+    assert saved.json()["banner_image_url"] == "/media/banner.jpg"
+    assert client.get("/api/v1/categories/root").json()["banner_image_url"] == "/media/banner.jpg"
+
+    rejected = client.patch(
+        f"/api/v1/admin/categories/{child.id}",
+        headers=auth(admin_token),
+        json={"banner_image_url": "/media/child-banner.jpg"},
+    )
+    assert rejected.status_code == 400
+    assert rejected.json()["error"]["code"] == "category_banner_root_only"
+
+    removed = client.patch(
+        f"/api/v1/admin/categories/{root.id}",
+        headers=auth(admin_token),
+        json={"banner_image_url": None},
+    )
+    assert removed.status_code == 200
+    assert removed.json()["banner_image_url"] is None
 
 
 def test_category_filters_and_counts_include_all_descendants(

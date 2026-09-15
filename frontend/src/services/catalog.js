@@ -63,6 +63,8 @@ export function normalizeCategory(raw) {
     name: raw.name,
     description: raw.description || "",
     imageUrl: raw.image_url || null,
+    bannerImageUrl: raw.banner_image_url || null,
+    parentId: raw.parent_id ?? null,
     bg: backgroundFor(raw.image_url, raw.slug),
     featured: !!raw.is_featured,
     showOnHome: !!raw.show_on_home,

@@ -29,6 +29,7 @@ class Category(TimestampMixin, Base):
     slug: Mapped[str] = mapped_column(String(160), unique=True, index=True, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    banner_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     show_on_home: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

@@ -120,6 +120,13 @@ def update_category(category_id: int, payload: CategoryUpdate, db: DbSession, ad
             seen.add(ancestor.id)
             ancestor = get_or_404(db, Category, ancestor.parent_id, "القسم الأب غير موجود.")
     data = payload.model_dump(exclude_unset=True)
+    resulting_parent_id = data.get("parent_id", category.parent_id)
+    resulting_banner = data.get("banner_image_url", category.banner_image_url)
+    if resulting_parent_id is not None and resulting_banner is not None:
+        raise DomainError(
+            "يمكن تعيين بانر للأقسام الرئيسية فقط.",
+            code="category_banner_root_only",
+        )
     if data.get("slug"):
         data["slug"] = unique_slug(db, Category, data["slug"], exclude_id=category.id)
     changed: list[str] = []

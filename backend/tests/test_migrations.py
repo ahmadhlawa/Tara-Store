@@ -76,12 +76,15 @@ def test_alembic_upgrade_builds_the_whole_schema(tmp_path, monkeypatch) -> None:
 
     engine = build_engine(url)
     try:
-        tables = set(inspect(engine).get_table_names())
+        inspector = inspect(engine)
+        tables = set(inspector.get_table_names())
+        category_columns = {column["name"] for column in inspector.get_columns("categories")}
     finally:
         engine.dispose()
 
     assert EXPECTED_TABLES.issubset(tables)
     assert "alembic_version" in tables
+    assert "banner_image_url" in category_columns
 
 
 def test_models_and_expected_tables_agree() -> None:

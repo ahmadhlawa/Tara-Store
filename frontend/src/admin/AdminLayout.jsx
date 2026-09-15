@@ -10,6 +10,7 @@ const NAV = [
   { to: "/admin", label: "لوحة التحكم", end: true },
   { to: "/admin/products", label: "المنتجات" },
   { to: "/admin/categories", label: "الأقسام" },
+  { to: "/admin/category-banners", label: "بنرات الأقسام" },
   { to: "/admin/orders", label: "الطلبات" },
   { to: "/admin/orders/manual", label: "طلب يدوي جديد", superOnly: true },
   { to: "/admin/invoices", label: "أرشيف الفواتير" },

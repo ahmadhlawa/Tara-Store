@@ -102,6 +102,18 @@ describe("categories navigation", () => {
     await waitFor(() => expect(calls.some((call) => call.path.includes("category=scented"))).toBe(true));
   });
 
+  it("uses a root banner for the category Hero and falls back to the category image", async () => {
+    const category = { ...categoryFixture, slug: "gifts", name: "Gifts", image_url: "/category.jpg", banner_image_url: "/banner.jpg" };
+    stubApi({ ...storefrontRoutes, "/api/v1/categories": [category], "/api/v1/categories/gifts": category, "/api/v1/products": page([productFixture]) });
+    renderApp("/category/gifts");
+    await waitFor(() => expect(document.querySelector(".vs-cathead__media img")).toHaveAttribute("src", "/banner.jpg"));
+
+    const fallback = { ...category, slug: "fallback", banner_image_url: null };
+    stubApi({ ...storefrontRoutes, "/api/v1/categories": [fallback], "/api/v1/categories/fallback": fallback, "/api/v1/products": page([productFixture]) });
+    renderApp("/category/fallback");
+    await waitFor(() => expect(document.querySelectorAll(".vs-cathead__media img")[1]).toHaveAttribute("src", "/category.jpg"));
+  });
+
   it("follows a recursive category branch and preserves unrelated URL filters", async () => {
     const candles = {
       ...categoryFixture,

@@ -28,12 +28,13 @@ class CategoryUpdate(APIModel):
     slug: str | None = Field(default=None, max_length=160)
     description: str | None = None
     image_url: str | None = Field(default=None, max_length=500)
+    banner_image_url: str | None = Field(default=None, max_length=500)
     parent_id: int | None = None
     is_active: bool | None = None
     is_featured: bool | None = None
     show_on_home: bool | None = None
 
-    _validate_image_url = field_validator("image_url")(safe_resource_url)
+    _validate_image_urls = field_validator("image_url", "banner_image_url")(safe_resource_url)
 
 
 class CategoryOut(APIModel):
@@ -42,6 +43,7 @@ class CategoryOut(APIModel):
     slug: str
     description: str | None = None
     image_url: str | None = None
+    banner_image_url: str | None = None
     parent_id: int | None = None
     is_active: bool
     is_featured: bool

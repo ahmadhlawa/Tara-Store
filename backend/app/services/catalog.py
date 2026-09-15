@@ -285,6 +285,7 @@ def category_payload(category: Category, product_count: int = 0) -> dict[str, An
         "slug": category.slug,
         "description": category.description,
         "image_url": category.image_url,
+        "banner_image_url": category.banner_image_url,
         "parent_id": category.parent_id,
         "is_active": category.is_active,
         "is_featured": category.is_featured,

@@ -205,7 +205,10 @@ export default function CatalogPage({ mode = "shop" }) {
           : "اكتب كلمة في شريط البحث للبدء"
         : spec.subtitle;
 
-  const hasImage = mode === "category" && !!category?.imageUrl;
+  const heroImageUrl = category?.parentId == null
+    ? category?.bannerImageUrl || category?.imageUrl
+    : category?.imageUrl;
+  const hasImage = mode === "category" && !!heroImageUrl;
   // An empty search box is a prompt, not a result set: listing the whole
   // catalogue under "search results" would be a lie about what was searched.
   const awaitingTerm = mode === "search" && !term;
@@ -228,7 +231,7 @@ export default function CatalogPage({ mode = "shop" }) {
           <>
             <Media
               className="vs-cathead__media"
-              src={category.imageUrl}
+              src={heroImageUrl}
               fallback={category.bg}
               alt=""
               eager
