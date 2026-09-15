@@ -13,14 +13,24 @@ from PIL import Image, ImageSequence, UnidentifiedImageError
 
 from app.services.errors import DomainError
 
-# (mime type, canonical extension, magic prefix checker)
-ALLOWED_IMAGE_TYPES: dict[str, str] = {
-    "image/jpeg": ".jpg",
-    "image/png": ".png",
-    "image/webp": ".webp",
-    "image/gif": ".gif",
-    "image/x-icon": ".ico",
-    "image/vnd.microsoft.icon": ".ico",
+@dataclass(frozen=True, slots=True)
+class ImageFormatRule:
+    content_type: str
+    canonical_extension: str
+    pillow_formats: frozenset[str]
+
+
+IMAGE_FORMAT_RULES = {
+    ".jpg": ImageFormatRule("image/jpeg", ".jpg", frozenset({"JPEG", "MPO"})),
+    ".jpeg": ImageFormatRule("image/jpeg", ".jpg", frozenset({"JPEG", "MPO"})),
+    ".png": ImageFormatRule("image/png", ".png", frozenset({"PNG"})),
+    ".webp": ImageFormatRule("image/webp", ".webp", frozenset({"WEBP"})),
+    ".gif": ImageFormatRule("image/gif", ".gif", frozenset({"GIF"})),
+    ".ico": ImageFormatRule("image/x-icon", ".ico", frozenset({"ICO"})),
+}
+
+_RULES_BY_CONTENT_TYPE = {
+    rule.content_type: rule for rule in IMAGE_FORMAT_RULES.values()
 }
 
 
@@ -39,25 +49,6 @@ def sniff_content_type(data: bytes) -> str | None:
     return None
 
 
-_PIL_FORMATS = {
-    "image/jpeg": "JPEG",
-    "image/png": "PNG",
-    "image/webp": "WEBP",
-    "image/gif": "GIF",
-    "image/x-icon": "ICO",
-    "image/vnd.microsoft.icon": "ICO",
-}
-
-ALLOWED_EXTENSION_FORMATS: dict[str, set[str]] = {
-    ".jpg": {"JPEG"},
-    ".jpeg": {"JPEG"},
-    ".png": {"PNG"},
-    ".webp": {"WEBP"},
-    ".gif": {"GIF"},
-    ".ico": {"ICO"},
-}
-
-
 def validate_image_upload(
     data: bytes,
     max_bytes: int,
@@ -74,15 +65,16 @@ def validate_image_upload(
             f"حجم الملف يتجاوز الحد المسموح ({limit_mb} ميغابايت).", code="file_too_large"
         )
     content_type = sniff_content_type(data)
-    if content_type is None or content_type not in ALLOWED_IMAGE_TYPES:
+    content_rule = _RULES_BY_CONTENT_TYPE.get(content_type or "")
+    if content_rule is None:
         raise DomainError(
             "نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, WebP, GIF, ICO.",
             code="unsupported_media_type",
         )
-    allowed_filename_formats = None
+    filename_rule = None
     if filename is not None:
-        allowed_filename_formats = ALLOWED_EXTENSION_FORMATS.get(Path(filename).suffix.lower())
-        if allowed_filename_formats is None:
+        filename_rule = IMAGE_FORMAT_RULES.get(Path(filename).suffix.lower())
+        if filename_rule is None:
             raise DomainError(
                 "نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, WebP, GIF, ICO.",
                 code="unsupported_media_type",
@@ -93,9 +85,12 @@ def validate_image_upload(
             with Image.open(BytesIO(data)) as image:
                 decoded_format = (image.format or "").upper()
                 if (
-                    decoded_format != _PIL_FORMATS[content_type]
-                    or allowed_filename_formats is not None
-                    and decoded_format not in allowed_filename_formats
+                    decoded_format not in content_rule.pillow_formats
+                    or filename_rule is not None
+                    and (
+                        filename_rule.content_type != content_type
+                        or decoded_format not in filename_rule.pillow_formats
+                    )
                 ):
                     raise DomainError(
                         "تنسيق الصورة الفعلي لا يطابق ترويسة الملف.",
@@ -116,7 +111,7 @@ def validate_image_upload(
         raise DomainError("أبعاد الصورة تتجاوز الحد المسموح.", code="image_too_many_pixels") from None
     except (UnidentifiedImageError, OSError, SyntaxError, ValueError):
         raise DomainError("ملف الصورة تالف أو غير صالح.", code="invalid_image") from None
-    return content_type, ALLOWED_IMAGE_TYPES[content_type]
+    return content_type, content_rule.canonical_extension
 
 
 def normalize_prefix(prefix: str | None) -> str:
@@ -176,6 +171,11 @@ class StorageProvider(ABC):
         Never raises for a missing or foreign key: a key this provider does not own is
         simply not present as far as the caller is concerned.
         """
+        ...
+
+    @abstractmethod
+    def read(self, key: str) -> bytes:
+        """Read an object owned by this provider."""
         ...
 
     @abstractmethod

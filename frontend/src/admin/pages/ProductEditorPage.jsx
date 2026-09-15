@@ -78,9 +78,10 @@ const optionPayload = (rows) => rows
     })),
   }));
 
-export default function ProductEditorPage() {
+export default function ProductEditorPage({ mode }) {
   const { productId } = useParams();
-  const isNew = productId === "new";
+  const isNew = mode === "create" || productId === "new";
+  const hasValidProductId = /^\d+$/.test(productId || "") && Number(productId) > 0;
   const navigate = useNavigate();
   const feedback = useFeedback();
 
@@ -88,7 +89,7 @@ export default function ProductEditorPage() {
   const [product, setProduct] = useState(null);
   const [categories, setCategories] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
-  const [loading, setLoading] = useState(!isNew);
+  const [loading, setLoading] = useState(!isNew && hasValidProductId);
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(null);
 
@@ -101,7 +102,7 @@ export default function ProductEditorPage() {
   const update = (patch) => setForm((current) => ({ ...current, ...patch }));
 
   const loadProduct = useCallback(async () => {
-    if (isNew) return;
+    if (isNew || !hasValidProductId) return;
     setLoading(true);
     try {
       const row = await adminApi.getProduct(productId);
@@ -128,7 +129,7 @@ export default function ProductEditorPage() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isNew, productId]);
+  }, [hasValidProductId, isNew, productId]);
 
   useEffect(() => {
     loadProduct();
@@ -218,7 +219,7 @@ export default function ProductEditorPage() {
         }
         clearQueuedImages();
         feedback.success("تم إنشاء المنتج.");
-        navigate(`/admin/products/${created.id}`, { replace: true });
+        navigate(`/admin/products/${created.id}/edit`, { replace: true });
       } else {
         await adminApi.updateProduct(productId, payload);
         const optionRows = optionPayload(options);
@@ -261,6 +262,13 @@ export default function ProductEditorPage() {
 
   if (loading) return <Spinner />;
 
+  if (!isNew && !hasValidProductId) return (
+    <>
+      <PageHeader title="معرّف المنتج غير صالح" actions={<Button variant="ghost" onClick={() => navigate("/admin/products")}>رجوع إلى المنتجات</Button>} />
+      <p style={card}>تعذّر العثور على المنتج المطلوب.</p>
+    </>
+  );
+
   const isPackage = form.product_type === "package";
 
   return (
@@ -270,7 +278,7 @@ export default function ProductEditorPage() {
         description={isNew ? "أدخل بيانات المنتج وصوره ثم احفظها معاً." : `المعرّف: ${productId}`}
         actions={
           <>
-            <Button variant="ghost" onClick={() => navigate("/admin/products")}>رجوع</Button>
+            <Button variant="ghost" onClick={() => navigate(isNew ? "/admin/products" : `/admin/products/${productId}`)}>رجوع</Button>
             <Button onClick={save} disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ"}</Button>
           </>
         }
@@ -293,7 +301,7 @@ export default function ProductEditorPage() {
             </select>
           </Field>
         </div>
-        <Field title="وصف مختصر"><textarea rows="2" value={form.short_description} onChange={(e) => update({ short_description: e.target.value })} style={textarea} /></Field>
+        <Field title="العنوان التسويقي" hint="عبارة قصيرة وقوية تظهر أسفل معلومات المنتج."><textarea aria-label="وصف مختصر" rows="2" value={form.short_description} onChange={(e) => update({ short_description: e.target.value })} style={textarea} /></Field>
         <Field title="الوصف الكامل" hint="افصل الفقرات بسطر فارغ."><textarea rows="6" value={form.description} onChange={(e) => update({ description: e.target.value })} style={textarea} /></Field>
       </Section>
 
@@ -319,6 +327,7 @@ export default function ProductEditorPage() {
       <Section title="صور المنتج">
         <ProductImagesEditor
           mainImage={product?.images?.[0]}
+          existingImages={product?.images || []}
           queuedMain={queuedMain}
           queuedAdditional={queuedAdditional}
           onMainChange={setQueuedMain}
@@ -449,7 +458,6 @@ export default function ProductEditorPage() {
           </Section>
 
           <div style={sx`display:flex;gap:10px;margin-bottom:30px`}>
-            <Button onClick={save} disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ المنتج"}</Button>
             <Button variant="danger" onClick={() => setConfirming(true)}>حذف المنتج</Button>
           </div>
         </>

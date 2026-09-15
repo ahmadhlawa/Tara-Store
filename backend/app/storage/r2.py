@@ -167,6 +167,17 @@ class R2StorageProvider(StorageProvider):
             size_bytes=len(data),
         )
 
+    def read(self, key: str) -> bytes:
+        if not self.owns_key(key):
+            raise R2StorageError(
+                f"Refusing to read {key!r}: it is outside the configured prefix "
+                f"{self.object_prefix!r}."
+            )
+        try:
+            return self.client.get_object(Bucket=self.bucket_name, Key=key)["Body"].read()
+        except Exception as exc:  # noqa: BLE001
+            raise R2StorageError(f"R2 read failed for {key!r}: {type(exc).__name__}") from exc
+
     def delete(self, key: str) -> None:
         if not self.owns_key(key):
             raise R2StorageError(

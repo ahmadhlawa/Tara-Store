@@ -145,7 +145,7 @@ export default function ProductsPage() {
                 title: "إجراءات",
                 render: (row) => (
                   <div style={sx`display:flex;gap:8px`}>
-                    <Button variant="ghost" onClick={() => navigate(`/admin/products/${row.id}`)} style={sx`min-height:36px;padding:0 12px;font-size:13px`}>تعديل</Button>
+                    <Button variant="ghost" onClick={() => navigate(`/admin/products/${row.id}/edit`)} style={sx`min-height:36px;padding:0 12px;font-size:13px`}>تعديل</Button>
                     <Button variant="danger" onClick={() => setConfirming(row)} style={sx`min-height:36px;padding:0 12px;font-size:13px`}>حذف</Button>
                   </div>
                 ),

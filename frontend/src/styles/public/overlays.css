@@ -296,6 +296,6 @@
 
 @media (max-width: 899px) {
   .vs-wa {
-    inset-block-end: calc(64px + env(safe-area-inset-bottom) + 12px);
+    display: none;
   }
 }

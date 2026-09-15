@@ -5,6 +5,7 @@ import { MediaUploader } from "../mediaUpload.jsx";
 import {
   Button,
   ConfirmDialog,
+  Notice,
   PageHeader,
   Pagination,
   Spinner,
@@ -19,6 +20,7 @@ export default function MediaPage() {
   const [pages, setPages] = useState(1);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState(null);
   const [confirming, setConfirming] = useState(null);
   const [copied, setCopied] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -27,12 +29,13 @@ export default function MediaPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setListError(null);
     try {
       const result = await adminApi.listMedia({ page, page_size: 24, q: query || undefined });
       setItems(result.items);
       setPages(result.pages);
     } catch (error) {
-      feedback.error(error.message || "تعذّر تحميل الملفات.");
+      setListError(error.message || "تعذّر تحميل الملفات.");
     } finally {
       setLoading(false);
     }
@@ -119,6 +122,11 @@ export default function MediaPage() {
         </div>
         {loading ? (
           <Spinner />
+        ) : listError ? (
+          <div style={sx`display:flex;flex-direction:column;gap:10px;align-items:flex-start`}>
+            <Notice kind="error">{listError}</Notice>
+            <Button variant="secondary" onClick={load}>إعادة المحاولة</Button>
+          </div>
         ) : items.length === 0 ? (
           <p style={sx`padding:36px;text-align:center;color:#766669;font-size:14px`}>
             {query ? "لا توجد وسائط مطابقة." : "لم تُرفع أي ملفات بعد."}
@@ -127,7 +135,7 @@ export default function MediaPage() {
           <div className="admin-media-grid" style={sx`display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--admin-media-card-min,160px),1fr));gap:var(--admin-media-grid-gap,14px)`}>
             {items.map((asset) => (
               <div className="admin-media-card" key={asset.id} style={sx`border:1px solid #E7DCF2;border-radius:12px;overflow:hidden;display:flex;flex-direction:column`}>
-                <span style={sx`aspect-ratio:1 / 1;background:url("${asset.url}") center/cover no-repeat;background-color:#F5EDE3`}></span>
+                <span style={sx`aspect-ratio:1 / 1;background:url("${asset.thumbnail_url || asset.url}") center/cover no-repeat;background-color:#F5EDE3`}></span>
                 <div className="admin-media-card__body" style={sx`padding:10px;display:flex;flex-direction:column;gap:8px`}>
                   <span style={sx`font-size:12px;color:#766669;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`}>{asset.original_filename}</span>
                   <span style={sx`font-size:11.5px;color:#8A7F95`}>{Math.round(asset.size_bytes / 1024)} كيلوبايت</span>

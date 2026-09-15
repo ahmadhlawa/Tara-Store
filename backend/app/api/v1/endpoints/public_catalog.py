@@ -32,7 +32,7 @@ def list_categories(db: DbSession, featured_only: bool = False) -> list[dict]:
     stmt = select(Category).where(Category.is_active.is_(True))
     if featured_only:
         stmt = stmt.where(Category.is_featured.is_(True))
-    stmt = stmt.order_by(Category.sort_order.asc(), Category.id.asc())
+    stmt = stmt.order_by(Category.created_at.asc(), Category.id.asc())
     categories = list(db.execute(stmt).scalars().all())
     counts = catalog_service.product_counts_by_category(db, active_only=True)
 

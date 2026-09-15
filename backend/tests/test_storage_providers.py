@@ -61,6 +61,11 @@ class StubS3Client:
             raise RuntimeError("404")
         return {"ContentLength": len(self.objects[Key])}
 
+    def get_object(self, *, Bucket: str, Key: str) -> dict:  # noqa: N803 - boto3 casing
+        if Key in self.missing or Key not in self.objects:
+            raise RuntimeError("404")
+        return {"Body": BytesIO(self.objects[Key])}
+
     def delete_object(self, *, Bucket: str, Key: str) -> dict:  # noqa: N803 - boto3 casing
         self.deletes.append(Key)
         self.objects.pop(Key, None)
@@ -172,6 +177,7 @@ def test_uploaded_object_is_then_visible(r2: R2StorageProvider) -> None:
     data = gradient_png(8, 8, (0, 0, 0), (255, 255, 255))
     stored = r2.save(data, content_type="image/png", extension=".png")
     assert r2.exists(stored.key) is True
+    assert r2.read(stored.key) == data
 
 
 def test_delete_removes_the_object(r2: R2StorageProvider, stub: StubS3Client) -> None:
@@ -374,3 +380,34 @@ def test_upload_validation_rejects_sniffed_and_decoded_format_mismatch(monkeypat
     with pytest.raises(DomainError) as error:
         validate_image_upload(image_bytes("PNG"), 1024 * 1024)
     assert error.value.code == "image_format_mismatch"
+
+
+def test_upload_validation_accepts_jpeg_family_mpo_from_real_world_cameras(monkeypatch) -> None:
+    class MpoDecodedImage:
+        format = "MPO"
+        mode = "RGB"
+        size = (4032, 3024)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def verify(self):
+            return None
+
+    jpeg = image_bytes("JPEG")
+    original_open = storage_base.Image.open
+    calls = 0
+
+    def open_as_mpo(stream):
+        nonlocal calls
+        calls += 1
+        return MpoDecodedImage() if calls == 1 else original_open(stream)
+
+    monkeypatch.setattr(storage_base.Image, "open", open_as_mpo)
+    assert validate_image_upload(jpeg, 1024 * 1024, filename="camera.jpg") == (
+        "image/jpeg",
+        ".jpg",
+    )
