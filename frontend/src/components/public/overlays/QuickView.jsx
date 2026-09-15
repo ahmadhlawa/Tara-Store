@@ -109,14 +109,6 @@ export default function QuickView({ slug, open, onClose }) {
               {view.hasSale && <span className="vs-badge vs-badge--sale">{view.discountText}</span>}
             </div>
 
-            <p className="vs-quick__stock" data-out={selection.soldOut}>
-              {selection.soldOut
-                ? "غير متوفر حالياً"
-                : product.trackInventory && selection.stock < 5
-                  ? `متبقٍ ${selection.stock} فقط`
-                  : "متوفر في المخزون"}
-            </p>
-
             {view.short && <p className="vs-quick__short">{view.short}</p>}
 
             {selection.requiresChoice && (

@@ -64,7 +64,7 @@ def list_categories(
         stmt = stmt.where(Category.name.like(f"%{q}%"))
     if is_active is not None:
         stmt = stmt.where(Category.is_active.is_(is_active))
-    stmt = stmt.order_by(Category.sort_order.asc(), Category.id.asc())
+    stmt = stmt.order_by(Category.created_at.asc(), Category.id.asc())
     rows, total = catalog_service.paginate(
         db, stmt, offset=pagination.offset, limit=pagination.page_size
     )

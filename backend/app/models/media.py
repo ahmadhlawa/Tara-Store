@@ -25,6 +25,7 @@ class MediaAsset(Base):
     content_type: Mapped[str] = mapped_column(String(100), nullable=False)
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     url: Mapped[str] = mapped_column(String(600), nullable=False)
+    thumbnail_url: Mapped[str | None] = mapped_column(String(600), nullable=True)
     storage_provider: Mapped[str] = mapped_column(
         String(16), default=StorageProviderName.LOCAL.value, nullable=False
     )

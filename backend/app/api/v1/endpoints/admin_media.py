@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, File, Query, UploadFile, status
@@ -16,10 +17,12 @@ from app.schemas.common import MessageResponse, Page
 from app.schemas.media import MAX_MEDIA_FILENAME_LENGTH, MediaAssetOut, MediaAssetRenameIn
 from app.services import audit as audit_service
 from app.services import catalog as catalog_service
+from app.services.media_thumbnails import store_thumbnail, thumbnail_key_for
 from app.services.errors import ConflictError
 from app.storage import get_storage, validate_image_upload
 
 router = APIRouter(prefix="/admin", tags=["admin-media"])
+logger = logging.getLogger(__name__)
 
 MAX_FILENAME_LENGTH = 300
 
@@ -43,6 +46,22 @@ def filename_is_taken_by_other(db, filename: str, asset_id: int) -> bool:
     ) is not None
 
 
+def _ensure_thumbnail(asset: MediaAsset, storage) -> None:
+    if asset.thumbnail_url or asset.storage_provider != storage.name:
+        return
+    try:
+        thumbnail_key = thumbnail_key_for(asset.stored_key)
+        if storage.exists(thumbnail_key):
+            asset.thumbnail_url = storage.url_for(thumbnail_key)
+            return
+        thumbnail = store_thumbnail(storage, asset.stored_key, storage.read(asset.stored_key))
+        asset.thumbnail_url = thumbnail.url
+    except Exception:  # noqa: BLE001 - originals remain canonical and usable
+        logger.exception("Could not generate thumbnail for media asset %s", asset.id)
+        # Persist the fallback so a permanently unreadable object is not decoded on every list.
+        asset.thumbnail_url = asset.url
+
+
 @router.get("/media", response_model=Page[MediaAssetOut])
 def list_media(
     db: DbSession,
@@ -57,6 +76,10 @@ def list_media(
     rows, total = catalog_service.paginate(
         db, stmt, offset=pagination.offset, limit=pagination.page_size
     )
+    storage = get_storage()
+    for row in rows:
+        _ensure_thumbnail(row, storage)
+    db.commit()
     return Page.build(
         [MediaAssetOut.model_validate(row) for row in rows],
         total,
@@ -80,7 +103,6 @@ async def upload_media(
         settings.MAX_IMAGE_PIXELS,
         filename=file.filename,
     )
-
     # The catalog importer resolves a product image by `original_filename`, so two rows
     # sharing one name make that lookup ambiguous. Refuse the second upload rather than
     # create the ambiguity — and never overwrite the first one. Checked before the bytes
@@ -92,12 +114,18 @@ async def upload_media(
 
     storage = get_storage()
     stored = storage.save(data, content_type=content_type, extension=extension)
+    thumbnail = None
+    try:
+        thumbnail = store_thumbnail(storage, stored.key, data)
+    except Exception:  # noqa: BLE001 - thumbnail failure must not lose a valid original
+        logger.exception("Could not generate thumbnail for uploaded media %s", original_filename)
     asset = MediaAsset(
         original_filename=original_filename,
         stored_key=stored.key,
         content_type=stored.content_type,
         size_bytes=stored.size_bytes,
         url=stored.url,
+        thumbnail_url=thumbnail.url if thumbnail else None,
         storage_provider=storage.name,
         uploaded_by_id=admin.id,
     )
@@ -120,6 +148,11 @@ async def upload_media(
         db.rollback()
         # Only this request's object — the winner's bytes are a different key and stay.
         storage.delete(stored.key)
+        if thumbnail:
+            try:
+                storage.delete(thumbnail.key)
+            except Exception:  # noqa: BLE001
+                logger.exception("Could not clean up thumbnail after upload conflict")
         if _asset_id_named(db, original_filename) is None:
             # Some other constraint failed; it is a server fault, not a duplicate name.
             raise
@@ -172,6 +205,10 @@ def delete_media(asset_id: int, db: DbSession, admin: CurrentAdmin):
     object_deleted = asset.storage_provider == storage.name
     if object_deleted:
         storage.delete(asset.stored_key)
+        try:
+            storage.delete(thumbnail_key_for(asset.stored_key))
+        except Exception:  # noqa: BLE001 - DB deletion must still complete
+            logger.exception("Could not delete thumbnail for media asset %s", asset.id)
 
     audit_service.record(
         db,

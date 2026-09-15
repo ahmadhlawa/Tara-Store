@@ -49,7 +49,6 @@ export default function ProductDetailPage() {
     image: (product.images.length ? product.images.map((image) => image.url) : [product.imageUrl])
       .map((image) => absoluteUrl(baseUrl, image))
       .filter(Boolean),
-    sku: product.sku || undefined,
     offers: {
       "@type": "Offer",
       url: absoluteUrl(baseUrl, productPath),
@@ -219,25 +218,13 @@ export default function ProductDetailPage() {
             </div>
 
             <h1 className="vs-pdp__title">{view.name}</h1>
-            {product.sku && <span className="vs-pdp__sku">رمز المنتج: {product.sku}</span>}
-
             <div className="vs-price vs-price--lg">
               <span className="vs-price__now">{money(selection.price * 1)}</span>
               {view.hasSale && <span className="vs-price__was">{view.oldText}</span>}
             </div>
 
-            <p className="vs-pdp__stock" data-tone={selection.soldOut ? "out" : selection.stock < 5 && product.trackInventory ? "low" : "ok"}>
-              {selection.soldOut
-                ? "غير متوفر حالياً"
-                : !product.trackInventory
-                  ? "متوفر"
-                  : selection.stock < 5
-                    ? `متبقٍ ${selection.stock} فقط`
-                    : "متوفر في المخزون"}
-            </p>
-
             {product.short && description[0] !== product.short && (
-              <p className="vs-pdp__short">{product.short}</p>
+              <h2 className="vs-pdp__headline">{product.short}</h2>
             )}
 
             {selection.requiresChoice && (

@@ -67,6 +67,19 @@ const drop = (files) =>
   fireEvent.drop(screen.getByTestId("media-dropzone"), { dataTransfer: { files } });
 
 describe("admin bulk media upload", () => {
+  it("shows a recoverable API error instead of the empty-library state", async () => {
+    stubApi({
+      "/api/v1/admin/media": respond(500, {
+        error: { code: "server_error", message: "media load failed" },
+      }),
+    });
+    await renderPage();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("media load failed");
+    expect(screen.queryByText("لم تُرفع أي ملفات بعد.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "إعادة المحاولة" })).toBeInTheDocument();
+  });
+
   it("searches the library and clearing restores the full list", async () => {
     const calls = stubApi({
       "/api/v1/admin/media": ({ path }) =>

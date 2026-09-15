@@ -27,6 +27,7 @@ class MediaAssetOut(APIModel):
     content_type: str
     size_bytes: int
     url: str
+    thumbnail_url: str | None = None
     storage_provider: str
     uploaded_by_id: int | None = None
     created_at: UTCDateTime

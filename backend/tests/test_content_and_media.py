@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 import app.api.v1.endpoints.admin_media as admin_media
 from app.models import AuditLog, Category, MediaAsset, StaticPage, StoreSettings
+from app.services.media_thumbnails import generate_thumbnail, thumbnail_key_for
 from app.services.placeholder_image import gradient_png, vista_preview_png
 from app.storage.base import StoredFile
 from tests.conftest import auth
@@ -250,6 +251,36 @@ def _jpeg_bytes() -> bytes:
     return output.getvalue()
 
 
+@pytest.mark.parametrize(("image_format", "mode"), [("JPEG", "RGB"), ("PNG", "RGBA")])
+def test_thumbnail_generation_preserves_aspect_ratio(image_format: str, mode: str) -> None:
+    output = BytesIO()
+    color = (128, 0, 128, 128) if mode == "RGBA" else "purple"
+    Image.new(mode, (800, 600), color).save(output, format=image_format)
+    thumbnail = generate_thumbnail(output.getvalue())
+    with Image.open(BytesIO(thumbnail)) as image:
+        assert image.format == "WEBP"
+        assert image.size == (400, 300)
+
+
+def test_thumbnail_uses_first_mpo_frame() -> None:
+    output = BytesIO()
+    Image.new("RGB", (800, 600), "red").save(
+        output, format="MPO", save_all=True, append_images=[Image.new("RGB", (20, 20), "blue")]
+    )
+    with Image.open(BytesIO(generate_thumbnail(output.getvalue()))) as image:
+        assert image.size == (400, 300)
+
+
+def test_thumbnail_applies_exif_orientation() -> None:
+    output = BytesIO()
+    image = Image.new("RGB", (800, 600), "purple")
+    exif = image.getexif()
+    exif[274] = 6
+    image.save(output, format="JPEG", exif=exif)
+    with Image.open(BytesIO(generate_thumbnail(output.getvalue()))) as thumbnail:
+        assert thumbnail.size == (300, 400)
+
+
 @pytest.mark.parametrize("filename", ["photo.jpg", "photo.jpeg"])
 def test_media_accepts_jpeg_filename_aliases_and_reload(
     client: TestClient, admin_token: str, filename: str
@@ -295,8 +326,12 @@ def test_local_upload_returns_a_usable_url_and_writes_the_file(
     assert body["content_type"] == "image/png"
     assert body["storage_provider"] == "local"
     assert body["url"].startswith("/media/")
+    assert body["thumbnail_url"].startswith("/media/")
+    assert body["thumbnail_url"] != body["url"]
     assert body["stored_key"] != "photo.png"  # collision-resistant name
     assert (media_root / body["stored_key"]).exists()
+    thumbnail_path = media_root / thumbnail_key_for(body["stored_key"])
+    assert thumbnail_path.exists()
 
     listed = client.get("/api/v1/admin/media", headers=auth(admin_token)).json()
     assert listed["total"] == 1
@@ -306,7 +341,35 @@ def test_local_upload_returns_a_usable_url_and_writes_the_file(
     )
     assert deleted.status_code == 200
     assert not (media_root / body["stored_key"]).exists()
+    assert not thumbnail_path.exists()
     assert db.query(MediaAsset).count() == 0
+
+
+def test_listing_backfills_and_reuses_an_existing_thumbnail(
+    client: TestClient, db: Session, admin_token: str, media_root: Path, monkeypatch
+) -> None:
+    storage = admin_media.get_storage()
+    original = storage.save(_jpeg_bytes(), content_type="image/jpeg", extension=".jpg")
+    asset = MediaAsset(
+        original_filename="legacy.jpg", stored_key=original.key, content_type="image/jpeg",
+        size_bytes=original.size_bytes, url=original.url, storage_provider=storage.name,
+    )
+    db.add(asset)
+    db.commit()
+    reads = 0
+    original_read = storage.read
+
+    def counted_read(key: str) -> bytes:
+        nonlocal reads
+        reads += 1
+        return original_read(key)
+
+    monkeypatch.setattr(storage, "read", counted_read)
+    first = client.get("/api/v1/admin/media", headers=auth(admin_token)).json()["items"][0]
+    second = client.get("/api/v1/admin/media", headers=auth(admin_token)).json()["items"][0]
+    assert first["thumbnail_url"] == second["thumbnail_url"]
+    assert reads == 1
+    assert (media_root / thumbnail_key_for(original.key)).exists()
 
 
 def test_media_list_searches_filenames_and_paginates(

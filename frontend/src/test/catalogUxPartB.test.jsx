@@ -102,6 +102,41 @@ describe("categories navigation", () => {
     await waitFor(() => expect(calls.some((call) => call.path.includes("category=scented"))).toBe(true));
   });
 
+  it("follows a recursive category branch and preserves unrelated URL filters", async () => {
+    const candles = {
+      ...categoryFixture,
+      id: 20,
+      slug: "candles",
+      name: "Candles",
+      children: [{
+        ...categoryFixture,
+        id: 21,
+        slug: "decor",
+        name: "شموع الديكور",
+        children: [
+          { ...categoryFixture, id: 22, slug: "pattern", name: "pattern candle", children: [] },
+          { ...categoryFixture, id: 23, slug: "art", name: "Art candle", children: [] },
+        ],
+      }],
+    };
+    const calls = stubApi({
+      ...storefrontRoutes,
+      "/api/v1/categories": [candles],
+      "/api/v1/categories/candles": candles,
+      "/api/v1/products": page([productFixture]),
+    });
+
+    renderApp("/category/candles?subcat=decor&sale=1");
+
+    const nested = await screen.findByRole("group", { name: "تصفية حسب القسم الفرعي التالي" });
+    expect(within(nested).queryByRole("img")).toBeNull();
+    expect(within(nested).getByRole("button", { name: "الكل" })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(within(nested).getByRole("button", { name: "pattern candle" }));
+    await waitFor(() => expect(calls.some((call) => call.path.includes("category=pattern") && call.path.includes("on_sale=true"))).toBe(true));
+    expect(within(screen.getByRole("group", { name: "تصفية حسب القسم الفرعي التالي" })).getByRole("button", { name: "pattern candle" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("navigation", { name: "مسار القسم المحدد" })).toHaveTextContent("Candles›شموع الديكور›pattern candle");
+  });
+
   it("builds Home showcases only for enabled root categories", async () => {
     const enabled = { ...categoryFixture, id: 30, slug: "candles", name: "Candles", show_on_home: true, image_url: "/candles.jpg" };
     const second = { ...categoryFixture, id: 31, slug: "crochet", name: "Crochet", show_on_home: true, image_url: "/crochet.jpg" };

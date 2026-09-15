@@ -16,13 +16,14 @@ function PendingImage({ image, label, onRemove }) {
 }
 
 /** Stages device uploads and library URLs so the product form owns the whole image workflow. */
-export default function ProductImagesEditor({ mainImage, queuedMain, queuedAdditional, onMainChange, onAdditionalAdd, onAdditionalRemove }) {
+export default function ProductImagesEditor({ mainImage, existingImages = [], queuedMain, queuedAdditional, onMainChange, onAdditionalAdd, onAdditionalRemove }) {
   const [pickerTarget, setPickerTarget] = useState(null);
   const makeFileImage = (file) => ({ file, preview: previewFor(file), label: file.name });
-  const select = (url) => {
-    const image = { url, preview: url, label: url };
-    if (pickerTarget === "main") onMainChange(image);
-    else onAdditionalAdd(image);
+  const select = (selection) => {
+    const urls = Array.isArray(selection) ? selection : [selection];
+    const images = urls.map((url) => ({ url, preview: url, label: url }));
+    if (pickerTarget === "main") onMainChange(images[0]);
+    else images.forEach(onAdditionalAdd);
     setPickerTarget(null);
   };
 
@@ -70,7 +71,7 @@ export default function ProductImagesEditor({ mainImage, queuedMain, queuedAddit
         </div>
       </div>
 
-      {pickerTarget && <MediaPickerDialog onClose={() => setPickerTarget(null)} onSelect={select} />}
+      {pickerTarget && <MediaPickerDialog mode={pickerTarget === "additional" ? "multiple" : "single"} excludeUrls={[...existingImages.map((image) => image.url), queuedMain?.url, ...queuedAdditional.map((image) => image.url)].filter(Boolean)} onClose={() => setPickerTarget(null)} onSelect={select} />}
     </div>
   );
 }

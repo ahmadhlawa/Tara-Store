@@ -5,6 +5,10 @@ import ResourceScreen from "../ResourceScreen.jsx";
 import { Badge } from "../ui.jsx";
 
 export function orderCategoriesForAdmin(categories) {
+  const createdFirst = (a, b) => {
+    const time = String(a.created_at || "").localeCompare(String(b.created_at || ""));
+    return time || a.id - b.id;
+  };
   const ids = new Set(categories.map((category) => category.id));
   const childrenByParent = new Map();
   const rendered = new Set();
@@ -14,6 +18,7 @@ export function orderCategoriesForAdmin(categories) {
     if (category.parent_id == null || !ids.has(category.parent_id)) return;
     const children = childrenByParent.get(category.parent_id) || [];
     children.push(category);
+    children.sort(createdFirst);
     childrenByParent.set(category.parent_id, children);
   });
 
@@ -26,6 +31,7 @@ export function orderCategoriesForAdmin(categories) {
 
   categories
     .filter((category) => category.parent_id == null || !ids.has(category.parent_id))
+    .sort(createdFirst)
     .forEach((category) => append(category));
   categories.forEach((category) => append(category));
 
@@ -63,8 +69,9 @@ export function CategoriesPage() {
           render: (row) => {
             const isChild = row.__categoryDepth > 0;
             return (
-              <span style={sx`display:inline-flex;align-items:baseline;gap:6px;padding-inline-start:${row.__categoryDepth * 20}px;font-size:${isChild ? "12.5px" : "13.5px"};font-weight:${isChild ? 500 : 750};color:${isChild ? "#766669" : "#241F20"}`}>
-                {isChild && <span aria-hidden="true" style={sx`color:#A28D91`}>└─</span>}
+              <span style={sx`position:relative;display:inline-flex;align-items:center;gap:7px;padding-inline-start:${row.__categoryDepth * 22}px;min-height:28px;font-size:${isChild ? "12.5px" : "13.5px"};font-weight:${isChild ? 500 : 750};color:${isChild ? "#766669" : "#241F20"}`}>
+                {Array.from({ length: row.__categoryDepth }, (_, depth) => <span key={depth} aria-hidden="true" style={sx`position:absolute;inset-inline-start:${depth * 22 + 8}px;inset-block:0;border-inline-start:1px solid #D8C8E8`} />)}
+                {isChild && <span aria-hidden="true" style={sx`position:absolute;inset-inline-start:${(row.__categoryDepth - 1) * 22 + 8}px;width:15px;border-block-start:1px solid #D8C8E8`} />}
                 <span>{row.name}</span>
               </span>
             );
@@ -72,7 +79,6 @@ export function CategoriesPage() {
         },
         { key: "slug", title: "الرابط" },
         { key: "product_count", title: "عدد المنتجات" },
-        { key: "sort_order", title: "الترتيب" },
         {
           key: "is_active",
           title: "الحالة",
@@ -93,7 +99,6 @@ export function CategoriesPage() {
           emptyAsNull: true,
           options: parents.map((row) => ({ value: row.id, label: row.name })),
         },
-        { name: "sort_order", title: "الترتيب", type: "number", defaultValue: 0 },
         { name: "is_featured", title: "قسم مميّز", type: "checkbox" },
         { name: "show_on_home", title: "عرض في الصفحة الرئيسية", type: "checkbox" },
         { name: "is_active", title: "فعّال", type: "checkbox", defaultValue: true },

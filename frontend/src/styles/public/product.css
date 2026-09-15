@@ -130,12 +130,16 @@
   color: var(--vs-danger);
 }
 
-.vs-pdp__short {
-  font-size: var(--vs-fs-body);
-  font-weight: var(--vs-fw-support);
-  line-height: var(--vs-lh);
-  color: var(--vs-ink-2);
+.vs-pdp__headline {
+  margin: 2px 0;
+  font-size: clamp(17px, 1.8vw, 21px);
+  font-weight: 700;
+  line-height: 1.55;
+  color: var(--vs-ink-1);
 }
+
+.vs-pdp .vs-price__now,
+.vs-buybar__price { color: var(--vs-ink-1); }
 
 .vs-pdp__notice {
   padding: 12px 14px;

@@ -15,7 +15,6 @@ class CategoryBase(APIModel):
     is_active: bool = True
     is_featured: bool = False
     show_on_home: bool = False
-    sort_order: int = 0
 
     _validate_image_url = field_validator("image_url")(safe_resource_url)
 
@@ -33,7 +32,6 @@ class CategoryUpdate(APIModel):
     is_active: bool | None = None
     is_featured: bool | None = None
     show_on_home: bool | None = None
-    sort_order: int | None = None
 
     _validate_image_url = field_validator("image_url")(safe_resource_url)
 

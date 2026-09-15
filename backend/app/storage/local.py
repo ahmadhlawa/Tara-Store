@@ -57,6 +57,9 @@ class LocalStorageProvider(StorageProvider):
             size_bytes=len(data),
         )
 
+    def read(self, key: str) -> bytes:
+        return self._path(key).read_bytes()
+
     def delete(self, key: str) -> None:
         path = self._path(key)
         if path.exists():
