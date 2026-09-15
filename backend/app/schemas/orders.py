@@ -334,7 +334,7 @@ ManualOrderItemInputUnion = Annotated[
 
 
 class ManualOrderCreate(APIModel):
-    source: Literal["website", "whatsapp", "other"]
+    source: Literal["whatsapp", "other"]
     source_note: str | None = Field(default=None, max_length=250)
     customer_name: str = Field(min_length=3, max_length=150)
     customer_phone: str = Field(min_length=7, max_length=40)

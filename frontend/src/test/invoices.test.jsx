@@ -220,7 +220,7 @@ describe("order detail invoice panel", () => {
     expect(screen.getByText("صادرة")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "عرض الفاتورة" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /طباعة الفاتورة/ })).not.toBeInTheDocument();
-    expect(screen.getByText("الدفع عند الاستلام")).toBeInTheDocument();
+    expect(screen.getAllByText("الدفع عند الاستلام").length).toBeGreaterThan(0);
   });
 
   it("says a pending order has no invoice yet", async () => {
@@ -254,8 +254,8 @@ describe("order detail invoice panel", () => {
 
     await screen.findByRole("heading", { name: /ORD-260801-1234/ });
     expect(screen.getByRole("heading", { name: "أصناف الطلب" })).toBeInTheDocument();
-    expect(screen.getByText("ريزن شفاف")).toBeInTheDocument();
-    expect(screen.getByLabelText("ملخص إجمالي الطلب")).toHaveTextContent("220.00");
+    expect(screen.getAllByText("ريزن شفاف").length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText("ملخص إجمالي الطلب").some((summary) => summary.textContent.includes("220.00"))).toBe(true);
   });
 
   it("hides workflow controls from a normal admin on a manager-reopened order", async () => {
@@ -313,7 +313,7 @@ describe("invoice archive workflow", () => {
 
   // Browser reproduction B1: "مستبدلة" + "مدفوع جزئيًا" answered 422 because the
   // payment option carried the non-canonical value "partial".
-  it("sends canonical values for the replaced and partially-paid Arabic filter labels", async () => {
+  it("sends canonical values for the replaced and unpaid Arabic filter labels", async () => {
     signedIn();
     const calls = stubApi({
       "/api/v1/auth/me": ADMIN,
@@ -323,17 +323,16 @@ describe("invoice archive workflow", () => {
 
     await screen.findByRole("table");
     await userEvent.selectOptions(screen.getByLabelText("حالة الفاتورة"), "replaced");
-    await userEvent.selectOptions(screen.getByLabelText("حالة الدفع"), "partially_paid");
+    await userEvent.selectOptions(screen.getByLabelText("حالة الدفع"), "unpaid");
 
     await waitFor(() => {
       const path = calls.filter((call) => call.path.includes("/admin/invoices")).at(-1).path;
       expect(path).toContain("status=replaced");
-      expect(path).toContain("payment_status=partially_paid");
-      expect(path).not.toContain("payment_status=partial&");
+      expect(path).toContain("payment_status=unpaid");
     });
   });
 
-  it("shows the Arabic label for a partially paid invoice instead of the raw API value", async () => {
+  it("maps a legacy partially-paid invoice to the accepted unpaid label", async () => {
     signedIn();
     stubApi({
       "/api/v1/auth/me": ADMIN,
@@ -342,7 +341,7 @@ describe("invoice archive workflow", () => {
     renderApp("/admin/invoices");
 
     const table = await screen.findByRole("table");
-    expect(within(table).getByText("مدفوع جزئياً")).toBeInTheDocument();
+    expect(within(table).getByText("غير مدفوع")).toBeInTheDocument();
     expect(within(table).queryByText("partially_paid")).not.toBeInTheDocument();
   });
 

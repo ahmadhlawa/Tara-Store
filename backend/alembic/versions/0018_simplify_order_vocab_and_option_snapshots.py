@@ -18,8 +18,15 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.add_column(
         "order_items",
-        sa.Column("selected_option_value_ids", sa.JSON(), nullable=False, server_default="[]"),
+        sa.Column("selected_option_value_ids", sa.JSON(), nullable=True),
     )
+    op.execute(sa.text("UPDATE order_items SET selected_option_value_ids = '[]' WHERE selected_option_value_ids IS NULL"))
+    with op.batch_alter_table("order_items") as batch_op:
+        batch_op.alter_column(
+            "selected_option_value_ids",
+            existing_type=sa.JSON(),
+            nullable=False,
+        )
     status_map = {
         "pending": "confirmed", "reviewing": "confirmed",
         "processing": "ready", "preparing": "ready",

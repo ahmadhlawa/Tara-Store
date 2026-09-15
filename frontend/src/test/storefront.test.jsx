@@ -185,7 +185,7 @@ describe("public storefront", () => {
     expect(screen.getByText("رقم هاتف غير صالح — مثال 0591234567")).toBeInTheDocument();
     expect(screen.getByText("اختر منطقة التوصيل")).toBeInTheDocument();
     expect(await screen.findByRole("alert")).toHaveTextContent("الرجاء إدخال الاسم الكامل");
-    expect(screen.getByPlaceholderText("مثال: سارة أحمد")).toHaveFocus();
+    expect(screen.getByPlaceholderText("مثال: محمد أحمد")).toHaveFocus();
     expect(calls.some((call) => call.path === "/api/v1/orders")).toBe(false);
   });
 
@@ -254,7 +254,7 @@ describe("public storefront", () => {
     const open = vi.spyOn(window, "open").mockImplementation(() => null);
     renderApp("/checkout");
 
-    await userEvent.type(await screen.findByPlaceholderText("مثال: سارة أحمد"), "سارة أحمد");
+    await userEvent.type(await screen.findByPlaceholderText("مثال: محمد أحمد"), "سارة أحمد");
     await userEvent.type(screen.getByPlaceholderText("05XXXXXXXX"), "0591234567");
     await userEvent.type(screen.getByPlaceholderText("الشارع، رقم البناية، أقرب معلم"), "رام الله، شارع الإرسال");
     // Addressed by its own label: the header search field is also a combobox.
@@ -291,7 +291,7 @@ describe("public storefront", () => {
     const open = vi.spyOn(window, "open").mockImplementation(() => null);
     renderApp("/checkout");
 
-    await userEvent.type(await screen.findByPlaceholderText("مثال: سارة أحمد"), "سارة أحمد");
+    await userEvent.type(await screen.findByPlaceholderText("مثال: محمد أحمد"), "سارة أحمد");
     await userEvent.type(screen.getByPlaceholderText("05XXXXXXXX"), "0591234567");
     await userEvent.type(screen.getByPlaceholderText("الشارع، رقم البناية، أقرب معلم"), "رام الله، شارع الإرسال");
     await userEvent.selectOptions(screen.getByLabelText(/منطقة التوصيل/), "1");

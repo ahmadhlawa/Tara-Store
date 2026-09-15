@@ -413,10 +413,10 @@ def test_upgrade_from_legacy_revision_retains_and_backfills_order_and_invoice(
             ).all()
         )
     assert mapped_statuses == {
-        42: "reviewing",
-        43: "reviewing",
-        44: "preparing",
-        45: "out_for_delivery",
+        42: "confirmed",
+        43: "confirmed",
+        44: "ready",
+        45: "delivered",
     }
     with engine.connect() as connection:
         completion_eligible_orders = {
@@ -436,8 +436,8 @@ def test_upgrade_from_legacy_revision_retains_and_backfills_order_and_invoice(
             )
         ).scalar_one()
     assert completion_eligible_orders == {
-        46: ("out_for_delivery", False, None),
-        47: ("out_for_delivery", False, None),
+        46: ("delivered", False, None),
+        47: ("delivered", False, None),
     }
     assert cancelled_invoice_status == "cancelled"
     with engine.begin() as connection:

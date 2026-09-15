@@ -610,7 +610,7 @@ def test_invoice_payment_updates_are_audited_and_filterable(
     body = response.json()
     assert body["paid_amount"] == 40.0
     assert body["remaining_amount"] == 60.0
-    assert body["payment_status"] == "partially_paid"
+    assert body["payment_status"] == "unpaid"
     assert body["payment_method"] == "card"
     payment_activity = body["activities"][-1]
     assert payment_activity["event_type"] == "payment_updated"
@@ -619,7 +619,7 @@ def test_invoice_payment_updates_are_audited_and_filterable(
 
     filtered = client.get(
         "/api/v1/admin/invoices",
-        params={"payment_status": "partially_paid", "source": "website", "employee_id": body["issued_by_admin_id"]},
+        params={"payment_status": "unpaid", "source": "website", "employee_id": body["issued_by_admin_id"]},
         headers=auth(admin_token),
     )
     assert [row["invoice_number"] for row in filtered.json()["items"]] == [number]
@@ -662,7 +662,7 @@ def test_payment_corrections_and_refunds_are_super_admin_only(
         headers=auth(super_token),
     )
     assert refunded.status_code == 200
-    assert refunded.json()["payment_status"] == "partially_refunded"
+    assert refunded.json()["payment_status"] == "refunded"
 
 
 def test_an_unknown_invoice_number_is_a_clean_404(

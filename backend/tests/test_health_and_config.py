@@ -129,7 +129,7 @@ def test_production_accepts_meaningful_local_media_paths(media_root: str) -> Non
 
 def test_production_disables_api_documentation() -> None:
     config = _production_settings()
-    assert config.LOGIN_RATE_LIMIT == 10
+    assert config.LOGIN_RATE_LIMIT == 5
     assert config.ORDER_CREATE_RATE_LIMIT == 10
     app = create_app(config)
     with TestClient(app) as client:

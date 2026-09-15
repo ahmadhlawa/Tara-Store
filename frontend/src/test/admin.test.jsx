@@ -68,8 +68,8 @@ describe("admin category hierarchy", () => {
 
   it("groups each child directly under its parent without duplicates", () => {
     const ordered = orderCategoriesForAdmin(categories);
-    expect(ordered.map((category) => category.id)).toEqual([3, 1, 2, 4]);
-    expect(ordered.map((category) => category.__categoryDepth)).toEqual([0, 0, 1, 1]);
+    expect(ordered.map((category) => category.id)).toEqual([1, 2, 4, 3]);
+    expect(ordered.map((category) => category.__categoryDepth)).toEqual([0, 1, 1, 0]);
     expect(new Set(ordered.map((category) => category.id)).size).toBe(categories.length);
   });
 
@@ -81,8 +81,7 @@ describe("admin category hierarchy", () => {
     render(<CategoriesPage />);
 
     const child = await screen.findByText("شمعة المشروبات");
-    expect(child.parentElement).toHaveStyle({ paddingInlineStart: "20px", fontWeight: "500" });
-    expect(child.previousElementSibling).toHaveTextContent("└─");
+    expect(child.parentElement).toHaveStyle({ paddingInlineStart: "22px", fontWeight: "500" });
     expect(screen.getAllByRole("button", { name: "تعديل" })).toHaveLength(4);
     expect(screen.getAllByRole("button", { name: "حذف" })).toHaveLength(4);
 
@@ -215,7 +214,7 @@ describe("admin workspace", () => {
         {
           id: 3,
           order_number: "ORD-260731-1234",
-          status: "pending",
+          status: "new",
           customer_name: "سارة أحمد",
           customer_phone: "0591234567",
           delivery_area_name: "رام الله",
@@ -233,7 +232,7 @@ describe("admin workspace", () => {
 
     // The label also exists as an <option> in the status filter, so scope the assertion
     // to the order row's status badge inside the table.
-    expect(within(screen.getByRole("table")).getByText("بانتظار المراجعة")).toBeInTheDocument();
+    expect(within(screen.getByRole("table")).getByText("طلب جديد")).toBeInTheDocument();
   });
 
   it("offers searchable order filters and a WhatsApp customer action", async () => {

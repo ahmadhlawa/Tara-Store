@@ -34,7 +34,7 @@ def _edit_payload(first: Product, second: Product | None = None, **changes: obje
         "admin_notes": "Internal note",
         "discount": "5.00",
         "delivery_fee": "7.00",
-        "status": "reviewing",
+        "status": "confirmed",
         "reason": "Customer agreed to the correction",
         "items": [
             {
@@ -237,7 +237,7 @@ def test_status_endpoint_cannot_complete_or_move_a_completed_order(
     moved = client.post(
         f"/api/v1/admin/orders/{order['id']}/status",
         headers=auth(admin_token),
-        json={"status": "reviewing"},
+        json={"status": "confirmed"},
     )
     assert moved.status_code == 400
     assert moved.json()["error"]["code"] == "order_locked"
@@ -306,7 +306,7 @@ def test_edit_rejects_legacy_current_statuses_outside_approved_workflow(
     response = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=auth(admin_token),
-        json=_edit_payload(product, status="reviewing"),
+        json=_edit_payload(product, status="confirmed"),
     )
 
     assert response.status_code == 400
@@ -672,7 +672,7 @@ def _manual_edit_payload(order: dict, items: list[dict]) -> dict:
         "admin_notes": "Corrected by manager",
         "discount": str(order["discount"]),
         "delivery_fee": str(order["delivery_fee"]),
-        "status": "reviewing",
+        "status": "confirmed",
         "reason": "Correct the saved manual order",
         "items": items,
     }

@@ -239,7 +239,7 @@ def seed_catalog(db: Session) -> dict[str, int]:
         price=Decimal("45.00"),
         stock_quantity=12,
         is_active=True,
-        product_type=ProductType.SILICONE_MOLD.value,
+        product_type=ProductType.STANDARD.value,
     )
     # Low stock (threshold default 3).
     products["mold_low"] = product(
@@ -251,7 +251,7 @@ def seed_catalog(db: Session) -> dict[str, int]:
         stock_quantity=2,
         low_stock_threshold=3,
         is_active=True,
-        product_type=ProductType.SILICONE_MOLD.value,
+        product_type=ProductType.STANDARD.value,
         images=["/media/seed-clay.png"],
     )
     # Out of stock.
@@ -263,7 +263,7 @@ def seed_catalog(db: Session) -> dict[str, int]:
         price=Decimal("55.00"),
         stock_quantity=0,
         is_active=True,
-        product_type=ProductType.SILICONE_MOLD.value,
+        product_type=ProductType.STANDARD.value,
     )
     # Inactive product: must never appear publicly.
     products["inactive"] = product(

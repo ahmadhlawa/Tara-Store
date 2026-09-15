@@ -74,7 +74,7 @@ def test_only_approved_statuses_are_selectable_in_admin_filters(
 ) -> None:
     assert client.get(
         "/api/v1/admin/orders",
-        params={"status": "reviewing"},
+        params={"status": "confirmed"},
         headers=auth(admin_token),
     ).status_code == 200
     assert client.get(
@@ -84,15 +84,15 @@ def test_only_approved_statuses_are_selectable_in_admin_filters(
     ).status_code == 422
 
 
-def test_partially_paid_is_the_selectable_and_derived_payment_status(
+def test_partial_payment_uses_the_unpaid_status(
     client: TestClient, admin_token: str
 ) -> None:
     assert invoices_service.derive_payment_status(
         Decimal("10.00"), Decimal("4.00"), Decimal("0.00")
-    ).value == "partially_paid"
+    ).value == "unpaid"
     assert client.get(
         "/api/v1/admin/invoices",
-        params={"payment_status": "partially_paid"},
+        params={"payment_status": "unpaid"},
         headers=auth(admin_token),
     ).status_code == 200
     assert client.get(
@@ -291,12 +291,12 @@ def test_stale_reopen_is_rejected_without_replacing_more_invoice_state(
 @pytest.mark.parametrize(
     "status",
     (
-        OrderStatus.REVIEWING.value,
-        OrderStatus.PREPARING.value,
-        OrderStatus.OUT_FOR_DELIVERY.value,
+        OrderStatus.CONFIRMED.value,
+        OrderStatus.READY.value,
+        OrderStatus.DELIVERED.value,
     ),
 )
-def test_cancelling_any_approved_incomplete_status_restores_stock(
+def test_cancelling_any_active_status_restores_stock(
     db: Session, status: str
 ) -> None:
     product = make_product(db, slug=f"cancel-stock-{status}", stock=10)
@@ -309,4 +309,4 @@ def test_cancelling_any_approved_incomplete_status_restores_stock(
     db.commit()
 
     db.expire_all()
-    assert db.get(Product, product.id).stock_quantity == 9
+    assert db.get(Product, product.id).stock_quantity == 10
