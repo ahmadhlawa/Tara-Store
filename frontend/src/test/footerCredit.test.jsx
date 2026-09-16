@@ -67,13 +67,12 @@ describe("TFN footer credit", () => {
     expect(document.querySelector(".vs-footer__social")).toBeNull();
   });
 
-  it("keeps the footer focused and marks illustrations as decorative", async () => {
+  it("keeps the footer focused without decorative artwork", async () => {
     stubApi(storefrontRoutes);
     renderApp("/");
 
     await screen.findByText("Developed by TFN Technologies Team");
     const footer = document.querySelector(".vs-footer");
-    const decorations = footer.querySelectorAll('.vs-footer__transition img');
 
     expect(footer.querySelector('.vs-footer__brand')).not.toBeNull();
     expect(footer.querySelector('.vs-footer__signature-ornament')).toBeNull();
@@ -83,12 +82,8 @@ describe("TFN footer credit", () => {
     const bottomItems = footer.querySelectorAll('.vs-footer__bottom-row > *');
     expect(bottomItems[1]).toHaveClass("vs-footer__credit");
     expect(bottomItems[2]).toHaveClass("vs-footer__copyright");
-    expect(decorations).toHaveLength(1);
-    decorations.forEach((image) => {
-      expect(image).toHaveAttribute("alt", "");
-      expect(image).toHaveAttribute("aria-hidden", "true");
-      expect(image).toHaveAttribute("loading", "lazy");
-    });
+    expect(footer.querySelector('.vs-footer__transition')).not.toBeNull();
+    expect(footer.querySelector('.vs-footer__transition img')).toBeNull();
     expect(footer).not.toHaveTextContent("كل المنتجات");
     expect(footer).not.toHaveTextContent("العروض");
     expect(footer).not.toHaveTextContent("البكجات");

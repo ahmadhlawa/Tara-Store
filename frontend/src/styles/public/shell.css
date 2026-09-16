@@ -1197,30 +1197,15 @@ img.vs-logo__img {
   background: linear-gradient(
     to bottom,
     transparent 0,
-    var(--footer-background) 108px,
+    var(--footer-background) 56px,
     var(--footer-background) 100%
   );
 }
 
 .vs-footer__transition {
   position: relative;
-  height: 108px;
-  overflow: visible;
+  height: 56px;
   pointer-events: none;
-}
-
-.vs-footer__transition img {
-  position: absolute;
-  inset-block-start: -220px;
-  inset-inline-start: 50%;
-  width: clamp(360px, 46vw, 620px);
-  height: auto;
-  opacity: 0.22;
-  transform: translateX(-50%);
-}
-
-[dir="rtl"] .vs-footer__transition img {
-  transform: translateX(50%);
 }
 
 .vs-footer__top {
@@ -1389,12 +1374,7 @@ img.vs-logo__img {
   }
 
   .vs-footer__transition {
-    height: 92px;
-  }
-
-  .vs-footer__transition img {
-    inset-block-start: -84px;
-    width: 330px;
+    height: 40px;
   }
 
   .vs-footer__top {

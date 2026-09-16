@@ -62,17 +62,7 @@ export default function Footer() {
 
   return (
     <footer className="vs-footer">
-      <div className="vs-footer__transition" aria-hidden="true">
-        <img
-          src="/branding/footer/floral-divider.png"
-          alt=""
-          aria-hidden="true"
-          width="1536"
-          height="1536"
-          loading="lazy"
-          decoding="async"
-        />
-      </div>
+      <div className="vs-footer__transition" aria-hidden="true" />
 
       <div className="vs-container vs-footer__top">
         <nav className="vs-footer__social-area" aria-label="روابط التواصل الاجتماعي">
