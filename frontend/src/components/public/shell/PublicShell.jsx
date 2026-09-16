@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useStore } from "../../../app/StoreProvider.jsx";
 import MaintenanceScreen from "../../Maintenance.jsx";
 import PreviewNotice from "../../PreviewNotice.jsx";
+import FreeShippingBar from "./FreeShippingBar.jsx";
 import Header from "./Header.jsx";
 import Footer from "./Footer.jsx";
 import MobileTabBar from "./MobileTabBar.jsx";
@@ -42,6 +43,7 @@ export default function PublicShell() {
           تخطَّ إلى المحتوى
         </a>
         <PreviewNotice />
+        <FreeShippingBar />
         <Header />
         <CategoryRail />
 

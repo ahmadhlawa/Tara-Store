@@ -62,6 +62,7 @@
 
   /* NAVIGATION STRIP */
 
+  --announcement-background: #9070b5;
   --nav-strip-background: #d7cae8;
   --nav-strip-text: #181818;
   --nav-strip-hover: var(--brand-primary);

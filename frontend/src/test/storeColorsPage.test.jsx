@@ -10,8 +10,8 @@ vi.mock("../api/adminApi.js", () => ({
 }));
 
 vi.mock("../theme/storefrontTheme.js", () => ({
-  THEME_KEYS: ["theme_primary_color", "theme_secondary_color", "theme_soft_color", "theme_nav_strip_background", "theme_nav_strip_text", "theme_footer_background", "theme_footer_text", "theme_footer_muted_text", "theme_button_primary_background", "theme_button_primary_text"],
-  staticThemeDefaults: () => ({ theme_primary_color: "#AE98CB", theme_secondary_color: "#D7CAE8", theme_soft_color: "#FAF9FC", theme_nav_strip_background: "#FFFFFF", theme_nav_strip_text: "#181818", theme_footer_background: "#F6F6F8", theme_footer_text: "#181818", theme_footer_muted_text: "#666666", theme_button_primary_background: "#AE98CB", theme_button_primary_text: "#181818" }),
+  THEME_KEYS: ["theme_announcement_background", "theme_primary_color", "theme_secondary_color", "theme_soft_color", "theme_nav_strip_background", "theme_nav_strip_text", "theme_footer_background", "theme_footer_text", "theme_footer_muted_text", "theme_button_primary_background", "theme_button_primary_text"],
+  staticThemeDefaults: () => ({ theme_announcement_background: "#9070b5", theme_primary_color: "#AE98CB", theme_secondary_color: "#D7CAE8", theme_soft_color: "#FAF9FC", theme_nav_strip_background: "#FFFFFF", theme_nav_strip_text: "#181818", theme_footer_background: "#F6F6F8", theme_footer_text: "#181818", theme_footer_muted_text: "#666666", theme_button_primary_background: "#AE98CB", theme_button_primary_text: "#181818" }),
   buildStorefrontThemeVariables: () => ({}),
   contrastRatio: (first, second) => first === second ? 1 : 7,
 }));
@@ -36,7 +36,10 @@ describe("ألوان المتجر", () => {
   it("saves valid colors", async () => {
     const user = userEvent.setup();
     render(<StoreColorsPage />);
-    await user.click(await screen.findByRole("button", { name: "حفظ التغييرات" }));
-    await waitFor(() => expect(updateSettings).toHaveBeenCalled());
+    const color = (await screen.findAllByLabelText("شريط الإعلانات")).find((input) => input.type === "text");
+    expect(color).toHaveValue("#9070b5");
+    fireEvent.change(color, { target: { value: "#123456" } });
+    await user.click(screen.getByRole("button", { name: "حفظ التغييرات" }));
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({ theme_announcement_background: "#123456" })));
   });
 });

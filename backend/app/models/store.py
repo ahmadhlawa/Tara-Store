@@ -76,6 +76,7 @@ class StoreSettings(TimestampMixin, Base):
     theme_primary_color: Mapped[str | None] = mapped_column(String(7), nullable=True)
     theme_secondary_color: Mapped[str | None] = mapped_column(String(7), nullable=True)
     theme_soft_color: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    theme_announcement_background: Mapped[str | None] = mapped_column(String(7), nullable=True)
     theme_nav_strip_background: Mapped[str | None] = mapped_column(String(7), nullable=True)
     theme_nav_strip_text: Mapped[str | None] = mapped_column(String(7), nullable=True)
     theme_footer_background: Mapped[str | None] = mapped_column(String(7), nullable=True)

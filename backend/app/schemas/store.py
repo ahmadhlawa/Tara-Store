@@ -7,7 +7,7 @@ from pydantic import EmailStr, Field, field_validator
 from app.schemas.common import APIModel, Money, UTCDateTime, safe_external_url, safe_resource_url
 
 THEME_COLOR_FIELDS = (
-    "theme_primary_color", "theme_secondary_color", "theme_soft_color",
+    "theme_announcement_background", "theme_primary_color", "theme_secondary_color", "theme_soft_color",
     "theme_nav_strip_background", "theme_nav_strip_text", "theme_footer_background",
     "theme_footer_text", "theme_footer_muted_text", "theme_button_primary_background",
     "theme_button_primary_text",
@@ -50,6 +50,7 @@ class StoreSettingsPublic(APIModel):
     theme_primary_color: str | None = None
     theme_secondary_color: str | None = None
     theme_soft_color: str | None = None
+    theme_announcement_background: str | None = None
     theme_nav_strip_background: str | None = None
     theme_nav_strip_text: str | None = None
     theme_footer_background: str | None = None
@@ -111,6 +112,7 @@ class StoreSettingsUpdate(APIModel):
     theme_primary_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     theme_secondary_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     theme_soft_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    theme_announcement_background: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     theme_nav_strip_background: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     theme_nav_strip_text: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     theme_footer_background: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")

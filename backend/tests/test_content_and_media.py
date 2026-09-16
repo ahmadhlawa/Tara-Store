@@ -69,6 +69,7 @@ def test_theme_overrides_are_nullable_normalized_and_public(
     payload = {
         "theme_primary_color": "#ff0000",
         "theme_soft_color": "#ae98cb",
+        "theme_announcement_background": "#9070b5",
         "theme_nav_strip_background": "#00ff00",
         "theme_footer_background": "#0000ff",
         "theme_footer_text": "#ffffff",
@@ -80,6 +81,8 @@ def test_theme_overrides_are_nullable_normalized_and_public(
     public = client.get("/api/v1/store/settings").json()
     assert public["theme_nav_strip_background"] == "#00FF00"
     assert public["theme_footer_background"] == "#0000FF"
+    assert public["theme_announcement_background"] == "#9070B5"
+    assert client.patch("/api/v1/admin/settings", headers=auth(admin_token), json={"theme_announcement_background": "red"}).status_code == 422
 
     assert client.patch("/api/v1/admin/settings", headers=auth(admin_token), json={"theme_primary_color": "var(--x)"}).status_code == 422
     cleared = client.patch("/api/v1/admin/settings", headers=auth(admin_token), json={"theme_primary_color": None})
@@ -90,6 +93,7 @@ def test_theme_overrides_are_nullable_normalized_and_public(
         "/api/v1/admin/settings",
         headers=auth(admin_token),
         json={
+            "theme_announcement_background": None,
             "theme_primary_color": None,
             "theme_secondary_color": None,
             "theme_soft_color": None,

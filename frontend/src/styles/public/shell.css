@@ -1437,3 +1437,15 @@ img.vs-logo__img {
   }
 
 }
+
+.vs-free-shipping-bar {
+  width: 100%;
+  padding: 4px 12px;
+  background: var(--announcement-background);
+  color: var(--announcement-text);
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.vs-free-shipping-bar span { display: inline-block; }

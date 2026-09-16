@@ -1,4 +1,5 @@
 const THEME_VARIABLES = {
+  theme_announcement_background: "--announcement-background",
   theme_primary_color: "--brand-primary",
   theme_secondary_color: "--brand-secondary",
   theme_soft_color: "--brand-soft",
@@ -20,6 +21,8 @@ export function buildStorefrontThemeVariables(settings = {}) {
   }
   if (settings.theme_primary_color) variables["--brand-primary-hover"] = `color-mix(in srgb, ${settings.theme_primary_color} 82%, #000)`;
   if (settings.theme_button_primary_background) variables["--button-primary-hover"] = `color-mix(in srgb, ${settings.theme_button_primary_background} 82%, #000)`;
+  const background = settings.theme_announcement_background || "#9070b5";
+  variables["--announcement-text"] = contrastRatio(background, "#000000") >= contrastRatio(background, "#FFFFFF") ? "#000000" : "#FFFFFF";
   return variables;
 }
 

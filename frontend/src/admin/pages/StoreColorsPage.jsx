@@ -7,7 +7,7 @@ import { Button, ConfirmDialog, Field, Notice, PageHeader, Spinner, card, input,
 const HEX = /^#[0-9A-F]{6}$/i;
 const GROUPS = [
   ["ألوان الهوية", [["theme_primary_color", "اللون الرئيسي"], ["theme_secondary_color", "اللون الثانوي"], ["theme_soft_color", "الخلفية الخفيفة"]]],
-  ["أجزاء الموقع", [["theme_nav_strip_background", "خلفية شريط التنقل"], ["theme_nav_strip_text", "نص شريط التنقل"], ["theme_footer_background", "خلفية الفوتر"], ["theme_footer_text", "نص الفوتر"], ["theme_footer_muted_text", "النص الثانوي في الفوتر"]]],
+  ["أجزاء الموقع", [["theme_announcement_background", "شريط الإعلانات"], ["theme_nav_strip_background", "خلفية شريط التنقل"], ["theme_nav_strip_text", "نص شريط التنقل"], ["theme_footer_background", "خلفية الفوتر"], ["theme_footer_text", "نص الفوتر"], ["theme_footer_muted_text", "النص الثانوي في الفوتر"]]],
 ];
 
 function ColorField({ name, label, value, onChange }) {
