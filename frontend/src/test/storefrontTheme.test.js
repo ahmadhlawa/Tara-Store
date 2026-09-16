@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildStorefrontThemeVariables } from "../theme/storefrontTheme.js";
 
 describe("buildStorefrontThemeVariables", () => {
-  it("maps only non-null persisted overrides to public CSS variables", () => {
+  it("maps non-null persisted overrides and derives announcement text contrast", () => {
     expect(buildStorefrontThemeVariables({
       theme_primary_color: "#FF0000",
       theme_nav_strip_background: "#00FF00",
@@ -13,6 +13,7 @@ describe("buildStorefrontThemeVariables", () => {
       "--brand-primary-hover": "color-mix(in srgb, #FF0000 82%, #000)",
       "--nav-strip-background": "#00FF00",
       "--footer-background": "#0000FF",
+      "--announcement-text": "#000000",
     });
   });
 });
