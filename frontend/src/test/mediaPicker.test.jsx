@@ -168,6 +168,7 @@ describe("resource screens", () => {
     render(<CategoriesPage />);
 
     await userEvent.click(await screen.findByRole("button", { name: "إضافة قسم" }));
+    expect(screen.getByText(/1200 × 1500/)).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "اختيار من مكتبة الوسائط" })).toBeInTheDocument();
 
     const dialog = await openPicker();

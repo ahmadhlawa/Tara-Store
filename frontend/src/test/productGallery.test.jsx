@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import Gallery from "../components/public/product/Gallery.jsx";
 import Media from "../components/public/shell/Media.jsx";
 
@@ -11,6 +11,8 @@ const images = [
 ];
 
 describe("product gallery", () => {
+  afterEach(() => vi.useRealTimers());
+
   it("renders one semantic image and switches it without a decorative backdrop", async () => {
     const { container } = render(<Gallery images={images} alt="Tara candle" />);
     const frame = container.querySelector(".vs-gallery__main");
@@ -23,6 +25,20 @@ describe("product gallery", () => {
 
     expect(screen.getByRole("img", { name: "Tara candle" })).toHaveAttribute("src", "/landscape.jpg");
     expect(screen.getByRole("button", { name: /2/ })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("autoplays, loops, and restarts the timer after manual selection", () => {
+    vi.useFakeTimers();
+    render(<Gallery images={images} alt="Tara candle" />);
+
+    act(() => vi.advanceTimersByTime(3000));
+    expect(screen.getByRole("img", { name: "Tara candle" })).toHaveAttribute("src", "/landscape.jpg");
+
+    fireEvent.click(screen.getByRole("button", { name: /3/ }));
+    act(() => vi.advanceTimersByTime(2999));
+    expect(screen.getByRole("img", { name: "Tara candle" })).toHaveAttribute("src", "/square.jpg");
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByRole("img", { name: "Tara candle" })).toHaveAttribute("src", "/portrait.jpg");
   });
 
   it("uses the identical source for Quick View foreground and backdrop", () => {

@@ -8,14 +8,29 @@ import Media from "../shell/Media.jsx";
  */
 export default function Gallery({ images, fallback, alt }) {
   const [index, setIndex] = useState(0);
-  useEffect(() => setIndex(0), [alt]);
+  const [paused, setPaused] = useState(false);
 
   const list = images?.length ? images : [];
   const active = list[index] || null;
 
+  useEffect(() => setIndex(0), [images]);
+
+  useEffect(() => {
+    if (list.length <= 1 || paused) return undefined;
+    const timer = window.setTimeout(() => {
+      setIndex((current) => (current + 1) % list.length);
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [index, list.length, paused]);
+
   return (
-    <div className="vs-gallery">
+    <div
+      className="vs-gallery"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
       <Media
+        key={active?.id ?? active?.url ?? "fallback"}
         className="vs-gallery__main"
         src={active?.url}
         fallback={fallback}

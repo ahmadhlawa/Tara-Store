@@ -245,16 +245,15 @@ export default function ProductDetailPage() {
               />
             </div>
 
+            <section className="vs-pdp__description" aria-labelledby="product-description-title">
+              <h2 id="product-description-title">الوصف</h2>
+              {description.length ? description.map((text, index) => (
+                <p key={index} className="vs-prose">{text}</p>
+              )) : (
+                <p className="vs-prose vs-prose--muted">لا يتوفر وصف تفصيلي لهذا المنتج بعد.</p>
+              )}
+            </section>
           </div>
-
-          <section className="vs-pdp__description" aria-labelledby="product-description-title">
-            <h2 id="product-description-title">الوصف</h2>
-            {description.length ? description.map((text, index) => (
-              <p key={index} className="vs-prose">{text}</p>
-            )) : (
-              <p className="vs-prose vs-prose--muted">لا يتوفر وصف تفصيلي لهذا المنتج بعد.</p>
-            )}
-          </section>
         </div>
       </div>
 

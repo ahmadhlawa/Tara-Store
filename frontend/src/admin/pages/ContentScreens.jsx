@@ -18,7 +18,7 @@ export function HeroSlidesPage() {
       .catch(() => setCategories([]));
   }, []);
   const fields = useMemo(() => [
-    { name: "image_url", title: "الصورة", type: "media", required: true, hint: "المقاس الموصى به لسطح المكتب: 2100×800 بكسل (21:8)." },
+    { name: "image_url", title: "الصورة", type: "media", required: true, hint: "الأبعاد الموصى بها: 2100 × 800 بكسل — نسبة 21:8" },
     {
       name: "target_type", title: "وجهة الإعلان", type: "select", required: true, defaultValue: "none",
       options: [

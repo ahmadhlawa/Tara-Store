@@ -41,6 +41,9 @@ export default function CategoryBannersPage() {
   return (
     <div>
       <PageHeader title="بنرات الأقسام" description="صور مخصّصة لرأس صفحات الأقسام الرئيسية فقط." />
+      <p style={sx`margin:-8px 0 18px;color:#766669;font-size:12px;line-height:1.7`}>
+        الأبعاد الموصى بها: 2100 × 500 بكسل — بانر عريض لصفحة القسم. حافظ على العناصر المهمة قرب منتصف الصورة.
+      </p>
       {feedback.node}
       {loading ? <Spinner /> : categories.length === 0 ? (
         <Notice>لا توجد أقسام رئيسية لإدارة بنراتها.</Notice>

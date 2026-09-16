@@ -169,7 +169,7 @@ export function CategoriesPage() {
         { name: "name", title: "اسم القسم", required: true },
         { name: "slug", title: "الرابط (اختياري)", hint: "يُولَّد من الاسم إذا تُرك فارغاً", omitWhenEmpty: true },
         { name: "description", title: "الوصف", type: "textarea", rows: 3 },
-        { name: "image_url", title: "صورة القسم", type: "media", emptyAsNull: true },
+        { name: "image_url", title: "صورة القسم", type: "media", emptyAsNull: true, hint: "الأبعاد الموصى بها: 1200 × 1500 بكسل — تستخدم لبطاقات الأقسام. حافظ على العناصر المهمة قرب منتصف الصورة." },
         {
           name: "parent_id",
           title: "القسم الأب",

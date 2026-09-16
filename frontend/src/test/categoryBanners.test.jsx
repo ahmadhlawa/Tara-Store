@@ -17,6 +17,7 @@ describe("category banners admin page", () => {
     });
     render(<CategoryBannersPage />);
 
+    expect(screen.getByText(/2100 × 500/)).toBeInTheDocument();
     expect(await screen.findByText("هدايا")).toBeInTheDocument();
     expect(screen.queryByText("فرعي")).not.toBeInTheDocument();
     expect(screen.getByText("لا يوجد بانر مخصّص")).toBeInTheDocument();

@@ -6,8 +6,8 @@
 
 .vs-pdp {
   display: grid;
-  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
-  grid-template-rows: auto auto;
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+  grid-template-rows: auto;
   gap: 28px 32px;
   align-items: start;
   padding-block: 20px 0;
@@ -97,6 +97,16 @@
   object-fit: contain;
   object-position: center;
   background: transparent;
+  animation: vs-gallery-fade 180ms ease-out;
+}
+
+@keyframes vs-gallery-fade {
+  from { opacity: 0.88; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vs-gallery__main .vs-media { animation: none; }
 }
 
 .vs-gallery__thumbs {
@@ -228,7 +238,7 @@
 }
 
 .vs-pdp__description h2 {
-  margin-block-end: 10px;
+  margin: 0 0 10px;
   font-size: clamp(18px, 2vw, 22px);
 }
 
