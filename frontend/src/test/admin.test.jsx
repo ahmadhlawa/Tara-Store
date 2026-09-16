@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { page, renderApp, respond, stubApi } from "./utils.jsx";
 import { authStorage } from "../storage/authStorage.js";
 import { api, setAuthToken, setUnauthorizedHandler } from "../api/client.js";
-import { CategoriesPage, orderCategoriesForAdmin } from "../admin/pages/CatalogScreens.jsx";
+import { CategoriesPage, orderCategoriesForAdmin, reorderedSiblingIds } from "../admin/pages/CatalogScreens.jsx";
 import { orderAxisTicks, salesAxisTicks } from "../admin/pages/DashboardPage.jsx";
 
 const ADMIN = {
@@ -71,6 +71,34 @@ describe("admin category hierarchy", () => {
     expect(ordered.map((category) => category.id)).toEqual([1, 2, 4, 3]);
     expect(ordered.map((category) => category.__categoryDepth)).toEqual([0, 1, 1, 0]);
     expect(new Set(ordered.map((category) => category.id)).size).toBe(categories.length);
+  });
+
+  it("reorders only categories with the same parent", () => {
+    expect(reorderedSiblingIds(categories, 4, 2)).toEqual({ parentId: 1, categoryIds: [4, 2] });
+    expect(reorderedSiblingIds(categories, 2, 3)).toBeNull();
+  });
+
+  it("persists a sibling drag in the displayed order", async () => {
+    const calls = stubApi({
+      "/api/v1/admin/categories": page(categories),
+      "PUT /api/v1/admin/categories/reorder": [categories[3], categories[0]],
+    });
+    render(<CategoriesPage />);
+    const source = await screen.findByRole("button", { name: `اسحب لترتيب ${categories[3].name}` });
+    const target = screen.getByRole("button", { name: `اسحب لترتيب ${categories[0].name}` });
+    const values = new Map();
+    const dataTransfer = {
+      effectAllowed: "move",
+      setData: (type, value) => values.set(type, value),
+      getData: (type) => values.get(type) || "",
+    };
+    fireEvent.dragStart(source, { dataTransfer });
+    fireEvent.dragOver(target, { dataTransfer });
+    fireEvent.drop(target, { dataTransfer });
+
+    await waitFor(() => expect(calls.some((call) =>
+      call.method === "PUT" && JSON.parse(call.body).category_ids.join(",") === "4,2",
+    )).toBe(true));
   });
 
   it("renders indented child labels while preserving row actions", async () => {

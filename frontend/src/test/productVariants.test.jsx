@@ -526,3 +526,61 @@ describe("saving options from the product editor", () => {
     expect(screen.queryByText("أحمر / صغير")).toBeNull();
   });
 });
+
+describe("option-driven product presentation", () => {
+  const presentationProduct = {
+    ...productFixture,
+    id: 50,
+    slug: "art-candle",
+    name: "Art Candle",
+    short_description: "Product headline",
+    primary_image_url: "/product-cover.webp",
+    images: [{ id: 500, url: "/product-cover.webp", alt_text: null, sort_order: 0 }],
+    has_options: true,
+    options: [{
+      id: 5,
+      name: "Scent",
+      sort_order: 0,
+      drives_presentation: true,
+      values: [
+        { id: 51, value: "Coconut", presentation_title: "Coconut Scent", images: [{ id: 511, url: "/coconut.webp", sort_order: 0 }] },
+        { id: 52, value: "Lavender", presentation_title: "Lavender Scent", images: [{ id: 521, url: "/lavender.webp", sort_order: 0 }] },
+        { id: 53, value: "Pink Sugar", presentation_title: null, images: [] },
+      ],
+    }],
+    variants: [],
+  };
+
+  const renderPresentation = (product = presentationProduct) => {
+    stubApi(storefrontFor(product));
+    renderApp(`/product/${product.slug}`);
+  };
+
+  it("defaults to the first presentation value and its gallery", async () => {
+    renderPresentation();
+    expect(await screen.findByText("Coconut Scent")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Coconut" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("img", { name: "Art Candle" })).toHaveAttribute("src", "/coconut.webp");
+  });
+
+  it("changes title and gallery with the selected value", async () => {
+    renderPresentation();
+    await userEvent.click(await screen.findByRole("button", { name: "Lavender" }));
+    expect(screen.getByText("Lavender Scent")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Art Candle" })).toHaveAttribute("src", "/lavender.webp");
+  });
+
+  it("falls back to the product gallery when the value has no images", async () => {
+    renderPresentation();
+    await userEvent.click(await screen.findByRole("button", { name: "Pink Sugar" }));
+    expect(screen.getByRole("heading", { name: "Pink Sugar" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Art Candle" })).toHaveAttribute("src", "/product-cover.webp");
+  });
+
+  it("leaves products without a presentation option unchanged", async () => {
+    const product = { ...productFixture, slug: "ordinary-product", name: "Ordinary Product" };
+    renderPresentation(product);
+    expect(await screen.findByText(product.short_description)).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Scent" })).toBeNull();
+  });
+});

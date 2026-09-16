@@ -177,6 +177,7 @@ class ProductOption(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     affects_price: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    drives_presentation: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     product: Mapped[Product] = relationship(back_populates="options")
     values: Mapped[list["ProductOptionValue"]] = relationship(
@@ -198,8 +199,28 @@ class ProductOptionValue(Base):
     value: Mapped[str] = mapped_column(String(150), nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     price_override: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    presentation_title: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     option: Mapped[ProductOption] = relationship(back_populates="values")
+    images: Mapped[list["ProductOptionValueImage"]] = relationship(
+        back_populates="option_value",
+        cascade="all, delete-orphan",
+        order_by="ProductOptionValueImage.sort_order, ProductOptionValueImage.id",
+    )
+
+
+class ProductOptionValueImage(Base):
+    __tablename__ = "product_option_value_images"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    option_value_id: Mapped[int] = mapped_column(
+        ForeignKey("product_option_values.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    url: Mapped[str] = mapped_column(String(500), nullable=False)
+    alt_text: Mapped[str | None] = mapped_column(String(250), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    option_value: Mapped[ProductOptionValue] = relationship(back_populates="images")
 
 
 class ProductVariantOptionValue(Base):

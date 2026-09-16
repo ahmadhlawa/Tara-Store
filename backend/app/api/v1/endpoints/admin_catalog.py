@@ -17,12 +17,14 @@ from app.models import (
     ProductImage,
     ProductOption,
     ProductOptionValue,
+    ProductOptionValueImage,
     ProductSpecification,
     ProductVariant,
 )
 from app.schemas.catalog import (
     CategoryAdminOut,
     CategoryCreate,
+    CategoryReorderIn,
     CategoryUpdate,
     PackageItemIn,
     PackageItemOut,
@@ -64,7 +66,7 @@ def list_categories(
         stmt = stmt.where(Category.name.like(f"%{q}%"))
     if is_active is not None:
         stmt = stmt.where(Category.is_active.is_(is_active))
-    stmt = stmt.order_by(Category.created_at.asc(), Category.id.asc())
+    stmt = stmt.order_by(Category.sort_order.asc(), Category.created_at.asc(), Category.id.asc())
     rows, total = catalog_service.paginate(
         db, stmt, offset=pagination.offset, limit=pagination.page_size
     )
@@ -86,9 +88,15 @@ def list_categories(
 def create_category(payload: CategoryCreate, db: DbSession, admin: CurrentAdmin):
     if payload.parent_id is not None:
         get_or_404(db, Category, payload.parent_id, "القسم الأب غير موجود.")
+    sibling_order = db.execute(
+        select(func.max(Category.sort_order)).where(
+            Category.parent_id == payload.parent_id if payload.parent_id is not None else Category.parent_id.is_(None)
+        )
+    ).scalar_one()
     category = Category(
         **payload.model_dump(exclude={"slug"}),
         slug=unique_slug(db, Category, payload.slug or payload.name),
+        sort_order=(sibling_order if sibling_order is not None else -1) + 1,
     )
     db.add(category)
     db.flush()
@@ -103,6 +111,49 @@ def create_category(payload: CategoryCreate, db: DbSession, admin: CurrentAdmin)
     db.commit()
     db.refresh(category)
     return {**catalog_service.category_payload(category), "created_at": category.created_at, "updated_at": category.updated_at}
+
+
+@router.put("/categories/reorder", response_model=list[CategoryAdminOut])
+def reorder_categories(payload: CategoryReorderIn, db: DbSession, admin: CurrentAdmin):
+    if len(payload.category_ids) != len(set(payload.category_ids)):
+        raise DomainError("لا يمكن تكرار القسم في الترتيب.", code="category_reorder_duplicate")
+    parent_filter = (
+        Category.parent_id == payload.parent_id
+        if payload.parent_id is not None
+        else Category.parent_id.is_(None)
+    )
+    siblings = list(
+        db.execute(
+            select(Category)
+            .where(parent_filter)
+            .order_by(Category.sort_order, Category.created_at, Category.id)
+        ).scalars()
+    )
+    by_id = {category.id: category for category in siblings}
+    if set(payload.category_ids) != set(by_id):
+        raise DomainError(
+            "يجب أن يقتصر الترتيب على جميع الأقسام التابعة للأب نفسه.",
+            code="category_reorder_parent_mismatch",
+        )
+    for position, category_id in enumerate(payload.category_ids):
+        by_id[category_id].sort_order = position
+    audit_service.record(
+        db,
+        admin=admin,
+        action="category.reordered",
+        entity_type="category",
+        entity_id=payload.parent_id,
+        meta={"category_ids": payload.category_ids},
+    )
+    db.commit()
+    return [
+        {
+            **catalog_service.category_payload(by_id[category_id]),
+            "created_at": by_id[category_id].created_at,
+            "updated_at": by_id[category_id].updated_at,
+        }
+        for category_id in payload.category_ids
+    ]
 
 
 @router.patch("/categories/{category_id}", response_model=CategoryAdminOut)
@@ -121,6 +172,14 @@ def update_category(category_id: int, payload: CategoryUpdate, db: DbSession, ad
             ancestor = get_or_404(db, Category, ancestor.parent_id, "القسم الأب غير موجود.")
     data = payload.model_dump(exclude_unset=True)
     resulting_parent_id = data.get("parent_id", category.parent_id)
+    if "parent_id" in data and resulting_parent_id != category.parent_id:
+        sibling_filter = (
+            Category.parent_id == resulting_parent_id
+            if resulting_parent_id is not None
+            else Category.parent_id.is_(None)
+        )
+        sibling_order = db.execute(select(func.max(Category.sort_order)).where(sibling_filter)).scalar_one()
+        data["sort_order"] = (sibling_order if sibling_order is not None else -1) + 1
     resulting_banner = data.get("banner_image_url", category.banner_image_url)
     if resulting_parent_id is not None and resulting_banner is not None:
         raise DomainError(
@@ -470,6 +529,10 @@ def replace_options(
     product = _load_product(db, product_id)
     if sum(bool(option.affects_price) for option in payload) > 1:
         raise DomainError("يمكن لخيار واحد فقط تغيير السعر.", code="multiple_price_options")
+    if sum(bool(option.drives_presentation) for option in payload) > 1:
+        raise DomainError(
+            "يمكن لخيار واحد فقط التحكم بعرض المنتج.", code="multiple_presentation_options"
+        )
     # Snapshot before touching the axes: once a value row is deleted the
     # association rows go with it, and the variant would look empty.
     variant_value_ids = {
@@ -510,6 +573,7 @@ def replace_options(
             row.name = option.name
             row.sort_order = option.sort_order or index
             row.affects_price = option.affects_price
+            row.drives_presentation = option.drives_presentation
             value_rows: list[ProductOptionValue] = []
             for value_index, value in enumerate(option.values):
                 value_row = existing_values.get(value.id) if value.id else None
@@ -522,6 +586,17 @@ def replace_options(
                 value_row.value = value.value
                 value_row.sort_order = value.sort_order or value_index
                 value_row.price_override = value.price_override if option.affects_price else None
+                value_row.presentation_title = (
+                    value.presentation_title.strip() if value.presentation_title else None
+                )
+                value_row.images = [
+                    ProductOptionValueImage(
+                        url=image.url,
+                        alt_text=image.alt_text,
+                        sort_order=index,
+                    )
+                    for index, image in enumerate(value.images)
+                ] if option.drives_presentation else []
                 value_rows.append(value_row)
             row.values = value_rows
             option_rows.append(row)

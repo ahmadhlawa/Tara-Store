@@ -83,7 +83,7 @@ describe("public storefront", () => {
     expect(await screen.findByText("لا توجد منتجات مطابقة")).toBeInTheDocument();
   });
 
-  it("renders a product page with its price, specifications and description", async () => {
+  it("renders a focused product page without specifications or delivery guidance", async () => {
     stubApi({
       ...storefrontRoutes,
       "/api/v1/products/clear-resin/related": [],
@@ -95,11 +95,11 @@ describe("public storefront", () => {
     expect(screen.getByText("100 ₪")).toBeInTheDocument();
     expect(screen.getByText("130 ₪")).toBeInTheDocument();
     expect(screen.getByText("فقرة أولى.")).toBeInTheDocument();
-
-    // Description / specifications / delivery are a real tablist at this width;
-    // below 900px the same panels become an accordion.
-    await userEvent.click(screen.getByRole("tab", { name: "المواصفات" }));
-    expect(await screen.findByText("الوزن")).toBeInTheDocument();
+    const pdp = within(document.querySelector(".vs-pdp"));
+    expect(pdp.queryByText("المواصفات")).not.toBeInTheDocument();
+    expect(pdp.queryByText("الوزن")).not.toBeInTheDocument();
+    expect(pdp.queryByText("التوصيل والدفع")).not.toBeInTheDocument();
+    expect(pdp.queryByText("الدفع عند الاستلام")).not.toBeInTheDocument();
   });
 
   it("keeps a missing product on an intentional not-found page", async () => {

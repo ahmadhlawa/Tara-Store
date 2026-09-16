@@ -19,7 +19,7 @@ const comboKey = (ids) =>
     .sort((a, b) => a - b)
     .join("-");
 
-export default function OptionPicker({ product, variants, variantId, onPick, simpleChoices = {}, onSimplePick, error }) {
+export default function OptionPicker({ product, variants, variantId, onPick, simpleChoices = {}, onSimplePick, presentationValueId, onPresentationPick, error }) {
   const axes = useMemo(
     () => (product?.options || []).filter((option) => (option.values || []).length),
     [product],
@@ -41,8 +41,14 @@ export default function OptionPicker({ product, variants, variantId, onPick, sim
     });
   }, [axes, variants]);
 
-  const [choice, setChoice] = useState({});
-  useEffect(() => setChoice({}), [product?.id]);
+  const presentationOption = axes.find((axis) => axis.drives_presentation);
+  const initialChoice = () => presentationOption && presentationValueId != null
+    ? { [presentationOption.id]: presentationValueId }
+    : {};
+  const [choice, setChoice] = useState(initialChoice);
+  // Product identity is the reset boundary; the default comes from its ordered values.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => setChoice(initialChoice()), [product?.id]);
 
   const errorId = error ? "vs-option-error" : undefined;
 
@@ -76,7 +82,13 @@ export default function OptionPicker({ product, variants, variantId, onPick, sim
                 className="vs-option"
                 aria-pressed={variant.id === variantId}
                 data-out={out}
-                onClick={() => onPick(variant.id)}
+                onClick={() => {
+                  const presentationId = presentationOption?.values.find((value) =>
+                    (variant.option_value_ids || []).map(Number).includes(Number(value.id)),
+                  )?.id;
+                  if (presentationId != null) onPresentationPick?.(presentationId);
+                  onPick(variant.id);
+                }}
               >
                 {variant.title}
                 {out && <span className="vs-option__out"> — نفد</span>}
@@ -106,6 +118,7 @@ export default function OptionPicker({ product, variants, variantId, onPick, sim
   const pick = (axis, value) => {
     const next = { ...choice, [axis.id]: value.id };
     setChoice(next);
+    if (axis.drives_presentation) onPresentationPick?.(value.id);
     const ids = axes.map((item) => next[item.id]).filter((id) => id != null);
     const match =
       ids.length === axes.length
@@ -134,7 +147,7 @@ export default function OptionPicker({ product, variants, variantId, onPick, sim
                   key={value.id}
                   type="button"
                   className="vs-option"
-                  aria-pressed={choice[axis.id] === value.id}
+                  aria-pressed={Number(choice[axis.id] ?? (axis.drives_presentation ? presentationValueId : null)) === Number(value.id)}
                   data-out={out || unavailable}
                   disabled={unavailable}
                   onClick={() => pick(axis, value)}

@@ -37,6 +37,11 @@ class CategoryUpdate(APIModel):
     _validate_image_urls = field_validator("image_url", "banner_image_url")(safe_resource_url)
 
 
+class CategoryReorderIn(APIModel):
+    parent_id: int | None = None
+    category_ids: list[int] = Field(min_length=1)
+
+
 class CategoryOut(APIModel):
     id: int
     name: str
@@ -76,6 +81,14 @@ class ProductImageReorderIn(APIModel):
     image_ids: list[int] = Field(min_length=1)
 
 
+class ProductOptionValueImageIn(ProductImageIn):
+    pass
+
+
+class ProductOptionValueImageOut(ProductOptionValueImageIn):
+    id: int
+
+
 class ProductSpecificationIn(APIModel):
     name: str = Field(min_length=1, max_length=150)
     value: str = Field(min_length=1, max_length=500)
@@ -93,10 +106,13 @@ class ProductOptionValueIn(APIModel):
     value: str = Field(min_length=1, max_length=150)
     sort_order: int = 0
     price_override: Money | None = None
+    presentation_title: str | None = Field(default=None, max_length=200)
+    images: list[ProductOptionValueImageIn] = Field(default_factory=list)
 
 
 class ProductOptionValueOut(ProductOptionValueIn):
     id: int
+    images: list[ProductOptionValueImageOut] = Field(default_factory=list)
 
 
 class ProductOptionIn(APIModel):
@@ -104,6 +120,7 @@ class ProductOptionIn(APIModel):
     name: str = Field(min_length=1, max_length=100)
     sort_order: int = 0
     affects_price: bool = False
+    drives_presentation: bool = False
     values: list[ProductOptionValueIn] = Field(default_factory=list)
 
 
@@ -112,6 +129,7 @@ class ProductOptionOut(APIModel):
     name: str
     sort_order: int
     affects_price: bool = False
+    drives_presentation: bool = False
     values: list[ProductOptionValueOut] = Field(default_factory=list)
 
 

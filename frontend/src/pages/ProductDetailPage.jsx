@@ -9,13 +9,12 @@ import { productView } from "../utils/productView.js";
 import AddToCartButton from "../components/AddToCartButton.jsx";
 import Gallery from "../components/public/product/Gallery.jsx";
 import OptionPicker from "../components/public/product/OptionPicker.jsx";
-import ProductPanels from "../components/public/product/ProductPanels.jsx";
 import QuantityStepper from "../components/public/cart/QuantityStepper.jsx";
 import ProductGrid from "../components/public/catalog/ProductGrid.jsx";
 import SectionHead from "../components/public/shell/SectionHead.jsx";
 import Media from "../components/public/shell/Media.jsx";
 import NotFoundRoutePage from "./NotFoundRoutePage.jsx";
-import { BoxIcon, TruckIcon, WalletIcon } from "../components/public/shell/icons.jsx";
+import { BoxIcon } from "../components/public/shell/icons.jsx";
 import useSeo, { absoluteUrl } from "../hooks/useSeo.js";
 
 function paragraphsOf(text) {
@@ -130,7 +129,6 @@ export default function ProductDetailPage() {
   }
 
   const view = productView(product, money);
-  const specs = product.specs || [];
   const description = paragraphsOf(product.description || product.short);
 
   // Returns false when the add was refused, so the button does not announce a
@@ -143,52 +141,6 @@ export default function ProductDetailPage() {
     addProduct(view, qty, selection.selected);
     return true;
   };
-
-  const panels = [
-    {
-      key: "desc",
-      label: "الوصف",
-      content: description.length ? (
-        description.map((text, index) => (
-          <p key={index} className="vs-prose">
-            {text}
-          </p>
-        ))
-      ) : (
-        <p className="vs-prose vs-prose--muted">لا يتوفر وصف تفصيلي لهذا المنتج بعد.</p>
-      ),
-    },
-    {
-      key: "specs",
-      label: "المواصفات",
-      content: specs.length ? (
-        <dl className="vs-specs">
-          {specs.map(([name, value]) => (
-            <div className="vs-specs__row" key={name}>
-              <dt>{name}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : (
-        <p className="vs-prose vs-prose--muted">لا تتوفر مواصفات إضافية لهذا المنتج.</p>
-      ),
-    },
-    {
-      key: "delivery",
-      label: "التوصيل والدفع",
-      content: (
-        <ul className="vs-bullets">
-          <li>الدفع عند الاستلام نقداً للمندوب عند التسليم.</li>
-          <li>لا يطلب المتجر بيانات بطاقات بنكية في أي مرحلة.</li>
-          <li>تُحتسب رسوم التوصيل حسب المنطقة في صفحة إتمام الطلب.</li>
-          <li>
-            راجع <Link to="/page/return-policy">سياسة التبديل والإرجاع</Link> قبل الطلب.
-          </li>
-        </ul>
-      ),
-    },
-  ];
 
   return (
     <>
@@ -208,7 +160,12 @@ export default function ProductDetailPage() {
 
       <div className="vs-container">
         <div className="vs-pdp">
-          <Gallery images={product.images} fallback={view.bg} alt={view.name} />
+          <Gallery
+            key={selection.selectedPresentationValue?.id ?? "product"}
+            images={selection.selectedPresentationValue?.images?.length ? selection.selectedPresentationValue.images : product.images}
+            fallback={view.bg}
+            alt={view.name}
+          />
 
           <div className="vs-pdp__info">
             <div className="vs-pdp__badges">
@@ -223,9 +180,11 @@ export default function ProductDetailPage() {
               {view.hasSale && <span className="vs-price__was">{view.oldText}</span>}
             </div>
 
-            {product.short && description[0] !== product.short && (
+            {selection.presentationOption ? (
+              <h2 className="vs-pdp__headline">{selection.selectedPresentationValue?.presentation_title || selection.selectedPresentationValue?.value}</h2>
+            ) : product.short && description[0] !== product.short ? (
               <h2 className="vs-pdp__headline">{product.short}</h2>
-            )}
+            ) : null}
 
             {selection.requiresChoice && (
               <OptionPicker
@@ -235,6 +194,8 @@ export default function ProductDetailPage() {
                 onPick={selection.setVariantId}
                 simpleChoices={selection.simpleChoices}
                 onSimplePick={selection.setSimpleChoice}
+                presentationValueId={selection.presentationValueId}
+                onPresentationPick={selection.setPresentationValueId}
                 error={error}
               />
             )}
@@ -284,20 +245,15 @@ export default function ProductDetailPage() {
               />
             </div>
 
-            <ul className="vs-pdp__assurance">
-              <li>
-                <WalletIcon size={17} /> الدفع عند الاستلام
-              </li>
-              <li>
-                <TruckIcon size={17} /> رسوم التوصيل تُحسب حسب المنطقة
-              </li>
-            </ul>
           </div>
 
-          {/* Inside the product grid rather than under it: on desktop the panels
-              fill the column beside the gallery instead of leaving it blank. */}
-          <section className="vs-pdp__panels">
-            <ProductPanels panels={panels} />
+          <section className="vs-pdp__description" aria-labelledby="product-description-title">
+            <h2 id="product-description-title">الوصف</h2>
+            {description.length ? description.map((text, index) => (
+              <p key={index} className="vs-prose">{text}</p>
+            )) : (
+              <p className="vs-prose vs-prose--muted">لا يتوفر وصف تفصيلي لهذا المنتج بعد.</p>
+            )}
           </section>
         </div>
       </div>

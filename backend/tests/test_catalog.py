@@ -84,6 +84,49 @@ def test_category_banner_is_persisted_for_roots_only(
     assert removed.json()["banner_image_url"] is None
 
 
+def test_category_sibling_reorder_persists_and_drives_public_tree(
+    client: TestClient, db: Session, admin_token: str
+) -> None:
+    root = Category(name="Root", slug="root")
+    first = Category(name="First", slug="first", parent=root, sort_order=0)
+    second = Category(name="Second", slug="second", parent=root, sort_order=1)
+    db.add_all([root, first, second])
+    db.commit()
+
+    reordered = client.put(
+        "/api/v1/admin/categories/reorder",
+        headers=auth(admin_token),
+        json={"parent_id": root.id, "category_ids": [second.id, first.id]},
+    )
+    assert reordered.status_code == 200, reordered.text
+
+    listed = client.get(
+        "/api/v1/admin/categories", headers=auth(admin_token), params={"page_size": 100}
+    ).json()["items"]
+    assert [row["id"] for row in listed if row["parent_id"] == root.id] == [second.id, first.id]
+    tree = client.get("/api/v1/categories").json()
+    assert [row["id"] for row in tree[0]["children"]] == [second.id, first.id]
+
+
+def test_category_reorder_rejects_categories_from_different_parents(
+    client: TestClient, db: Session, admin_token: str
+) -> None:
+    left = Category(name="Left", slug="left")
+    right = Category(name="Right", slug="right")
+    left_child = Category(name="Left child", slug="left-child", parent=left)
+    right_child = Category(name="Right child", slug="right-child", parent=right)
+    db.add_all([left, right, left_child, right_child])
+    db.commit()
+
+    response = client.put(
+        "/api/v1/admin/categories/reorder",
+        headers=auth(admin_token),
+        json={"parent_id": left.id, "category_ids": [left_child.id, right_child.id]},
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "category_reorder_parent_mismatch"
+
+
 def test_category_filters_and_counts_include_all_descendants(
     client: TestClient, db: Session
 ) -> None:
@@ -358,6 +401,57 @@ def test_variants_belong_to_their_product_and_carry_their_own_stock(
     detail = client.get(f"/api/v1/products/{product.slug}").json()
     assert len(detail["variants"]) == 1
     assert detail["variants"][0]["price_override"] == 150
+
+
+def test_option_value_presentation_data_saves_and_reloads(
+    client: TestClient, db: Session, admin_token: str
+) -> None:
+    product = make_product(db, slug="presentation-scent", name="Art Candle")
+    saved = client.put(
+        f"/api/v1/admin/products/{product.id}/options",
+        headers=auth(admin_token),
+        json=[{
+            "name": "الرائحة",
+            "drives_presentation": True,
+            "values": [{
+                "value": "لافندر",
+                "presentation_title": "Lavender Scent",
+                "images": [
+                    {"url": "/media/lavender-2.webp", "sort_order": 9},
+                    {"url": "/media/lavender-1.webp", "alt_text": "Lavender"},
+                ],
+            }],
+        }],
+    )
+    assert saved.status_code == 200, saved.text
+    value = saved.json()[0]["values"][0]
+    assert saved.json()[0]["drives_presentation"] is True
+    assert value["presentation_title"] == "Lavender Scent"
+    assert [image["sort_order"] for image in value["images"]] == [0, 1]
+    assert all(image["id"] for image in value["images"])
+
+    public = client.get(f"/api/v1/products/{product.slug}")
+    assert public.status_code == 200
+    assert [image["url"] for image in public.json()["options"][0]["values"][0]["images"]] == [
+        "/media/lavender-2.webp",
+        "/media/lavender-1.webp",
+    ]
+
+
+def test_only_one_option_can_drive_presentation(
+    client: TestClient, db: Session, admin_token: str
+) -> None:
+    product = make_product(db, slug="two-presentation-axes", name="Candle")
+    response = client.put(
+        f"/api/v1/admin/products/{product.id}/options",
+        headers=auth(admin_token),
+        json=[
+            {"name": "الرائحة", "drives_presentation": True, "values": [{"value": "لافندر"}]},
+            {"name": "الحجم", "drives_presentation": True, "values": [{"value": "كبير"}]},
+        ],
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "multiple_presentation_options"
 
 
 def test_a_variant_cannot_take_two_values_from_the_same_axis(

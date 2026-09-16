@@ -47,23 +47,34 @@ export function useProductDetail(slug) {
 export function useVariantSelection(product) {
   const [variantId, setVariantId] = useState(null);
   const [simpleChoices, setSimpleChoices] = useState({});
+  const [presentationValueId, setPresentationValueId] = useState(null);
 
-  useEffect(() => { setVariantId(null); setSimpleChoices({}); }, [product?.id]);
+  useEffect(() => { setVariantId(null); setSimpleChoices({}); setPresentationValueId(null); }, [product?.id]);
 
   const variants = useMemo(
     () => (product?.variants || []).filter((variant) => variant.is_active),
     [product],
   );
 
-  const selected = useMemo(
-    () => variants.find((variant) => variant.id === variantId) || null,
-    [variants, variantId],
-  );
+  const presentationOption = (product?.options || []).find((option) => option.drives_presentation) || null;
+  const defaultPresentationValue = presentationOption?.values?.[0] || null;
+  const effectivePresentationValueId = presentationValueId ?? defaultPresentationValue?.id ?? null;
+  const selectedPresentationValue = presentationOption?.values?.find(
+    (value) => Number(value.id) === Number(effectivePresentationValueId),
+  ) || null;
+  const defaultVariant = presentationOption && (product?.options || []).length === 1
+    ? variants.find((variant) => (variant.option_value_ids || []).length === 1
+      && Number(variant.option_value_ids[0]) === Number(effectivePresentationValueId)) || null
+    : null;
+  const selected = variants.find((variant) => variant.id === variantId) || defaultVariant;
 
   // Options declared without any variant row cannot be honoured from a card or a
   // quick view; those products are sent to the full product page instead.
   const simple = !!product?.hasOptions && variants.length === 0;
-  const selectedOptionValueIds = Object.values(simpleChoices).map(Number);
+  const effectiveSimpleChoices = presentationOption && simpleChoices[presentationOption.id] == null
+    ? { ...simpleChoices, [presentationOption.id]: effectivePresentationValueId }
+    : simpleChoices;
+  const selectedOptionValueIds = Object.values(effectiveSimpleChoices).filter((value) => value != null).map(Number);
   const requiresChoice = !!product?.hasOptions;
   const unavailable = false;
   const simpleComplete = !simple || selectedOptionValueIds.length === (product?.options || []).length;
@@ -85,10 +96,17 @@ export function useVariantSelection(product) {
 
   return {
     variants,
-    variantId,
+    variantId: selected?.id ?? variantId,
     setVariantId,
-    simpleChoices,
-    setSimpleChoice: (optionId, valueId) => setSimpleChoices((current) => ({ ...current, [optionId]: valueId })),
+    simpleChoices: effectiveSimpleChoices,
+    setSimpleChoice: (optionId, valueId) => {
+      setSimpleChoices((current) => ({ ...current, [optionId]: valueId }));
+      if (Number(optionId) === Number(presentationOption?.id)) setPresentationValueId(valueId);
+    },
+    presentationOption,
+    selectedPresentationValue,
+    presentationValueId: effectivePresentationValueId,
+    setPresentationValueId,
     selected: selected || simpleSelection,
     selectedOptionValueIds,
     requiresChoice,

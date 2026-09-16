@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { adminApi } from "../../api/adminApi.js";
 import sx from "../../sx.js";
 import ResourceScreen from "../ResourceScreen.jsx";
 import { Badge } from "../ui.jsx";
 
 export function orderCategoriesForAdmin(categories) {
-  const createdFirst = (a, b) => {
+  const siblingOrder = (a, b) => {
+    const order = Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0);
+    if (order) return order;
     const time = String(a.created_at || "").localeCompare(String(b.created_at || ""));
     return time || a.id - b.id;
   };
@@ -18,7 +20,7 @@ export function orderCategoriesForAdmin(categories) {
     if (category.parent_id == null || !ids.has(category.parent_id)) return;
     const children = childrenByParent.get(category.parent_id) || [];
     children.push(category);
-    children.sort(createdFirst);
+    children.sort(siblingOrder);
     childrenByParent.set(category.parent_id, children);
   });
 
@@ -31,30 +33,74 @@ export function orderCategoriesForAdmin(categories) {
 
   categories
     .filter((category) => category.parent_id == null || !ids.has(category.parent_id))
-    .sort(createdFirst)
+    .sort(siblingOrder)
     .forEach((category) => append(category));
   categories.forEach((category) => append(category));
 
   return ordered;
 }
 
+export function reorderedSiblingIds(categories, sourceId, targetId) {
+  const source = categories.find((category) => category.id === sourceId);
+  const target = categories.find((category) => category.id === targetId);
+  if (!source || !target || source.parent_id !== target.parent_id) return null;
+  const siblings = orderCategoriesForAdmin(
+    categories.filter((category) => category.parent_id === source.parent_id),
+  ).map((category) => category.id);
+  const from = siblings.indexOf(sourceId);
+  const to = siblings.indexOf(targetId);
+  siblings.splice(to, 0, siblings.splice(from, 1)[0]);
+  return { parentId: source.parent_id ?? null, categoryIds: siblings };
+}
+
 export function CategoriesPage() {
   const [parents, setParents] = useState([]);
-
-  useEffect(() => {
-    adminApi
-      .listCategories({ page_size: 100 })
-      .then((result) => setParents(result.items || []))
-      .catch(() => setParents([]));
-  }, []);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [reorderError, setReorderError] = useState("");
+  const [draggedId, setDraggedId] = useState(null);
 
   const fetchList = useCallback(async () => {
     const result = await adminApi.listCategories({ page_size: 100 });
-    return orderCategoriesForAdmin(result.items || []);
-  }, []);
+    const categories = result.items || [];
+    setParents(categories);
+    return orderCategoriesForAdmin(categories);
+  }, [reloadKey]);
+
+  const saveCategoryOrder = async (sourceId, targetId) => {
+    const reordered = reorderedSiblingIds(parents, sourceId, targetId);
+    if (!reordered) {
+      setReorderError("يمكن ترتيب الأقسام التابعة للأب نفسه فقط.");
+      return;
+    }
+    setReorderError("");
+    try {
+      await adminApi.reorderCategories(reordered.parentId, reordered.categoryIds);
+      setReloadKey((value) => value + 1);
+    } catch (error) {
+      setReorderError(error.message || "تعذّر حفظ ترتيب الأقسام.");
+    }
+  };
+
+  const dropCategory = (event, targetId) => {
+    event.preventDefault();
+    const transferredId = Number(event.dataTransfer.getData("text/category-id"));
+    saveCategoryOrder(transferredId || draggedId, targetId);
+    setDraggedId(null);
+  };
+
+  const moveCategory = (row, offset) => {
+    const siblings = orderCategoriesForAdmin(
+      parents.filter((category) => category.parent_id === row.parent_id),
+    );
+    const index = siblings.findIndex((category) => category.id === row.id);
+    const target = siblings[index + offset];
+    if (target) saveCategoryOrder(row.id, target.id);
+  };
 
   return (
-    <ResourceScreen
+    <>
+      {reorderError && <p role="alert" style={sx`color:#A13E3E;font-size:13px`}>{reorderError}</p>}
+      <ResourceScreen
       title="الأقسام"
       description="أقسام المتجر وترتيب ظهورها في الواجهة."
       createLabel="إضافة قسم"
@@ -63,6 +109,38 @@ export function CategoriesPage() {
       updateItem={adminApi.updateCategory}
       deleteItem={adminApi.deleteCategory}
       columns={[
+        {
+          key: "__order",
+          title: "ترتيب",
+          render: (row) => (
+            <button
+              type="button"
+              draggable
+              aria-label={`اسحب لترتيب ${row.name}`}
+              title="اسحب، أو استخدم سهمي أعلى وأسفل، ضمن المستوى نفسه"
+              onDragStart={(event) => {
+                setDraggedId(row.id);
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/category-id", String(row.id));
+              }}
+              onDragEnd={() => setDraggedId(null)}
+              onDragOver={(event) => {
+                const source = parents.find((category) => category.id === draggedId);
+                if (source?.parent_id === row.parent_id) event.preventDefault();
+              }}
+              onDrop={(event) => dropCategory(event, row.id)}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                  event.preventDefault();
+                  moveCategory(row, event.key === "ArrowUp" ? -1 : 1);
+                }
+              }}
+              style={sx`display:inline-grid;place-items:center;width:34px;height:34px;padding:0;background:#fff;border:1px solid #D8C8E8;border-radius:8px;color:#735277;cursor:grab;user-select:none`}
+            >
+              ↕
+            </button>
+          ),
+        },
         {
           key: "name",
           title: "الاسم",
@@ -103,6 +181,7 @@ export function CategoriesPage() {
         { name: "show_on_home", title: "عرض في الصفحة الرئيسية", type: "checkbox" },
         { name: "is_active", title: "فعّال", type: "checkbox", defaultValue: true },
       ]}
-    />
+      />
+    </>
   );
 }

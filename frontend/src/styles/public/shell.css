@@ -987,13 +987,6 @@ img.vs-logo__img {
   border-radius: var(--vs-r-md);
 }
 
-.vs-footer__desc {
-  font-size: var(--vs-fs-sm);
-  line-height: 1.9;
-  max-width: 34ch;
-  color: var(--footer-muted-text);
-}
-
 .vs-footer__social-row {
   display: flex;
   justify-content: center;
@@ -1165,9 +1158,6 @@ img.vs-logo__img {
     grid-column: 1 / -1;
     gap: 6px;
   }
-  .vs-footer__desc {
-    line-height: 1.65;
-  }
   .vs-footer__col {
     gap: 5px;
   }
@@ -1199,8 +1189,7 @@ img.vs-logo__img {
   }
 }
 
-/* Focused storefront footer: useful information frames a centered brand mark,
-   while transparent botanical artwork keeps the hierarchy soft and handmade. */
+/* Focused storefront footer: useful information frames a centered brand mark. */
 .vs-footer {
   position: relative;
   overflow: hidden;
@@ -1270,52 +1259,6 @@ img.vs-logo__img {
   z-index: 1;
   border-radius: 50%;
   box-shadow: 0 10px 30px rgba(91, 65, 96, 0.08);
-}
-
-.vs-footer__desc {
-  max-width: 38ch;
-  margin-inline: auto;
-}
-
-.vs-footer__signature-ornament {
-  display: flex;
-  width: min(180px, 70%);
-  align-items: center;
-  gap: 10px;
-  color: color-mix(in srgb, var(--vs-primary) 72%, var(--footer-muted-text));
-  font-size: 14px;
-  line-height: 1;
-}
-
-.vs-footer__signature-ornament::before,
-.vs-footer__signature-ornament::after {
-  content: "";
-  height: 1px;
-  flex: 1;
-  background: linear-gradient(to right, transparent, var(--border-color-strong));
-}
-
-.vs-footer__signature-ornament::after {
-  background: linear-gradient(to left, transparent, var(--border-color-strong));
-}
-
-.vs-footer__sprig {
-  position: absolute;
-  inset-block-start: 54px;
-  width: 92px;
-  height: auto;
-  opacity: 0.32;
-  pointer-events: none;
-}
-
-.vs-footer__sprig--start {
-  inset-inline-start: calc(50% - 142px);
-  transform: rotate(-28deg);
-}
-
-.vs-footer__sprig--end {
-  inset-inline-end: calc(50% - 142px);
-  transform: scaleX(-1) rotate(-28deg);
 }
 
 .vs-footer__essentials {
@@ -1513,11 +1456,4 @@ img.vs-logo__img {
     --vs-logo-h: 124px;
   }
 
-  .vs-footer__sprig {
-    inset-block-start: 42px;
-    width: 74px;
-  }
-
-  .vs-footer__sprig--start { inset-inline-start: calc(50% - 118px); }
-  .vs-footer__sprig--end { inset-inline-end: calc(50% - 118px); }
 }

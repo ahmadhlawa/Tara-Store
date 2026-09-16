@@ -73,15 +73,17 @@ describe("TFN footer credit", () => {
 
     await screen.findByText("Developed by TFN Technologies Team");
     const footer = document.querySelector(".vs-footer");
-    const decorations = footer.querySelectorAll('.vs-footer__transition img, .vs-footer__sprig');
+    const decorations = footer.querySelectorAll('.vs-footer__transition img');
 
     expect(footer.querySelector('.vs-footer__brand')).not.toBeNull();
-    expect(footer.querySelector('.vs-footer__signature-ornament')).toHaveAttribute("aria-hidden", "true");
+    expect(footer.querySelector('.vs-footer__signature-ornament')).toBeNull();
+    expect(footer.querySelector('.vs-footer__sprig')).toBeNull();
+    expect(footer).not.toHaveTextContent("Handmade by Yumna");
     expect(footer.querySelector('.vs-footer__essentials')).not.toBeNull();
     const bottomItems = footer.querySelectorAll('.vs-footer__bottom-row > *');
     expect(bottomItems[1]).toHaveClass("vs-footer__credit");
     expect(bottomItems[2]).toHaveClass("vs-footer__copyright");
-    expect(decorations).toHaveLength(3);
+    expect(decorations).toHaveLength(1);
     decorations.forEach((image) => {
       expect(image).toHaveAttribute("alt", "");
       expect(image).toHaveAttribute("aria-hidden", "true");

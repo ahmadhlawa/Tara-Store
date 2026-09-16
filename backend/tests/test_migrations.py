@@ -38,6 +38,7 @@ EXPECTED_TABLES = {
     "orders",
     "package_items",
     "product_images",
+    "product_option_value_images",
     "product_option_values",
     "product_options",
     "product_specifications",
@@ -126,6 +127,30 @@ def test_the_revision_chain_is_linear_and_reaches_one_head() -> None:
             f"{revision.revision} is a merge point; the chain must stay linear"
         )
     assert len(revisions) == len({r.revision for r in revisions})
+
+
+def test_category_order_backfill_uses_created_at_then_id_per_parent(tmp_path, monkeypatch) -> None:
+    url = _disposable_url(tmp_path, monkeypatch)
+    config = _alembic_config(url)
+    command.upgrade(config, "0022_option_value_presentation")
+    engine = build_engine(url)
+    try:
+        with engine.begin() as connection:
+            base = "(id,parent_id,name,slug,is_active,is_featured,show_on_home,sort_order,created_at,updated_at)"
+            connection.execute(text(
+                f"INSERT INTO categories {base} VALUES "
+                "(1,NULL,'Root','root',1,0,0,9,'2026-01-01','2026-01-01'),"
+                "(2,1,'Later','later',1,0,0,9,'2026-01-03','2026-01-03'),"
+                "(3,1,'Earlier','earlier',1,0,0,9,'2026-01-02','2026-01-02')"
+            ))
+        command.upgrade(config, "head")
+        with engine.connect() as connection:
+            rows = connection.execute(
+                text("SELECT id, sort_order FROM categories WHERE parent_id=1 ORDER BY sort_order")
+            ).all()
+        assert rows == [(3, 0), (2, 1)]
+    finally:
+        engine.dispose()
 
 
 # ── media_assets.original_filename uniqueness ────────────────────────────────

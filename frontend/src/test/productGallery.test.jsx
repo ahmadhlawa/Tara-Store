@@ -11,18 +11,17 @@ const images = [
 ];
 
 describe("product gallery", () => {
-  it("keeps one semantic contained image over a decorative backdrop", async () => {
+  it("renders one semantic image and switches it without a decorative backdrop", async () => {
     const { container } = render(<Gallery images={images} alt="Tara candle" />);
     const frame = container.querySelector(".vs-gallery__main");
 
     expect(screen.getByRole("img", { name: "Tara candle" })).toHaveAttribute("src", "/portrait.jpg");
-    expect(frame.querySelector(".vs-media--foreground")).toBeInTheDocument();
-    expect(frame.querySelector(".vs-media--backdrop")).toHaveAttribute("aria-hidden", "true");
+    expect(frame.querySelectorAll("img")).toHaveLength(1);
+    expect(frame.querySelector(".vs-media--backdrop")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: /2/ }));
 
     expect(screen.getByRole("img", { name: "Tara candle" })).toHaveAttribute("src", "/landscape.jpg");
-    expect(frame.querySelector(".vs-media--backdrop")).toHaveAttribute("src", "/landscape.jpg");
     expect(screen.getByRole("button", { name: /2/ })).toHaveAttribute("aria-pressed", "true");
   });
 

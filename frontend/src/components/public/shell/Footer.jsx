@@ -89,7 +89,6 @@ export default function Footer() {
         </nav>
 
         <div className="vs-footer__brand">
-          <img className="vs-footer__sprig vs-footer__sprig--start" src="/branding/footer/botanical-sprig.png" alt="" aria-hidden="true" width="1536" height="1536" loading="lazy" decoding="async" />
           {settings.logoUrl ? (
             <span className="vs-logo__box vs-footer__logo" ref={logoBox}>
               <img className="vs-logo__img" src={settings.logoUrl} alt={settings.storeName} style={logoStyle} />
@@ -97,13 +96,6 @@ export default function Footer() {
           ) : (
             <span className="vs-footer__name">{settings.storeName}</span>
           )}
-          {(settings.seoDescription || settings.tagline) && (
-            <>
-              <p className="vs-footer__desc">{settings.seoDescription || settings.tagline}</p>
-              <span className="vs-footer__signature-ornament" aria-hidden="true">♡</span>
-            </>
-          )}
-          <img className="vs-footer__sprig vs-footer__sprig--end" src="/branding/footer/botanical-sprig.png" alt="" aria-hidden="true" width="1536" height="1536" loading="lazy" decoding="async" />
         </div>
 
         <div className="vs-footer__essentials">

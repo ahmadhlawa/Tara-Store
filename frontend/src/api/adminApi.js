@@ -39,6 +39,8 @@ export const adminApi = {
   listCategories: (params) => api.get("/admin/categories", withParams(params)),
   createCategory: (payload) => api.post("/admin/categories", payload, authed),
   updateCategory: (id, payload) => api.patch(`/admin/categories/${id}`, payload, authed),
+  reorderCategories: (parentId, categoryIds) =>
+    api.put("/admin/categories/reorder", { parent_id: parentId, category_ids: categoryIds }, authed),
   deleteCategory: (id) => api.delete(`/admin/categories/${id}`, authed),
 
   listHeroSlides: () => api.get("/admin/hero-slides", authed),

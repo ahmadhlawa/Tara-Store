@@ -4,6 +4,7 @@ import sx from "../../sx.js";
 import { adminApi } from "../../api/adminApi.js";
 import ProductImageGallery from "../ProductImageGallery.jsx";
 import ProductImagesEditor from "../ProductImagesEditor.jsx";
+import { MediaPickerDialog } from "../MediaPicker.jsx";
 import { automaticSeo } from "../seo.js";
 import {
   Button,
@@ -70,11 +71,18 @@ const optionPayload = (rows) => rows
     name: row.name.trim(),
     sort_order: index,
     affects_price: !!row.affects_price,
+    drives_presentation: !!row.drives_presentation,
     values: (row.values || []).filter((value) => value.value.trim()).map((value, valueIndex) => ({
       ...(value.id ? { id: value.id } : {}),
       value: value.value.trim(),
       sort_order: valueIndex,
       price_override: row.affects_price ? num(value.price_override) : null,
+      presentation_title: row.drives_presentation ? (value.presentation_title || "").trim() || null : null,
+      images: row.drives_presentation ? (value.images || []).map((image, imageIndex) => ({
+        url: image.url,
+        alt_text: image.alt_text || null,
+        sort_order: imageIndex,
+      })) : [],
     })),
   }));
 
@@ -97,6 +105,7 @@ export default function ProductEditorPage({ mode }) {
   const [queuedAdditional, setQueuedAdditional] = useState([]);
   const [specs, setSpecs] = useState([]);
   const [options, setOptions] = useState([]);
+  const [optionImagePicker, setOptionImagePicker] = useState(null);
   const [packageChoice, setPackageChoice] = useState({ included_product_id: "", quantity: 1, display_note: "" });
 
   const update = (patch) => setForm((current) => ({ ...current, ...patch }));
@@ -120,7 +129,14 @@ export default function ProductEditorPage({ mode }) {
           id: option.id,
           name: option.name,
           affects_price: !!option.affects_price,
-          values: option.values.map((value) => ({ id: value.id, value: value.value, price_override: value.price_override ?? "" })),
+          drives_presentation: !!option.drives_presentation,
+          values: option.values.map((value) => ({
+            id: value.id,
+            value: value.value,
+            price_override: value.price_override ?? "",
+            presentation_title: value.presentation_title ?? "",
+            images: value.images || [],
+          })),
         })),
       );
     } catch (error) {
@@ -336,12 +352,13 @@ export default function ProductEditorPage({ mode }) {
         />
       </Section>
 
-      <Section title="خيارات يختارها الزبون" actions={<Button variant="secondary" onClick={() => setOptions((rows) => [...rows, { name: "", affects_price: false, values: [{ value: "", price_override: "" }] }])}>+ إضافة خيار</Button>}>
+      <Section title="خيارات يختارها الزبون" actions={<Button variant="secondary" onClick={() => setOptions((rows) => [...rows, { name: "", affects_price: false, drives_presentation: false, values: [{ value: "", price_override: "", presentation_title: "", images: [] }] }])}>+ إضافة خيار</Button>}>
         {!options.length && <p style={sx`margin:0;font-size:13px;color:#8A7F95`}>أضف صفاً عندما يحتاج الزبون لاختيار قيمة قبل الشراء.</p>}
         {options.map((option, optionIndex) => (
           <div key={option.id ?? optionIndex} style={sx`display:flex;flex-direction:column;gap:10px;border:1px solid #F3EBE0;border-radius:10px;padding:12px`}>
             <input aria-label={`اسم الخيار ${optionIndex + 1}`} value={option.name} onChange={(e) => setOptions((rows) => rows.map((row, i) => i === optionIndex ? { ...row, name: e.target.value } : row))} placeholder="اسم الخيار: الرائحة" style={input} />
             <label style={sx`display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700`}><input type="checkbox" checked={!!option.affects_price} disabled={!option.affects_price && options.some((row, i) => i !== optionIndex && row.affects_price)} onChange={(e) => setOptions((rows) => rows.map((row, i) => i === optionIndex ? { ...row, affects_price: e.target.checked } : row))} /> هذا الخيار يغيّر السعر</label>
+            <label style={sx`display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700`}><input type="checkbox" checked={!!option.drives_presentation} onChange={(e) => setOptions((rows) => rows.map((row, i) => ({ ...row, drives_presentation: e.target.checked && i === optionIndex })))} /> هذا الخيار يتحكم بعنوان وصور صفحة المنتج</label>
             <div style={sx`display:flex;gap:8px;flex-wrap:wrap`}>
               {(option.values || []).map((value, valueIndex) => (
                 <div key={value.id ?? valueIndex} style={sx`display:flex;gap:6px;align-items:center`}>
@@ -350,12 +367,35 @@ export default function ProductEditorPage({ mode }) {
                   <Button variant="danger" onClick={() => setOptions((rows) => rows.map((row, i) => i === optionIndex ? { ...row, values: row.values.filter((_, j) => j !== valueIndex) } : row))} aria-label={`حذف القيمة ${valueIndex + 1}`}>×</Button>
                 </div>
               ))}
-              <Button variant="secondary" onClick={() => setOptions((rows) => rows.map((row, i) => i === optionIndex ? { ...row, values: [...row.values, { value: "", price_override: "" }] } : row))}>+ إضافة قيمة</Button>
+              <Button variant="secondary" onClick={() => setOptions((rows) => rows.map((row, i) => i === optionIndex ? { ...row, values: [...row.values, { value: "", price_override: "", presentation_title: "", images: [] }] } : row))}>+ إضافة قيمة</Button>
             </div>
+            {option.drives_presentation && (option.values || []).map((value, valueIndex) => (
+              <div key={`presentation-${value.id ?? valueIndex}`} style={sx`display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid #E7DCF2;border-radius:10px`}>
+                <strong style={sx`font-size:13px`}>{value.value || `القيمة ${valueIndex + 1}`}</strong>
+                <input aria-label={`عنوان العرض للقيمة ${valueIndex + 1}`} value={value.presentation_title || ""} onChange={(e) => setOptions((rows) => rows.map((row, i) => i === optionIndex ? { ...row, values: row.values.map((item, j) => j === valueIndex ? { ...item, presentation_title: e.target.value } : item) } : row))} placeholder="العنوان الظاهر تحت اسم المنتج" style={input} />
+                <div style={sx`display:flex;gap:8px;flex-wrap:wrap`}>
+                  {(value.images || []).map((image, imageIndex) => (
+                    <div key={`${image.url}-${imageIndex}`} style={sx`width:100px;display:flex;flex-direction:column;gap:5px`}>
+                      <img src={image.url} alt="" style={sx`width:100px;height:100px;object-fit:cover;border-radius:8px`} />
+                      <div style={sx`display:flex;gap:4px`}>
+                        <Button variant="ghost" disabled={imageIndex === 0} onClick={() => setOptions((rows) => rows.map((row, i) => i === optionIndex ? { ...row, values: row.values.map((item, j) => j === valueIndex ? { ...item, images: item.images.map((entry, k, all) => k === imageIndex - 1 ? all[imageIndex] : k === imageIndex ? all[imageIndex - 1] : entry) } : item) } : row))}>↑</Button>
+                        <Button variant="ghost" disabled={imageIndex === value.images.length - 1} onClick={() => setOptions((rows) => rows.map((row, i) => i === optionIndex ? { ...row, values: row.values.map((item, j) => j === valueIndex ? { ...item, images: item.images.map((entry, k, all) => k === imageIndex + 1 ? all[imageIndex] : k === imageIndex ? all[imageIndex + 1] : entry) } : item) } : row))}>↓</Button>
+                        <Button variant="danger" onClick={() => setOptions((rows) => rows.map((row, i) => i === optionIndex ? { ...row, values: row.values.map((item, j) => j === valueIndex ? { ...item, images: item.images.filter((_, k) => k !== imageIndex) } : item) } : row))}>×</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Button variant="secondary" onClick={() => setOptionImagePicker({ optionIndex, valueIndex })}>اختيار صور من مكتبة الوسائط</Button>
+              </div>
+            ))}
             <Button variant="danger" onClick={() => setOptions((rows) => rows.filter((_, i) => i !== optionIndex))}>حذف الخيار</Button>
           </div>
         ))}
       </Section>
+      {optionImagePicker && <MediaPickerDialog mode="multiple" excludeUrls={options[optionImagePicker.optionIndex]?.values[optionImagePicker.valueIndex]?.images?.map((image) => image.url) || []} onClose={() => setOptionImagePicker(null)} onSelect={(urls) => {
+        setOptions((rows) => rows.map((row, i) => i === optionImagePicker.optionIndex ? { ...row, values: row.values.map((item, j) => j === optionImagePicker.valueIndex ? { ...item, images: [...(item.images || []), ...urls.map((url) => ({ url, alt_text: form.name }))] } : item) } : row));
+        setOptionImagePicker(null);
+      }} />}
 
       {!isNew && (
         <>

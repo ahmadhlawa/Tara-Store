@@ -21,7 +21,6 @@ export default function Gallery({ images, fallback, alt }) {
         fallback={fallback}
         alt={alt}
         eager
-        backdrop
       />
       {list.length > 1 && (
         <div className="vs-gallery__thumbs" role="group" aria-label="صور المنتج">
