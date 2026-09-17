@@ -306,7 +306,7 @@
   font-size: var(--vs-fs-price);
   font-weight: var(--vs-fw-price);
   line-height: 1.4;
-  color: var(--vs-primary);
+  color: var(--vs-ink);
   font-feature-settings: "tnum";
 }
 

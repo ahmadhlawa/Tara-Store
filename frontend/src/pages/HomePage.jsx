@@ -106,7 +106,10 @@ export default function HomePage() {
   const [lists, setLists] = useState({});
   const [showcases, setShowcases] = useState({});
   const homeCategories = useMemo(
-    () => categories.filter((category) => category.showOnHome),
+    () => {
+      const flatten = (rows) => rows.flatMap((category) => [category, ...flatten(category.children || [])]);
+      return flatten(categories).filter((category) => category.showOnHome);
+    },
     [categories],
   );
 
@@ -180,7 +183,7 @@ export default function HomePage() {
     });
     homeCategories.forEach((category) => {
       catalogService
-        .list({ category: category.slug, sort: "featured", page_size: 4 })
+        .list({ category_id: category.id, show_on_home: true, page_size: 4 })
         .then((result) => {
           if (cancelled) return;
           setShowcases((current) => ({

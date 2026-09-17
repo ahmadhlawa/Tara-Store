@@ -2,7 +2,7 @@ import { useLocale } from "../../../i18n/locale.jsx";
 import { useLocation } from "react-router-dom";
 import { Link } from "../../../i18n/routing.jsx";
 import { OVERLAY, useStore } from "../../../app/StoreProvider.jsx";
-import { CartIcon, HomeIcon, MenuIcon, SearchIcon } from "./icons.jsx";
+import { CartIcon, HomeIcon, SearchIcon } from "./icons.jsx";
 
 /**
  * Thumb-reachable bar with the four verbs a phone visitor needs most. Every
@@ -22,14 +22,6 @@ export default function MobileTabBar() {
         aria-current={/^\/(ar|en)\/?$/.test(pathname) ? "page" : undefined}
       >
         <HomeIcon size={21} />{t("الرئيسية")}{" "}</Link>
-
-      <button
-        type="button"
-        className="vs-tabbar__item"
-        onClick={() => store.openOverlay(OVERLAY.MENU)}
-        aria-expanded={store.overlay === OVERLAY.MENU}
-      >
-        <MenuIcon size={21} />{t("الأقسام")}{" "}</button>
 
       <button
         type="button"

@@ -960,3 +960,28 @@ def test_a_rejected_option_update_leaves_options_and_variants_untouched(
     ).json()
     assert [option["name"] for option in kept] == ["اللون", "الحجم"]
     assert _variants(client, admin_token, product.id) == before
+
+
+def test_homepage_product_selection(client, db, admin_token):
+    root = Category(name="Root", slug="home-root")
+    child = Category(name="Child", slug="home-child", parent=root, show_on_home=True)
+    db.add_all([root, child])
+    db.commit()
+    created = client.post("/api/v1/admin/products", headers=auth(admin_token), json={
+        "name": "Home product", "price": "25.00", "stock_quantity": 5, "category_id": child.id,
+    })
+    assert created.status_code == 201, created.text
+    product = created.json()
+    assert product["show_on_home"] is False
+    updated = client.patch(f"/api/v1/admin/products/{product['id']}", headers=auth(admin_token), json={"show_on_home": True})
+    assert updated.status_code == 200
+    assert updated.json()["show_on_home"] is True
+    make_product(db, slug="hidden-home", category_id=child.id)
+    make_product(db, slug="inactive-home", category_id=child.id, show_on_home=True, is_active=False)
+    make_product(db, slug="unavailable-home", category_id=child.id, show_on_home=True, stock=0)
+    assert client.get("/api/v1/categories").json()[0]["children"][0]["show_on_home"] is True
+    selected = client.get("/api/v1/products", params={"category_id": child.id, "show_on_home": True}).json()["items"]
+    assert [row["id"] for row in selected] == [product["id"]]
+    assert selected[0]["show_on_home"] is True
+    assert client.get("/api/v1/products", params={"category_id": root.id, "show_on_home": True}).json()["total"] == 0
+    assert client.get("/api/v1/products", params={"category": root.slug}).json()["total"] == 2

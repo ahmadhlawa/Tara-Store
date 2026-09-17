@@ -69,6 +69,7 @@ describe("storefront with no catalog", () => {
   it("keeps the policy pages readable", async () => {
     stubApi({
       ...EMPTY_CATALOG,
+      "/api/v1/delivery-areas": [{ id: 1, name: "Test area", delivery_fee: 19, free_delivery_threshold: 987, min_order_amount: 40, estimated_days: "2-3" }],
       "/api/v1/pages/shipping-policy": {
         id: 5,
         title: "سياسة الشحن والتوصيل",
@@ -80,8 +81,10 @@ describe("storefront with no catalog", () => {
     renderApp("/page/shipping-policy");
 
     expect(
-      await screen.findByRole("heading", { name: "سياسة الشحن والتوصيل", level: 1 }),
+      await screen.findByRole("heading", { name: "سياسة الشحن", level: 1 }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/التوصيل المجاني للطلبات من 220 شيكل/)).toBeInTheDocument();
+    expect(await screen.findByText("Test area")).toBeInTheDocument();
+    expect(screen.getByText(/987/)).toBeInTheDocument();
+    expect(screen.queryByText(/220 شيكل/)).not.toBeInTheDocument();
   });
 });

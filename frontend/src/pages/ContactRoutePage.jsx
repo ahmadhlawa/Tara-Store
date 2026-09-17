@@ -37,7 +37,6 @@ export default function ContactRoutePage() {
         <h2 id="contact-methods-title">{t("كيف يمكننا مساعدتك؟")}</h2><p>{t("اختاري القناة الأنسب لك، وسنكون سعداء بالرد على استفسارك.")}</p>
         <div className="vs-contact-methods__list">{methods.map((method) => <a key={method.type} className={`vs-contact-method vs-contact-method--${method.type}`} href={method.href} target="_blank" rel="noopener noreferrer" aria-label={t("تواصل عبر {0}", [method.label])}><span className="vs-contact-method__icon"><ContactIcon type={method.type} /></span><span><strong>{t(method.label)}</strong><small>{method.value}</small></span><span className="vs-contact-method__arrow" aria-hidden="true">←</span></a>)}{!methods.length && <p className="vs-prose vs-prose--muted">{t("ستظهر روابط التواصل هنا فور إضافتها من إعدادات المتجر.")}</p>}</div>
       </section>
-      <aside className="vs-contact-note" aria-label={t("رسالة ترحيبية")}><img src="/branding/contact-note.png" width="1138" height="1402" alt="" loading="lazy" /></aside>
     </div>
   </section>;
 }

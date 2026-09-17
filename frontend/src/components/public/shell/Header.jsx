@@ -8,7 +8,7 @@ import { useLogoFit } from "../../../hooks/useLogoFit.js";
 import { useMoney } from "../../../hooks/useStorefront.js";
 import { navLinks } from "../../../store.js";
 import SearchBox from "../search/SearchBox.jsx";
-import { CartIcon, GlobeIcon, GridIcon, MenuIcon, SearchIcon, UserIcon } from "./icons.jsx";
+import { CartIcon, GlobeIcon, MenuIcon, SearchIcon, UserIcon } from "./icons.jsx";
 
 function StoreMark({ settings }) {
   const { t } = useLocale();
@@ -86,21 +86,9 @@ export default function Header() {
               onClick={() => openOverlay(OVERLAY.MENU)}
               aria-label={t("فتح القائمة")}
               aria-expanded={overlay === OVERLAY.MENU}
+              aria-controls="vs-mobile-menu"
             >
               <MenuIcon size={20} />
-            </button>
-
-            {/* The fixed category rail is desktop-only, so its trigger has to
-                exist here for a phone — same overlay, same categories. */}
-            <button
-              type="button"
-              className="vs-iconbtn vs-mob"
-              onClick={toggleCats}
-              aria-label={t("تصنيفات المنتجات")}
-              aria-expanded={catsOpen}
-              aria-controls="vs-catdrawer"
-            >
-              <GridIcon size={19} />
             </button>
 
             <StoreMark settings={settings} />

@@ -243,7 +243,7 @@
 
 .vs-cartline__total {
   font-size: 14px;
-  color: var(--vs-primary);
+  color: var(--vs-ink);
   margin-inline-start: auto;
 }
 
@@ -275,7 +275,7 @@
 
 .vs-cartdrawer__totals strong {
   font-size: 18px;
-  color: var(--vs-primary);
+  color: var(--vs-ink);
 }
 
 .vs-cartdrawer__hint {
@@ -452,7 +452,7 @@
 
 .vs-summary__total strong {
   font-size: 23px;
-  color: var(--vs-primary);
+  color: var(--vs-ink);
 }
 
 .vs-summary__note {
@@ -883,7 +883,7 @@
 
 .vs-contact-page__header { text-align: center; max-width: 620px; margin: 0 auto 40px; }
 .vs-contact-page__eyebrow { display: block; margin-bottom: 8px; color: var(--vs-accent); font-size: 13px; font-weight: 600; letter-spacing: .04em; }
-.vs-contact-page__layout { direction: ltr; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .82fr); gap: clamp(28px, 6vw, 76px); align-items: center; max-width: 1040px; margin-inline: auto; }
+.vs-contact-page__layout { direction: ltr; display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(28px, 6vw, 76px); align-items: center; max-width: 620px; width: 100%; margin-inline: auto; }
 .vs-contact-methods { direction: inherit; }
 [dir="rtl"] .vs-contact-methods { direction: rtl; }
 .vs-contact-methods h2 { margin: 0 0 8px; font-size: clamp(22px, 3vw, 30px); font-weight: 600; }
@@ -898,14 +898,10 @@
 .vs-contact-method strong { margin-bottom: 3px; font-size: 16px; }
 .vs-contact-method small { color: var(--vs-ink-4); direction: ltr; text-align: right; }
 .vs-contact-method__arrow { color: var(--vs-accent); font-size: 22px; }
-.vs-contact-note { display: flex; align-items: center; justify-content: center; padding: 8px; }
-.vs-contact-note img { display: block; width: min(100%, 430px); height: auto; border-radius: 24px; object-fit: contain; filter: drop-shadow(0 18px 28px rgba(86, 55, 67, .12)); }
 
 @media (max-width: 760px) {
   .vs-contact-page__header { margin-bottom: 28px; }
   .vs-contact-page__layout { grid-template-columns: 1fr; gap: 30px; }
-  .vs-contact-note { padding: 4px 18px 12px; }
-  .vs-contact-note img { width: min(100%, 360px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1027,3 +1023,5 @@
 @media (max-width: 899px) {
   .vs-checkout .vs-summary { order: -1; }
 }
+
+.vs-summary__row strong, .vs-summary__line > strong, .vs-cartline__unit, .vs-cartrow__unit, .vs-cartrow__total, .vs-done__summary strong { color: var(--vs-ink); }

@@ -302,7 +302,7 @@ img.vs-logo__img {
 .vs-suggest__price {
   font-size: 12.5px;
   font-weight: 500;
-  color: var(--vs-primary);
+  color: var(--vs-ink);
 }
 
 .vs-suggest__empty {

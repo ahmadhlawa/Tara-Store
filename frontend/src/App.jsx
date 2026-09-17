@@ -13,6 +13,7 @@ const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage.jsx"));
 const CartRoutePage = lazy(() => import("./pages/CartRoutePage.jsx"));
 const CheckoutRoutePage = lazy(() => import("./pages/CheckoutRoutePage.jsx"));
 const OrderSuccessRoutePage = lazy(() => import("./pages/OrderSuccessRoutePage.jsx"));
+const ShippingPolicyPage = lazy(() => import("./pages/ShippingPolicyPage.jsx"));
 const StaticContentPage = lazy(() => import("./pages/StaticContentPage.jsx"));
 const ContactRoutePage = lazy(() => import("./pages/ContactRoutePage.jsx"));
 const NotFoundRoutePage = lazy(() => import("./pages/NotFoundRoutePage.jsx"));
@@ -64,6 +65,7 @@ export default function App() {
           <Route path="cart" element={lazyRoute(CartRoutePage, null, { title: "سلة التسوق", noindex: true })} />
           <Route path="checkout" element={lazyRoute(CheckoutRoutePage, null, { title: "إتمام الطلب", noindex: true })} />
           <Route path="order-success/:orderNumber" element={lazyRoute(OrderSuccessRoutePage, null, { title: "تأكيد الطلب", noindex: true })} />
+          <Route path="page/shipping-policy" element={lazyRoute(ShippingPolicyPage)} />
           <Route path="page/:slug" element={lazyRoute(StaticContentPage)} />
           {/* Paths the original storefront used, kept working as direct links. */}
           <Route path="about" element={lazyRoute(StaticContentPage, { slug: "about" })} />

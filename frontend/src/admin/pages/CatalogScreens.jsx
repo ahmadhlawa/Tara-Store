@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { adminApi } from "../../api/adminApi.js";
 import sx from "../../sx.js";
+import { CategoryPicker } from "../CategoryPicker.jsx";
 import ResourceScreen from "../ResourceScreen.jsx";
 import { Badge } from "../ui.jsx";
 
@@ -175,7 +176,8 @@ export function CategoriesPage() {
           title: "القسم الأب",
           type: "select",
           emptyAsNull: true,
-          options: parents.map((row) => ({ value: row.id, label: row.name })),
+          renderControl: ({ value, onChange, row }) => <CategoryPicker categories={parents} value={value} onChange={onChange} excludedId={row?.id} emptyLabel="بدون قسم أب" />,
+          options: [],
         },
         { name: "is_featured", title: "قسم مميّز", type: "checkbox" },
         { name: "show_on_home", title: "عرض في الصفحة الرئيسية", type: "checkbox" },

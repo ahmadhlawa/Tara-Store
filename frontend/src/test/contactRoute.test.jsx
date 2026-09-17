@@ -12,8 +12,7 @@ describe("contact route", () => {
     const whatsapp = within(page).getByRole("link", { name: "تواصل عبر واتساب" });
     expect(whatsapp).toHaveAttribute("href", "https://wa.me/0590000000?text=");
     expect(within(page).getByRole("link", { name: "تواصل عبر إنستغرام" })).toHaveAttribute("href", "https://instagram.com/tara");
-    const note = within(page).getByLabelText("رسالة ترحيبية");
-    expect(note.querySelector("img")).toHaveAttribute("src", "/branding/contact-note.png");
+    expect(page.querySelector("img[src='/branding/contact-note.png']")).toBeNull();
     expect(within(page).queryByLabelText("الاسم")).not.toBeInTheDocument();
     expect(within(page).queryByLabelText("رقم الهاتف")).not.toBeInTheDocument();
     expect(within(page).queryByLabelText("رسالتك")).not.toBeInTheDocument();

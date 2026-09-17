@@ -23,6 +23,7 @@ export function normalizeProduct(raw) {
     stock: raw.stock_quantity ?? 0,
     trackInventory: raw.track_inventory !== false,
     inStock: raw.in_stock !== false,
+    showOnHome: !!raw.show_on_home,
     isNew: !!raw.is_new,
     featured: !!raw.is_featured,
     bestSeller: !!raw.is_bestseller,

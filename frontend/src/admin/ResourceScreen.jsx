@@ -56,7 +56,8 @@ function serialize(fields, values) {
   return payload;
 }
 
-function FieldControl({ field, value, onChange }) {
+function FieldControl({ field, value, onChange, row }) {
+  if (field.renderControl) return <Field title={field.title}>{field.renderControl({ value, onChange, row })}</Field>;
   if (field.type === "checkbox") {
     return (
       <label style={sx`display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#3B3243;cursor:pointer`}>
@@ -260,6 +261,7 @@ export default function ResourceScreen({
             <FieldControl
               key={field.name}
               field={editing.mode === "edit" && field.editTitle ? { ...field, title: field.editTitle } : field}
+              row={editing.row}
               value={values[field.name]}
               onChange={(value) => setValues((current) => ({ ...current, [field.name]: value }))}
             />

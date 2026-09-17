@@ -20,7 +20,7 @@ describe("public storefront", () => {
 
     expect(await screen.findAllByText(settingsFixture.store_name)).not.toHaveLength(0);
     expect(screen.getByRole("search")).toBeInTheDocument();
-    expect(screen.getByText(settingsFixture.announcement)).toBeInTheDocument();
+    expect(document.querySelector(".vs-free-shipping-bar")).toBeNull();
     expect(document.querySelector(".vs-footer")).toHaveTextContent("الدفع عند الاستلام");
     expect(screen.queryByText(/تحويل بنكي|تحويل يدوي/)).not.toBeInTheDocument();
     expect(screen.queryByText("من الساعة العاشرة صباحاً حتى السابعة مساءً")).not.toBeInTheDocument();

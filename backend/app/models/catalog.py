@@ -69,6 +69,7 @@ class Product(TimestampMixin, Base):
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    show_on_home: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0", nullable=False)
     is_new: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_bestseller: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

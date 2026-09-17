@@ -46,3 +46,30 @@ def test_production_templates_have_no_local_media_write_or_serve_path():
                     "DATABASE_URL=mysql+pymysql://", "TRANSLATION_ENABLED=true",
                     "LIBRETRANSLATE_URL=http://127.0.0.1:5000"]:
         assert setting in env
+
+
+def test_release_migration_head():
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+    config = Config()
+    config.set_main_option("script_location", str(ROOT / "backend/alembic"))
+    assert ScriptDirectory.from_config(config).get_current_head() == "0027_product_show_on_home"
+
+
+def test_product_home_migration_preserves_rows_and_default():
+    from sqlalchemy import create_engine, text
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+    spec = importlib.util.spec_from_file_location("home_migration", ROOT / "backend/alembic/versions/0027_product_show_on_home.py")
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    engine = create_engine("sqlite://")
+    with engine.begin() as connection:
+        connection.execute(text("CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT)"))
+        connection.execute(text("INSERT INTO products (id, name) VALUES (7, 'Existing'), (23, 'Other')"))
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+        assert connection.execute(text("SELECT id, name, show_on_home FROM products ORDER BY id")).all() == [(7, 'Existing', 1), (23, 'Other', 1)]
+        connection.execute(text("INSERT INTO products (id, name) VALUES (24, 'New')"))
+        assert connection.execute(text("SELECT show_on_home FROM products WHERE id = 24")).scalar() == 0
+    engine.dispose()

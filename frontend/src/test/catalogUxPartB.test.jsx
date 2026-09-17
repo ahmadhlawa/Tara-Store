@@ -149,13 +149,13 @@ describe("categories navigation", () => {
     expect(screen.getByRole("navigation", { name: "مسار القسم المحدد" })).toHaveTextContent("Candles›شموع الديكور›pattern candle");
   });
 
-  it("builds Home showcases only for enabled root categories", async () => {
+  it("builds Home showcases only for enabled categories at any depth", async () => {
     const enabled = { ...categoryFixture, id: 30, slug: "candles", name: "Candles", show_on_home: true, image_url: "/candles.jpg" };
     const second = { ...categoryFixture, id: 31, slug: "crochet", name: "Crochet", show_on_home: true, image_url: "/crochet.jpg" };
     const disabled = { ...categoryFixture, id: 32, slug: "resin", name: "Resin", show_on_home: false };
     const calls = stubApi({
       ...storefrontRoutes,
-      "/api/v1/categories": [enabled, second, disabled],
+      "/api/v1/categories": [{ ...enabled, children: [{ ...second, parent_id: enabled.id }] }, disabled],
       "/api/v1/products": page([productFixture]),
     });
     renderApp("/");
@@ -164,8 +164,9 @@ describe("categories navigation", () => {
     expect(document.querySelectorAll(".vs-home-showcase__content .vs-sec-head")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "Candles" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Crochet" })).toBeInTheDocument();
-    expect(calls.some((call) => call.path.includes("category=candles"))).toBe(true);
-    expect(calls.some((call) => call.path.includes("category=crochet"))).toBe(true);
-    expect(calls.some((call) => call.path.includes("category=resin"))).toBe(false);
+    expect(calls.some((call) => call.path.includes("show_on_home=true"))).toBe(true);
+    expect(calls.some((call) => call.path.includes("category_id=30"))).toBe(true);
+    expect(calls.some((call) => call.path.includes("category_id=31"))).toBe(true);
+    expect(calls.some((call) => call.path.includes("category_id=32"))).toBe(false);
   });
 });

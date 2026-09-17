@@ -204,6 +204,7 @@ class ProductBase(APIModel):
     low_stock_threshold: int | None = Field(default=None, ge=0)
     is_active: bool = True
     is_featured: bool = False
+    show_on_home: bool = False
     is_new: bool = False
     is_bestseller: bool = False
     sort_order: int = 0
@@ -240,6 +241,7 @@ class ProductUpdate(APIModel):
     low_stock_threshold: int | None = Field(default=None, ge=0)
     is_active: bool | None = None
     is_featured: bool | None = None
+    show_on_home: bool | None = None
     is_new: bool | None = None
     is_bestseller: bool | None = None
     sort_order: int | None = None
@@ -265,6 +267,7 @@ class ProductPublicOut(APIModel):
     track_inventory: bool
     in_stock: bool
     is_featured: bool
+    show_on_home: bool
     is_new: bool
     is_bestseller: bool
     primary_image_url: str | None = None
@@ -318,6 +321,7 @@ class ProductAdminListOut(APIModel):
     effective_low_stock_threshold: int
     is_active: bool
     is_featured: bool
+    show_on_home: bool
     is_new: bool
     is_bestseller: bool
     sort_order: int

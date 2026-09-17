@@ -83,6 +83,7 @@ def apply_product_filters(
     category_id: int | None = None,
     product_type: str | None = None,
     is_featured: bool | None = None,
+    show_on_home: bool | None = None,
     is_new: bool | None = None,
     is_bestseller: bool | None = None,
     on_sale: bool | None = None,
@@ -120,6 +121,8 @@ def apply_product_filters(
         stmt = stmt.where(Product.product_type == product_type)
     if is_featured is not None:
         stmt = stmt.where(Product.is_featured.is_(is_featured))
+    if show_on_home is not None:
+        stmt = stmt.where(Product.show_on_home.is_(show_on_home))
     if is_new is not None:
         stmt = stmt.where(Product.is_new.is_(is_new))
     if is_bestseller is not None:
@@ -204,6 +207,7 @@ def product_payload(product: Product, *, include_relations: bool) -> dict[str, A
         "track_inventory": product.track_inventory,
         "in_stock": in_stock(product),
         "is_featured": product.is_featured,
+        "show_on_home": product.show_on_home,
         "is_new": product.is_new,
         "is_bestseller": product.is_bestseller,
         "primary_image_url": product.primary_image_url,
@@ -279,6 +283,7 @@ def admin_product_list_payload(product: Product) -> dict[str, Any]:
         "low_stock_threshold": product.low_stock_threshold,
         "is_active": product.is_active,
         "is_featured": product.is_featured,
+        "show_on_home": product.show_on_home,
         "is_new": product.is_new,
         "is_bestseller": product.is_bestseller,
         "sort_order": product.sort_order,

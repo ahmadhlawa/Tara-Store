@@ -212,7 +212,7 @@
 }
 
 .vs-pdp .vs-price__now,
-.vs-buybar__price { color: var(--vs-ink-1); }
+.vs-buybar__price { color: var(--vs-ink); }
 
 .vs-pdp__notice {
   padding: 12px 14px;
@@ -498,7 +498,7 @@
   .vs-buybar__price {
     font-size: 14px;
     font-weight: 600;
-    color: var(--vs-primary);
+    color: var(--vs-ink);
   }
   .vs-buybar__cta {
     flex: 0 0 auto;
