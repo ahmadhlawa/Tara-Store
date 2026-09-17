@@ -23,7 +23,7 @@ R2_SECRET_ACCESS_KEY=
 R2_BUCKET_NAME=
 R2_PUBLIC_BASE_URL=
 R2_REGION=auto
-R2_OBJECT_PREFIX=tara/
+R2_OBJECT_PREFIX=tara-store/
 ```
 
 The S3 endpoint is normally `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`; it is
