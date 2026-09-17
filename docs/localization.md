@@ -27,7 +27,7 @@ Public browsing reads stored DB translations only and never calls LibreTranslate
 
 ```dotenv
 LIBRETRANSLATE_URL=http://127.0.0.1:5000
-LIBRETRANSLATE_API_KEY=
+LIBRETRANSLATE_API_KEY="" # Leave empty unless the service requires authentication.
 TRANSLATION_ENABLED=true
 TRANSLATION_TIMEOUT_SECONDS=15
 TRANSLATION_POLL_SECONDS=30
