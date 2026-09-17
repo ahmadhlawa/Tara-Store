@@ -12,14 +12,22 @@
 # Serves three things:
 #   1. the built SPA from frontend/dist, with a fallback so deep links work
 #   2. /api  reverse-proxied to the FastAPI service on loopback
-#   3. /media  the uploaded files, served directly from disk
+#   3. media is served directly by R2, never from this site's filesystem
 #
 # This file has never been installed on a server. Run `nginx -t` before reloading.
 # ─────────────────────────────────────────────────────────────────────────────
 
-log_format commerce_json escape=json '{"time":"$time_iso8601","request_id":"$request_id",'
+log_format commerce_CLIENT_SLUG_json escape=json '{"time":"$time_iso8601","request_id":"$request_id",'
     '"remote_addr":"$remote_addr","method":"$request_method","uri":"$uri",'
     '"status":$status,"duration":$request_time}';
+
+# Keep security headers inherited in every static location; per-location
+# add_header directives would discard the server's header set.
+map $uri $commerce_CLIENT_SLUG_cache_control {
+    default "";
+    ~^/assets/ "public, max-age=31536000, immutable";
+    /index.html "no-cache, must-revalidate";
+}
 
 server {
     listen 80;
@@ -47,7 +55,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/CLIENT_DOMAIN/privkey.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers off;
-    ssl_session_cache   shared:SSL:10m;
+    ssl_session_cache   shared:commerce_CLIENT_SLUG_SSL:10m;
     ssl_session_timeout 1d;
 
     add_header X-Content-Type-Options "nosniff" always;
@@ -55,12 +63,14 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Strict-Transport-Security "max-age=31536000" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'" always;
+    add_header Cache-Control $commerce_CLIENT_SLUG_cache_control always;
 
     # The API rejects oversized uploads itself (MAX_UPLOAD_SIZE_BYTES); keep this
     # at or slightly above that value so the error comes from the application.
     client_max_body_size 8m;
 
-    access_log /var/log/nginx/commerce-CLIENT_SLUG.access.log commerce_json;
+    access_log /var/log/nginx/commerce-CLIENT_SLUG.access.log commerce_CLIENT_SLUG_json;
     error_log  /var/log/nginx/commerce-CLIENT_SLUG.error.log;
 
     gzip on;
@@ -71,7 +81,7 @@ server {
     root PROJECT_PATH/frontend/dist;
     index index.html;
 
-    # Deep links such as /product/<slug>, /cart and /admin/orders are client-side
+    # Deep links such as /ar/product/<slug>, /en/checkout and /admin/orders are client-side
     # routes. Without this fallback they would 404 on reload.
     location / {
         try_files $uri $uri/ /index.html;
@@ -79,14 +89,12 @@ server {
 
     # Vite emits content-hashed asset filenames, so they can be cached hard.
     location /assets/ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
         try_files $uri =404;
     }
 
     # index.html must never be cached, or clients pin an old asset manifest.
     location = /index.html {
-        add_header Cache-Control "no-cache, must-revalidate";
+        try_files $uri =404;
     }
 
     # ── 2. The API ──────────────────────────────────────────────────────────
@@ -96,7 +104,7 @@ server {
 
         proxy_set_header Host              $host;
         proxy_set_header X-Real-IP         $remote_addr;
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For   $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host  $host;
         proxy_set_header X-Request-ID      $request_id;
@@ -129,18 +137,9 @@ server {
     }
 
     # ── 3. Uploaded media ───────────────────────────────────────────────────
-    # Served from PROJECT_PATH/backend/data/uploads; set LOCAL_MEDIA_ROOT=./data/uploads.
-    # Stored filenames are random hex, so they are safe to cache for a long time.
-    location /media/ {
-        alias PROJECT_PATH/backend/data/uploads/;
-        expires 30d;
-        add_header Cache-Control "public";
-        access_log off;
-        try_files $uri =404;
-
-        # Uploads are signature-checked and decoded/verified with Pillow; never execute them.
-        location ~ \.(php|py|sh|cgi|pl)$ { deny all; }
-    }
+    # Production media URLs point directly to R2_PUBLIC_BASE_URL, not local disk.
+    location = /media { return 404; }
+    location ^~ /media/ { return 404; }
 
     location ~ /\.(?!well-known) {
         deny all;
@@ -157,9 +156,9 @@ server {
 #
 # Verify:
 #   curl -I https://CLIENT_DOMAIN/
-#   curl -I https://CLIENT_DOMAIN/product/some-slug     # 200, not 404
+#   curl -I https://CLIENT_DOMAIN/ar/product/some-slug     # 200, not 404
 #   curl    https://CLIENT_DOMAIN/api/v1/store/settings
-#   curl -I https://CLIENT_DOMAIN/media/<an-uploaded-file>
+#   curl -I <public-image-URL-from-R2_PUBLIC_BASE_URL>
 #
 # Login and public-order abuse limits are enforced by the application. Keep
 # TRUSTED_PROXY_IPS restricted to this reverse proxy so client IPs are reliable.

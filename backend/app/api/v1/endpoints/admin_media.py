@@ -57,7 +57,7 @@ def _ensure_thumbnail(asset: MediaAsset, storage) -> None:
         thumbnail = store_thumbnail(storage, asset.stored_key, storage.read(asset.stored_key))
         asset.thumbnail_url = thumbnail.url
     except Exception:  # noqa: BLE001 - originals remain canonical and usable
-        logger.exception("Could not generate thumbnail for media asset %s", asset.id)
+        logger.warning("Could not generate thumbnail for media asset %s", asset.id)
         # Persist the fallback so a permanently unreadable object is not decoded on every list.
         asset.thumbnail_url = asset.url
 
@@ -118,7 +118,7 @@ async def upload_media(
     try:
         thumbnail = store_thumbnail(storage, stored.key, data)
     except Exception:  # noqa: BLE001 - thumbnail failure must not lose a valid original
-        logger.exception("Could not generate thumbnail for uploaded media %s", original_filename)
+        logger.warning("Could not generate thumbnail for uploaded media")
     asset = MediaAsset(
         original_filename=original_filename,
         stored_key=stored.key,
@@ -152,7 +152,7 @@ async def upload_media(
             try:
                 storage.delete(thumbnail.key)
             except Exception:  # noqa: BLE001
-                logger.exception("Could not clean up thumbnail after upload conflict")
+                logger.warning("Could not clean up thumbnail after upload conflict")
         if _asset_id_named(db, original_filename) is None:
             # Some other constraint failed; it is a server fault, not a duplicate name.
             raise
@@ -208,7 +208,7 @@ def delete_media(asset_id: int, db: DbSession, admin: CurrentAdmin):
         try:
             storage.delete(thumbnail_key_for(asset.stored_key))
         except Exception:  # noqa: BLE001 - DB deletion must still complete
-            logger.exception("Could not delete thumbnail for media asset %s", asset.id)
+            logger.warning("Could not delete thumbnail for media asset %s", asset.id)
 
     audit_service.record(
         db,

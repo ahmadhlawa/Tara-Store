@@ -1,8 +1,8 @@
 # Tara Store
 
-Arabic RTL e-commerce storefront and administration platform for Tara Store.
+Arabic RTL / English LTR e-commerce storefront and administration platform for Tara Store.
 
-> **Project status:** production deployment and real catalog entry are still pending.
+> **Project status:** production deployment is pending; owner catalog/data readiness requires handoff verification.
 
 The application provides a public storefront, guest checkout, order tracking, editorial
 content, and an administration workspace for catalog, media, orders, promotions, content,
@@ -17,7 +17,9 @@ are supported; online card payments are not included.
 | Backend | FastAPI, SQLAlchemy, and Alembic |
 | Local database | SQLite |
 | Production database | MySQL 8 compatible |
-| Media storage | Local storage or Cloudflare R2 |
+| Production media | Cloudflare R2 |
+| Development media | Local storage (R2 optional) |
+| Translation | Shared private LibreTranslate, stored in the database |
 
 The active profile is [Tara Store](instance/tara-store.yaml).
 
@@ -41,7 +43,7 @@ npm ci
 npm run dev
 ```
 
-See [local setup](docs/local-setup.md), [deployment handoff](docs/deployment/cpanel-handoff.md),
+See [local setup](docs/local-setup.md), [deployment handoff](deployment/README.md),
 and [known limitations](docs/known-limitations.md).
 
 ## Testing

@@ -6,7 +6,7 @@
 #
 # What this is NOT, and must never become:
 #   * a production database,
-#   * the eventual cPanel database,
+#   * the production database,
 #   * a shared or remote server.
 # It is bound to 127.0.0.1 only, so nothing outside this machine can reach it, and its
 # credentials come from an untracked env file that exists only here.

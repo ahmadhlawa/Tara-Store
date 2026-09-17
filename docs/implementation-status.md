@@ -1,3 +1,7 @@
+> Historical implementation log. Earlier hosting/storage statements describe past
+> decisions; the current architecture is MySQL + R2 + shared private LibreTranslate.
+> See [production preparation](../deployment/README.md).
+
 # Implementation status
 
 ## Storefront visual correction: header, logo, rail, hero, theme — 2026-08-03
@@ -5,7 +9,7 @@
 **Branch:** `fix/vista-reference-alignment`. **Not merged, not pushed.** One
 focused correction pass on the owner's screenshot feedback. No route, feature or
 component was added or removed, and the storefront was not redesigned. Full
-measurements and the browser evidence: [qa/vista-reference-alignment.md](qa/vista-reference-alignment.md) § Pass 2.
+measurements and the browser evidence: qa/vista-reference-alignment.md (historical record: `qa/vista-reference-alignment.md`, not retained) § Pass 2.
 
 | Complaint | Result |
 | --- | --- |
@@ -72,7 +76,7 @@ foreign prefix, `exists` never probes a foreign key).
 ### 2. Invoice print pagination
 
 Print CSS and the existing markup only — no redesign, no smaller type. Full result and
-the measured page table: [client/preview-visual-qa.md](client/preview-visual-qa.md) §4a.
+the measured page table: client/preview-visual-qa.md (historical record: `client/preview-visual-qa.md`, not retained) §4a.
 
 Three things were wrong, not one:
 
@@ -168,13 +172,13 @@ the read-only `template-upstream`.
 
 | Phase | State |
 | --- | --- |
-| 1. Social source audit | **Done** — Instagram readable, Facebook still login-walled. [client/social-source-audit.md](client/social-source-audit.md) |
+| 1. Social source audit | **Done** — Instagram readable, Facebook still login-walled. client/social-source-audit.md (historical record: `client/social-source-audit.md`, not retained) |
 | 2. Preview dataset | **Done** — `instance/preview/vista-social-preview.yaml`: 7 categories, 25 products, 12 media, 1 delivery area, 3 hero slides, 2 banners, 1 coupon |
 | 3. Preview batch lifecycle | **Done** — `import_batches` / `import_batch_records`, revision `0004`, `vista-preview validate/plan/seed/status/purge` |
 | 4. R2 storage provider | **Done as code**, **live verification BLOCKED** — no credentials in this environment |
 | 5. MySQL development runtime | **Done as configuration**, live verification BLOCKED at the time — Docker not installed. **Since passed on 2026-08-02 against local MySQL 8.0.46**; see the section at the top of this file |
 | 6. Storefront preview notice | **Done** — `VITE_PREVIEW_NOTICE`, absent from the bundle when unset |
-| 7. Visual QA | **Done — 2026-08-02.** All 16 public and admin routes opened in real Chrome at 390 / 768 / 1440 px against the populated preview catalog; full product → cart → COD checkout → admin confirm → invoice → A4 print flow driven through the UI. One storefront defect found and fixed. [client/preview-visual-qa.md](client/preview-visual-qa.md) |
+| 7. Visual QA | **Done — 2026-08-02.** All 16 public and admin routes opened in real Chrome at 390 / 768 / 1440 px against the populated preview catalog; full product → cart → COD checkout → admin confirm → invoice → A4 print flow driven through the UI. One storefront defect found and fixed. client/preview-visual-qa.md (historical record: `client/preview-visual-qa.md`, not retained) |
 
 ### Verification (all run in this session)
 
@@ -309,7 +313,7 @@ template's own history and is left as written.
 | 6. Invoices | **Done** — models, migration `0003`, service, admin API, admin screens, print layout |
 | 7. Local storage | **Done** — Vista media root, Git-ignored; seed brand assets kept separate |
 | 8. Local instance | **Done** — 26/26 live checks on a clean SQLite instance |
-| 9. Visual QA | **NOT DONE** — no browser tooling available. Manual checklist in [client/local-acceptance.md](client/local-acceptance.md) |
+| 9. Visual QA | **NOT DONE** — no browser tooling available. Manual checklist in client/local-acceptance.md (historical record: `client/local-acceptance.md`, not retained) |
 | 10. cPanel readiness | **Done as documentation** — checklist, handoff, env template, release script. No deployment performed |
 
 ### Verification
@@ -336,8 +340,8 @@ c5dace2  feat(vista): client identity, local instance and cPanel readiness
 1. **Send the owner [client/data-needed-from-owner.md](client/data-needed-from-owner.md).**
    Nothing else unblocks the store. Items 1–8 are hard blockers: without a delivery area
    no customer can complete checkout.
-2. **Send the host [deployment/cpanel-capability-checklist.md](deployment/cpanel-capability-checklist.md).**
-   Questions A1, A2 and A4 decide whether cPanel deployment is possible at all.
+2. **Historical hosting step superseded:** use the current
+   [production guide](../deployment/README.md); cPanel is no longer the target.
 3. **Do the visual QA** in a real browser at 390 / 768 / 1440px. Test the printed invoice
    with more than 15 line items — that is where the first page break happens.
 4. **Settle the currency and the invoice prefix** before the first confirmed order. Both
@@ -672,7 +676,7 @@ docs/local-setup.md              docs/backend-architecture.md
 docs/frontend-architecture.md    docs/database-model.md
 docs/api-modules.md              docs/admin-capabilities.md
 docs/sqlite-workflow.md          docs/future-mysql-migration.md
-docs/future-r2-integration.md    docs/deployment-templates.md
+docs/deployment/r2-preview-setup.md    docs/deployment-templates.md
 docs/new-client-checklist.md     docs/backup-and-restore.md
 docs/known-limitations.md
 ```

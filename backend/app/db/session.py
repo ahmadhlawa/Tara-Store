@@ -13,7 +13,7 @@ from app.core.config import settings
 
 def build_engine(url: str | None = None) -> Engine:
     url = url or settings.sqlalchemy_url()
-    kwargs: dict[str, object] = {"pool_pre_ping": True, "future": True}
+    kwargs: dict[str, object] = {"pool_pre_ping": True, "future": True, "hide_parameters": True}
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
     return create_engine(url, **kwargs)

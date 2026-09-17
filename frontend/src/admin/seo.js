@@ -1,6 +1,5 @@
 const textOnly = (value) => {
-  const element = document.createElement("div");
-  element.innerHTML = String(value || "");
+  const element = new DOMParser().parseFromString(String(value || ""), "text/html").body;
   return (element.textContent || "").replace(/\s+/g, " ").trim();
 };
 

@@ -275,6 +275,8 @@ def test_a_failing_upload_is_reported_without_the_credential() -> None:
     with pytest.raises(R2StorageError) as exc:
         provider.save(b"\x89PNG\r\n\x1a\n", content_type="image/png", extension=".png")
     assert "secret-value" not in str(exc.value)
+    import traceback
+    assert "secret-value" not in "".join(traceback.format_exception(exc.value))
 
 
 def test_endpoint_and_region_are_configurable(r2: R2StorageProvider) -> None:

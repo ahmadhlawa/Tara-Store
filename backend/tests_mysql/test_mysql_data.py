@@ -56,6 +56,13 @@ def auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def test_nonfinite_price_filters_return_validation_errors_not_mysql_errors(client):
+    for field in ("min_price", "max_price"):
+        for value in ("nan", "inf", "-inf"):
+            response = client.get("/api/v1/products", params={field: value})
+            assert response.status_code == 422
+
+
 # ── persistence through the real API ─────────────────────────────────────────
 def test_category_and_product_persist_through_the_api(client, admin_token: str) -> None:
     name = unique("قسم")

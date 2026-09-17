@@ -19,7 +19,7 @@ app/schemas/           Pydantic v2 request and response models — the API contr
 app/services/          business rules: pricing, orders, catalog, slugs, audit,
                        store settings, placeholder images, domain errors
 app/models/            SQLAlchemy 2.x ORM entities
-app/storage/           StorageProvider interface; local disk active, R2 inert
+app/storage/           StorageProvider interface; R2 production, local development/tests
 app/db/                engine, session factory, declarative Base
 app/core/              settings, enums, password hashing and JWT
 ```
@@ -123,9 +123,11 @@ filename or content type, and are size-limited by `MAX_UPLOAD_SIZE_BYTES`.
 
 The database stores metadata and a URL; files are never stored as Base64 or BLOBs.
 
-`R2StorageProvider` is a deliberate, inert boundary: selecting it without credentials
-raises a clear configuration error rather than failing silently. See
-[future-r2-integration.md](future-r2-integration.md).
+`R2StorageProvider` implements save, delete, exists and public URL resolution.
+Production stores media objects in R2 under `tara/`; missing required credentials
+raise a clear configuration error. Local disk and its `/media` mount remain for
+intentional development/tests only. See
+[deployment/r2-preview-setup.md](deployment/r2-preview-setup.md).
 
 ## Audit log
 

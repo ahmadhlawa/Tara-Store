@@ -1,144 +1,66 @@
 # Backup and restore
 
-The single most important point: **the database and the media directory must be backed up
-together, and restored together.** They reference each other. A database restored without
-its media shows broken images; media restored without its database is a directory of
-anonymous hex filenames with nothing describing them.
+Production is **MySQL + R2**. Back up database metadata and its referenced media objects
+as a matched recovery set. Local upload folders are not production media storage.
+These procedures require separate operational authorization; repository cleanup runs
+none of them and must not affect shared server resources.
 
-## What to back up
+## Recovery set
 
-| What | Where | Why |
-| --- | --- | --- |
-| Database | `DATABASE_URL` — SQLite file, or the MySQL database | Orders, catalogue, settings, admins |
-| Uploaded media | `LOCAL_MEDIA_ROOT` (default `backend/data/uploads/`) | The image bytes; the database stores only names and URLs |
-| `backend/.env` | The instance | `SECRET_KEY` and credentials. **Store separately, encrypted** |
+| Item | Scope |
+| --- | --- |
+| MySQL snapshot | Tara's database only: catalog, orders, content, translations, admins |
+| R2 object snapshot | Tara's referenced keys under `tara/`, with bytes and metadata |
+| Manifest | Timestamp, commit, Alembic revision, database identity, bucket/prefix, object keys and checksums |
+| Private environment | Encrypted, separately controlled copy of `backend/.env` |
 
-Not worth backing up — all reproducible from the repository: `node_modules/`,
-`frontend/dist/`, `backend/.venv/`, `__pycache__/`.
+Use protected credentials and encrypted off-host storage. Retain multiple monitored
+recovery generations. Database dumps contain customer records and password hashes;
+never commit them, put them in a public bucket or copy them into a release package.
+The built frontend and virtualenv are reproducible; record the source/dependency versions.
 
-`backend/.env` deserves care. Restoring a database with a *different* `SECRET_KEY` is
-fine — it just signs every administrator out. Losing `.env` entirely means reconstructing
-the database credentials by hand.
+## Production backup
 
-## Backing up SQLite
+Arrange a coordinated Tara write pause or equivalent consistency procedure so uploads,
+media deletions and database changes cannot make the snapshots disagree. Pause only
+Tara's writers, not other applications or the shared LibreTranslate service.
 
-Do **not** copy the file while the service is writing to it; you can capture a torn state.
-Use SQLite's own backup API, which is safe on a live database:
+An operator can dump Tara's InnoDB database using `mysqldump --single-transaction
+--routines --triggers --default-character-set=utf8mb4` with a protected credentials
+file or interactive password prompt. Verify database-specific dump/restore privileges
+and a successful exit status. Do not place passwords in command lines or documentation.
+Do not change shared MySQL global settings to make a backup or migration work.
 
-```bash
-python -c "import sqlite3; s=sqlite3.connect('data/commerce_dev.db'); d=sqlite3.connect('data/backup.db'); s.backup(d); d.close(); s.close()"
-```
+Copy the exact Tara object inventory to a private backup destination using a reviewed
+S3-compatible backup tool. Preserve full object keys, Content-Type and checksums, and
+verify that every database-referenced object is included. Do not assume S3 feature
+parity or bucket versioning; use explicit retained object snapshots. Never run a
+bucket-wide delete, lifecycle change or destructive sync on a shared bucket.
 
-Or, if `sqlite3` is installed:
+## Restore rehearsal and recovery
 
-```bash
-sqlite3 data/commerce_dev.db ".backup 'data/backup.db'"
-```
+Rehearse into an isolated scratch database and private test storage first. Preserve
+production recovery sets unchanged; do not overwrite the working database to test them.
 
-Then archive the database and the media together, so the pair can never be separated:
+For a separately authorized production recovery, pause only Tara, verify the selected
+manifest, restore Tara's database and its exact referenced R2 object set, and ensure
+stored public URLs still resolve. Do not delete unrelated objects or rewrite historical
+orders. With Tara stopped, reconcile the restored Alembic revision with the selected
+application release before restarting; an older database may require forward migrations.
 
-```bash
-STAMP=$(date +%Y%m%d-%H%M%S)
-tar czf commerce-CLIENT_SLUG-$STAMP.tar.gz data/backup.db data/uploads
-rm data/backup.db
-```
+Verify `/health` and `/ready`, expected Alembic revision, order counts/recent snapshots,
+translated content, Admin login, store identity and representative image URLs. `/ready`
+alone does not make a live R2 request. A changed `SECRET_KEY` signs administrators out.
+Never run demo seeding on a restored production store.
 
-## Backing up MySQL
+The shared LibreTranslate model volume is independent infrastructure. Tara's release
+or recovery must not recreate, stop, prune or delete it. Stored translations are in
+Tara's MySQL backup; shared service backups belong to its operator.
 
-```bash
-mysqldump --single-transaction --routines --default-character-set=utf8mb4 \
-  -u commerce_CLIENT_SLUG -p commerce_CLIENT_SLUG > db-$STAMP.sql
-tar czf commerce-CLIENT_SLUG-$STAMP.tar.gz db-$STAMP.sql data/uploads
-```
+## Intentionally retained local development workflow
 
-`--single-transaction` gives a consistent snapshot on InnoDB without locking the store.
-`--default-character-set=utf8mb4` is not optional — the content is Arabic, and dumping
-through a narrower charset corrupts it silently.
-
-Never put the password on the command line; use `--defaults-extra-file` or the interactive
-prompt.
-
-## Scheduling
-
-Whatever schedule you choose, three properties matter more than frequency:
-
-- **Off-host.** A backup on the same disk as the store is not a backup.
-- **Retained in generations.** Keep several — corruption is often noticed days later.
-- **Monitored.** A backup job that has been failing silently for a month is the normal
-  failure mode.
-
-A daily archive with, say, fourteen days of retention suits a small store. Match it to how
-much order history the client could bear to re-enter by hand.
-
-## Restoring
-
-Stop the service first, so nothing writes while you swap files underneath it.
-
-```bash
-systemctl stop commerce-CLIENT_SLUG
-```
-
-**SQLite**
-
-```bash
-tar xzf commerce-CLIENT_SLUG-STAMP.tar.gz -C /tmp/restore
-cp /tmp/restore/data/backup.db PROJECT_PATH/backend/data/commerce_dev.db
-rsync -a --delete /tmp/restore/data/uploads/ PROJECT_PATH/backend/data/uploads/
-chown -R commerce-CLIENT_SLUG:commerce-CLIENT_SLUG PROJECT_PATH/backend/data
-```
-
-**MySQL**
-
-```bash
-mysql -u commerce_CLIENT_SLUG -p --default-character-set=utf8mb4 \
-  commerce_CLIENT_SLUG < db-STAMP.sql
-rsync -a --delete /tmp/restore/data/uploads/ PROJECT_PATH/backend/data/uploads/
-```
-
-Then bring it back up and reconcile the schema:
-
-```bash
-systemctl start commerce-CLIENT_SLUG
-cd PROJECT_PATH/backend && .venv/bin/alembic upgrade head
-```
-
-`alembic upgrade head` matters when restoring an **older** backup into a **newer** code
-deployment: the data is at an older revision and must be migrated forward. It is a no-op
-if the revisions already match.
-
-## Verifying a restore
-
-A backup you have never restored is a hypothesis. Check all of these:
-
-- [ ] `curl http://127.0.0.1:BACKEND_PORT/health` returns 200
-- [ ] `alembic current` reports the expected revision
-- [ ] Order count and the most recent order number match the source
-- [ ] A product page loads **with its images** — this is what catches a media/database
-      mismatch
-- [ ] An administrator can sign in. If `SECRET_KEY` changed, everyone was signed out;
-      that is expected, not a failed restore
-- [ ] Store settings show the client's identity, not template defaults
-
-Rehearse a restore into a scratch instance at least once before handover, not during the
-first real incident.
-
-## Things that will bite you
-
-- **Restoring the database alone.** The commonest mistake. Products keep their image URLs,
-  the files are gone, and every product falls back to a gradient placeholder.
-- **Restoring media alone.** Filenames are `uuid4().hex`; without the database rows
-  nothing can be reassociated.
-- **`rsync` without `--delete`** leaves files from the failed state mixed into the restored
-  set. Usually harmless, occasionally confusing.
-- **Running `scripts.seed` on a restored production store.** It resets seeded product stock
-  and inserts demo content. Never run it against a live client store.
-- **Forgetting `.env`.** The application starts with defaults and a random-looking failure
-  rather than a clear one.
-
-## If media moves to R2
-
-The two halves separate: the database is backed up as above, while object storage needs
-its own strategy — bucket versioning, lifecycle rules, or a periodic sync to another
-bucket. Ensure a database backup and an object-storage snapshot can be matched by time, or
-you lose the ability to restore a consistent pair. See
-[future-r2-integration.md](future-r2-integration.md).
+Local SQLite and LocalStorageProvider are development/test capabilities. For an
+existing local dataset, use SQLite's backup API rather than copying a file mid-write;
+pair `backend/data/tara_store_dev.db` with `backend/data/tara-uploads/` while local
+media writes are paused. Keep these files, their WAL/SHM sidecars and backups ignored.
+This local workflow does not apply to production.

@@ -22,6 +22,7 @@ const RESOURCES = [
     fillCreate: async (editor, stamp) => {
       await editor.locator('input:not([type="checkbox"])').nth(1).fill(`E2E ${stamp}`);
       await editor.locator('input:not([type="checkbox"])').nth(2).fill(`E2e!${stamp}Pass`);
+      await editor.getByLabel("تأكيد كلمة المرور", { exact: true }).fill(`E2e!${stamp}Pass`);
     },
     editIndex: 1,
   },
@@ -48,7 +49,7 @@ for (const resource of RESOURCES) {
 
     const created = page.locator("tr", { hasText: value });
     await expect(created).toHaveCount(1);
-    await created.getByRole("button").first().click();
+    await created.getByRole("button", { name: "تعديل", exact: true }).click();
     const editDialog = page.getByRole("dialog");
     await editDialog.locator('input[type="text"], input:not([type])').nth(resource.editIndex ?? 0).fill(renamed);
     await editDialog.locator("button").last().click();
@@ -57,13 +58,13 @@ for (const resource of RESOURCES) {
 
     const edited = page.locator("tr", { hasText: rowAfterEdit });
     if (resource.editIndex !== undefined) {
-      await edited.getByRole("button").first().click();
+      await edited.getByRole("button", { name: "تعديل", exact: true }).click();
       await expect(
         page.getByRole("dialog").locator('input:not([type="checkbox"]):not([type="color"])').nth(resource.editIndex),
       ).toHaveValue(renamed);
       await page.getByRole("dialog").getByRole("button").first().click();
     }
-    await edited.getByRole("button").last().click();
+    await edited.getByRole("button", { name: "حذف", exact: true }).click();
     const confirm = page.getByRole("dialog");
     await expect(confirm).toBeVisible();
     await confirm.locator("button").last().click();

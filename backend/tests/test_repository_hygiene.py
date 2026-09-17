@@ -23,7 +23,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Whole-database files, in every spelling that has appeared or plausibly could.
 # `.bak` matters as much as `.db`: the committed backups were named
 # `vista_preview.db.20260804-051436.bak`, so a rule anchored on `.db$` missed them.
-DATABASE_SUFFIXES = (".db", ".sqlite", ".sqlite3", ".bak", ".dump", ".sql-journal")
+DATABASE_SUFFIXES = (
+    ".db", ".sqlite", ".sqlite3", ".bak", ".dump", ".sql", ".sql.gz", ".sql.bz2",
+    ".sql.xz", ".dump.gz", ".sql-journal", ".db-journal", ".db-wal", ".db-shm",
+    ".sqlite-journal", ".sqlite-wal", ".sqlite-shm", ".sqlite3-journal",
+    ".sqlite3-wal", ".sqlite3-shm",
+)
 
 # Real environment files. `.env.example` is the documented template and is the
 # one member of this family that must stay tracked.
@@ -32,12 +37,16 @@ ENV_ALLOWED = re.compile(r"(^|/)\.env\.example$", re.IGNORECASE)
 
 # Build output and installed dependencies.
 GENERATED_PATTERN = re.compile(
-    r"(^|/)(node_modules|dist|build|htmlcov|__pycache__|\.venv|\.pytest_cache|tmp)/"
-    r"|^backend/data/vista_validation_uploads_[^/]+/",
+    r"(^|/)(node_modules|dist|build|htmlcov|coverage|__pycache__|\.venv|\.pytest_cache|tmp|"
+    r"playwright-report|test-results|\.artifacts|\.r2-verify-tmp)/"
+    r"|^backend/data/(?:vista|tara)_(?:full_)?(?:validation|preview)[^/]*uploads[^/]*/"
+    r"|^instance/generated/",
     re.IGNORECASE,
 )
+UPLOAD_PATTERN = re.compile(r"^backend/data/(?:uploads|tara-uploads)/", re.IGNORECASE)
 SECRET_OR_TEMP_PATTERN = re.compile(
-    r"(^|/)(?:[^/]*credentials[^/]*\.json|[^/]+\.(?:pem|key|orig|swp))$",
+    r"(^|/)(?:[^/]*credentials[^/]*\.(?:json|ya?ml|ini|toml)|secrets\.(?:json|ya?ml)|"
+    r"id_rsa|id_ed25519|[^/]+\.(?:pem|key|orig|swp))$",
     re.IGNORECASE,
 )
 
@@ -113,3 +122,27 @@ def test_the_matcher_recognises_the_files_that_actually_leaked() -> None:
 
     # The template must remain trackable, or the repository loses its documentation.
     assert ENV_ALLOWED.search("backend/.env.example")
+
+
+def test_no_runtime_upload_is_tracked(tracked: list[str]) -> None:
+    offenders = [path for path in tracked
+                 if UPLOAD_PATTERN.search(path) and not path.endswith("/.gitkeep")]
+    assert not offenders, f"runtime uploads are tracked: {offenders}"
+
+
+@pytest.mark.parametrize("path", [
+    "backend/data/tara_store_dev.db-wal", "backend/data/tara_store_dev.db-shm",
+    "backups/tara.sql", "backups/tara.sql.gz", "backups/tara.dump.gz",
+    "backend/data/tara_validation_uploads_123/customer.png",
+    "backend/data/tara_full_validation_20260917-083000_uploads/customer.png",
+    "backend/data/tara-uploads/customer.png", "backend/data/uploads/customer.jpg",
+    "instance/generated/catalog.json", "frontend/test-results/trace.zip",
+    "frontend/e2e/.artifacts/screenshot.png", "backend/.r2-verify-tmp/image.png",
+    "r2-credentials.json", "secrets.yaml", "id_ed25519",
+])
+def test_tara_runtime_paths_are_guarded_and_ignored(path: str) -> None:
+    assert (path.lower().endswith(DATABASE_SUFFIXES) or GENERATED_PATTERN.search(path)
+            or UPLOAD_PATTERN.search(path) or SECRET_OR_TEMP_PATTERN.search(path))
+    result = subprocess.run(["git", "check-ignore", "--no-index", path], cwd=REPO_ROOT,
+                            capture_output=True, text=True)
+    assert result.returncode == 0, f"runtime path is not ignored: {path}"

@@ -42,15 +42,13 @@ every reference to it stay exactly as they are; no later purge considers it agai
 
 ## 1. Back up first
 
-Non-negotiable, and it must be the database **and** the media directory together — see
-[backup-and-restore.md](backup-and-restore.md). The purge deletes stored image objects as
-well as database rows.
+Back up the database and its actual media provider as a matched recovery set; see
+[backup-and-restore.md](backup-and-restore.md). The purge deletes stored image objects
+as well as database rows. Production uses MySQL and R2, not a local upload directory.
 
-```bash
-cd backend
-python -c "import sqlite3; s=sqlite3.connect('data/commerce_dev.db'); d=sqlite3.connect('data/pre-cutover.db'); s.backup(d); d.close(); s.close()"
-cp -r data/uploads ../pre-cutover-uploads
-```
+For intentionally retained local SQLite tooling, use SQLite's backup API and pair the
+backup of `backend/data/tara_store_dev.db` with `backend/data/tara-uploads/` while local
+media writes are paused. Never run this local procedure against production.
 
 ## 2. Run the cutover plan
 
@@ -248,3 +246,60 @@ Then confirm by eye in Admin and on the storefront:
 * A picture referenced by any surviving row is refused by the purge, not deleted.
 * Orders, order lines and invoices are never touched by any of these commands, and the
   purge refuses to delete a product or delivery area an order references.
+
+## Prelaunch transaction sanitation (separate from catalog cutover)
+
+`scripts.sanitize_transactions` is a one-time offline CLI for an instance where
+**every** order/invoice/activity and coupon use is confirmed test data. It must never
+be used to erase real sales. It never imports/calls storage providers or touches R2.
+The current working database has not been sanitized by this development task.
+
+From `backend`, using the intended target's protected `DATABASE_URL` environment:
+
+```bash
+python -m scripts.sanitize_transactions
+```
+
+This default is read-only: before/current/projected counts and preservation SHA-256
+hashes are returned. Unknown tables/columns/FKs, orphaned relationships, disabled FK
+checks or unexpected triggers fail closed. Execution additionally requires current
+forward migration `0026_prelaunch_sanitation`, transactional InnoDB for MySQL, stopped
+writers, and confirmation that all transaction data and coupon usage are test-derived.
+
+Before actual cutover, take a recoverable database backup, stop **only Tara's** API,
+importers and translation worker, and apply `python -m alembic upgrade head` with
+the approved migration account. Do not stop/manage the shared LibreTranslate service.
+Review a fresh dry-run, then the explicit destructive command is:
+
+```bash
+python -m scripts.sanitize_transactions --execute --confirm-test-data --writers-stopped
+```
+
+Within one transaction it clears `order_activities`, `invoice_items`, `invoices`,
+`invoice_sequences`, `order_item_package_components`, `order_items`,
+`order_status_history`, `orders`, and `audit_logs`; replacement invoice links are
+cleared first. It resets every coupon's `used_count` to zero (only under the explicit
+test-usage confirmation), preserving coupon definitions and timestamps. There is no
+TRUNCATE, AUTO_INCREMENT reset, stock rewrite, FK disabling, or MySQL DDL in sanitation.
+Invoice business numbering restarts naturally from the empty sequence table.
+
+Migration 0026 changes only the MySQL activity DELETE trigger: its maintenance
+exception requires a connection-scoped flag **and** ownership of the selected
+schema's advisory lock. Normal SQL and ORM deletes/updates remain blocked. The CLI
+clears the flag/releases the lock on success/failure; a disconnected session loses
+both. SQLite development copies restore their trigger using transactional DDL.
+Database credentials remain privileged; this is not a public/API sanitation endpoint.
+Never grant app database access to untrusted users.
+
+All nontransaction tables are hashed before/after, including catalog, options,
+variants, packages, content/settings, media URLs/keys, translations, accounts, and
+import ownership. A hash mismatch/nonzero transaction count rolls back everything.
+Execution prints committed before/after counts. Verify with an existing Admin token
+that `/api/v1/admin/dashboard` shows zero orders/revenue/sales and that `/orders`,
+`/invoices`, `/audit-logs` under `/api/v1/admin` are empty; browse both catalog locales
+and check images/content. A fresh login intentionally creates a new audit entry,
+so perform the empty-log check before logging in again.
+
+Test checkout may previously have consumed tracked stock. The sanitizer deliberately
+preserves current stock; the owner must reconcile inventory separately before launch.
+Do not change real media URLs/keys or delete objects as part of this operation.

@@ -69,7 +69,7 @@ Set, at minimum:
 - `APP_ENV=production`
 - `DATABASE_URL` — **a new, empty database for this client**
 - `CORS_ORIGINS` — the client's real domain
-- `LOCAL_MEDIA_ROOT` — a directory the service user can write to
+- Tara's referenced R2 object inventory (local media only for local development) — a directory the service user can write to
 
 Never put any of this in the profile. `chmod 600` the file and confirm
 `git check-ignore -v backend/.env`.
@@ -151,16 +151,16 @@ Roll back by restoring the backup and redeploying the previous release. Alembic
 
 ## Backup and restore
 
-The database and the media directory are backed up **together** and restored **together**;
-they reference each other. Full procedure, including verification, in
-[backup-and-restore.md](backup-and-restore.md).
+Production MySQL and referenced R2 objects are backed up and restored as a matched
+recovery set. LocalStorageProvider/SQLite remain development-only capabilities.
+See [backup-and-restore.md](backup-and-restore.md).
 
 **The instance profile is not a backup.** It describes initial identity and defaults, not
 the store's data. Restoring a profile recreates neither products, nor orders, nor edited
 content. Back up:
 
 - the database
-- `LOCAL_MEDIA_ROOT`
+- Tara's referenced R2 object inventory (local media only for local development)
 - `backend/.env`, stored separately and encrypted
 
 Keep the profile and manifest in version control or with the client's records, so an
@@ -180,7 +180,7 @@ Such a tool could create:
 - the environment file, with a generated `SECRET_KEY`
 - the systemd service
 - the Nginx site
-- the media directory and its permissions
+- isolated R2 storage settings and permissions
 - backup configuration
 
 **None of this exists today, and nothing in this repository modifies server services,

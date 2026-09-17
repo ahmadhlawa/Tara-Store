@@ -30,7 +30,7 @@ The application is never run as `root`. `root` is only ever needed to create the
 and the user in the first place; once they exist it is not used again, and the acceptance
 run below used the application user exclusively.
 
-**This is not, and must never become, the cPanel production database.** It is disposable.
+**This is not, and must never become, the production database.** It is disposable.
 
 ### Configuration
 
@@ -134,7 +134,7 @@ Run migrations through a sufficiently privileged deployment/DBA account, or ask 
 to enable `log_bin_trust_function_creators = 1` temporarily. Do not change grants or
 global variables from the application; restore any temporary trust setting promptly.
 
-**Check this before a cPanel handover.** Shared hosting may not provide either
+**Check this before a production handover.** Shared hosting may not provide either
 accommodation. In that case 0008 cannot be safely applied; because MySQL DDL is
 non-transactional, the preflight deliberately stops before either trigger is created.
 

@@ -1,4 +1,4 @@
-# Future MySQL migration
+# MySQL production database
 
 **Status: exercised in CI, never deployed.** The models, types and dependencies were
 chosen so that moving to MySQL 8 is a configuration change rather than a rewrite, and
@@ -9,10 +9,10 @@ the client lifecycle runs and is idempotent, the demo seed runs twice without ch
 row count, and `Decimal` money, JSON config, foreign keys, unique constraints and guest
 checkout all behave.
 
-That is a compatibility proof, not a deployment. **No MySQL server outside GitHub Actions
-has ever been contacted from this repository**, and the operational checklist below —
-charset, users, privileges, backups, connection pooling — is still work to be done on the
-day a client instance actually moves.
+MySQL is the fixed production data store; SQLite remains intentional for local tests
+and development. CI compatibility is not proof of actual server privileges, backups or
+configuration. This repository audit contacts no production database. The filename is
+retained because CLI diagnostics and historical records link to it.
 
 > The CI gate installs `pip install -c constraints.txt -e ".[dev,mysql,r2]"`. The `mysql` extra pulls
 > `PyMySQL[rsa]`, which MySQL 8 needs for its default `caching_sha2_password`
@@ -24,24 +24,24 @@ One database and one database user per client instance. No shared database, ever
 
 | Decision | Why it helps |
 | --- | --- |
-| SQLAlchemy 2.x ORM throughout | No hand-written SQL to port. There are no raw `text()` queries in application code |
+| SQLAlchemy 2.x ORM throughout | ORM access keeps normal queries portable; migrations include engine-specific SQL |
 | `PyMySQL` already a declared dependency | No dependency change is needed |
 | Enum-like columns are `String(32)` validated by Pydantic | No native `ENUM` columns, so adding a status value stays a code change rather than a schema migration |
 | Money is `Numeric(12,2)` with Python `Decimal` | Maps cleanly to MySQL `DECIMAL(12,2)`; no float rounding |
 | Timestamps are naive UTC `DateTime` | Maps to `DATETIME`; no timezone semantics to reconcile |
-| `JSON` used in only two places | `home_sections.config` and `audit_logs.meta` — MySQL 8 has native JSON |
+| `JSON` for structured fields | MySQL 8 supports the configuration and metadata fields — MySQL 8 has native JSON |
 | Alembic owns the schema | The same revision builds MySQL; `create_all` is only used for throwaway test databases |
 | Relative-path anchoring is SQLite-only | `sqlalchemy_url()` passes any non-SQLite URL through untouched |
 
 ## Switching
 
-Only `DATABASE_URL` changes:
+The production database URL uses:
 
 ```
 DATABASE_URL=mysql+pymysql://commerce_user:<password>@127.0.0.1:3306/commerce_database
 ```
 
-`.env.example` already carries this as a commented example. Then:
+The production template is `deployment/env/backend.env.example`. Then:
 
 ```bash
 alembic upgrade head
@@ -80,10 +80,8 @@ package not containing itself — are actually enforced, and pin the server vers
 over-length values instead of raising, which would silently corrupt data that SQLite
 accepted.
 
-**6 — Search.** `Product.search_text` with `LIKE '%term%'` cannot use an index. On MySQL,
-add a `FULLTEXT` index and adapt the catalog service query. Arabic full-text needs the
-`ngram` parser or a normalisation strategy — verify recall against real product names
-before promising search quality.
+**6 - Search.** The existing `LIKE '%term%'` behavior remains unchanged. Verify Arabic
+search against representative content; full-text indexing is outside this cleanup.
 
 **7 — Transactions.** Use InnoDB. The order-creation path depends on real transactional
 rollback to keep stock decrements and order rows consistent.
@@ -93,15 +91,14 @@ SQLite-specific. For MySQL, configure `pool_size`, `max_overflow` and especially
 `pool_pre_ping=True`, or connections idle past `wait_timeout` surface as
 "MySQL server has gone away".
 
-**9 — Run the suite against MySQL.** The pytest suite builds SQLite databases. Point it at
-a scratch MySQL database and run it before trusting the migration. Expect the first run to
-find something.
+**9 — Run the suite against MySQL.** The pytest suite builds SQLite databases. The dedicated `tests_mysql` suite runs against isolated scratch MySQL databases in CI;
+do not point destructive integration tests at production.
 
 ## Migrating existing data
 
 For a store that already has live SQLite data, the schema is only half the job:
 
-1. Back up both the database file and the media directory.
+1. Back up the source database and its actual media provider as a matched set.
 2. Build the MySQL schema with `alembic upgrade head` — never by dumping SQLite DDL.
 3. Move rows with a script that goes through SQLAlchemy models, so `Decimal`, `DateTime`
    and `JSON` values are converted by the same code that wrote them. A raw

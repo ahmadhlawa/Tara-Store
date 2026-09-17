@@ -1,3 +1,6 @@
+> Historical MVP design. Storage activation and hosting decisions below are superseded
+> by [the current MySQL/R2 production guide](../../deployment/README.md).
+
 # Full-stack commerce MVP — design
 
 Status: implemented on `feat/fullstack-commerce-mvp`.

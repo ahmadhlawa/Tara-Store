@@ -1,12 +1,12 @@
 name: MySQL 8 compatibility
 
-# The only MySQL connection this project makes. It is an ephemeral service container
+# This gate uses an ephemeral MySQL service container
 # inside the GitHub Actions runner: created for the job, thrown away with it. It never
 # reaches a developer machine, a VPS or any production database, and the credentials
 # below exist only for the lifetime of this job.
 #
-# Local development stays on SQLite. Docker is not a local requirement — a service
-# container is a CI-only facility.
+# Local SQLite and optional isolated MySQL tooling remain supported.
+# CI never connects to production.
 
 on:
   push:
@@ -14,6 +14,9 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "deployment/**"
+      - "scripts/make_release_package.py"
+      - ".gitignore"
       - "instance/**"
       - "VERSION"
       - ".github/workflows/mysql-compatibility.yml"
@@ -21,6 +24,9 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "deployment/**"
+      - "scripts/make_release_package.py"
+      - ".gitignore"
       - "instance/**"
       - "VERSION"
       - ".github/workflows/mysql-compatibility.yml"
@@ -68,6 +74,7 @@ jobs:
       # A database of its own, because the migration-order tests drop every table
       # to start each case from an empty schema.
       MYSQL_MIGRATION_URL: mysql+pymysql://commerce_ci:ci-only-password@127.0.0.1:3306/commerce_ci_migration?charset=utf8mb4
+      MYSQL_SANITATION_URL: mysql+pymysql://commerce_ci:ci-only-password@127.0.0.1:3306/commerce_ci_sanitation?charset=utf8mb4
       SECRET_KEY: ci-only-secret-not-used-anywhere-else
       APP_ENV: ci
       STORAGE_PROVIDER: local
@@ -126,11 +133,14 @@ jobs:
               CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
             CREATE DATABASE IF NOT EXISTS commerce_ci_migration
               CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            CREATE DATABASE IF NOT EXISTS commerce_ci_sanitation
+              CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
             ALTER DATABASE commerce_ci
               CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
             GRANT ALL PRIVILEGES ON commerce_ci_lifecycle.* TO 'commerce_ci'@'%';
             GRANT ALL PRIVILEGES ON commerce_ci_seed.* TO 'commerce_ci'@'%';
             GRANT ALL PRIVILEGES ON commerce_ci_migration.* TO 'commerce_ci'@'%';
+            GRANT ALL PRIVILEGES ON commerce_ci_sanitation.* TO 'commerce_ci'@'%';
             FLUSH PRIVILEGES;"
 
       - name: Offline portability check
@@ -196,19 +206,11 @@ jobs:
           fetch-depth: 0
       - name: Scan repository for secrets
         uses: gitleaks/gitleaks-action@v3
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
       - name: Confirm no runtime artefact was committed
-        # The previous pattern anchored databases on `.db$` and environment files on
-        # `.env$`. Both were too narrow: four backups named `<name>.db.<stamp>.bak`
-        # and a `.env.mysql.local` would all have passed it. `.env.example` is the
-        # documented template and is the only member of that family allowed through.
-        #
-        # backend/tests/test_repository_hygiene.py asserts the same rules from the
-        # test suite, so a developer sees this locally before CI does.
+        # Reuse the tested Tara path guards instead of maintaining a weaker shell copy.
         run: |
-          if git ls-files \
-            | grep -Ev '(^|/)\.env\.example$' \
-            | grep -Ei '(^|/)\.env(\..+)?$|\.(db|sqlite|sqlite3|bak|dump)$|(^|/)(node_modules|dist|build|htmlcov|tmp)/|^backend/data/vista_validation_uploads_[^/]+/'; then
-            echo "a runtime artefact is tracked"
-            exit 1
-          fi
-          echo "clean"
+          python -m pip install -c backend/constraints.txt pytest
+          python -m pytest --noconftest backend/tests/test_repository_hygiene.py

@@ -18,6 +18,12 @@ export function AdminsPage() {
         fetchList={fetchList}
         createItem={adminApi.createAdmin}
         updateItem={adminApi.updateAdmin}
+        preparePayload={({ confirm_password, ...payload }, row) => {
+          const password = payload.password || "";
+          if (!row && !password) throw new Error("أدخل كلمة المرور وأكّدها.");
+          if (password !== (confirm_password || "")) throw new Error("كلمة المرور وتأكيدها غير متطابقين.");
+          return payload;
+        }}
         deleteItem={adminApi.deleteAdmin}
         describeRow={(row) => row.email}
         columns={[
@@ -44,8 +50,20 @@ export function AdminsPage() {
           { name: "full_name", title: "الاسم الكامل", required: true },
           {
             name: "password",
+            type: "password",
+            autoComplete: "new-password",
             title: "كلمة المرور",
+            editTitle: "كلمة المرور الجديدة",
             hint: "١٠ أحرف على الأقل. اتركها فارغة عند التعديل للإبقاء على الحالية.",
+            omitWhenEmpty: true,
+          },
+          {
+            name: "confirm_password",
+            title: "تأكيد كلمة المرور",
+            editTitle: "تأكيد كلمة المرور الجديدة",
+            type: "password",
+            autoComplete: "new-password",
+            hint: "أعد إدخال كلمة المرور الجديدة. اترك الحقلين فارغين للإبقاء على الحالية.",
             omitWhenEmpty: true,
           },
           {

@@ -5,16 +5,16 @@ Read it before promising anything to the client.
 
 ## Tara Store readiness
 
-- **Real catalog and owner data are not entered yet.** See
+- **Owner catalog and business-data readiness require verification.** See
   [client-data-readiness.md](client-data-readiness.md).
-- **No production deployment target is confirmed.** Whether the client's cPanel supports
-  Python 3.12 and ASGI remains unanswered.
+- **Production architecture is fixed:** MySQL, Cloudflare R2, static SPA and
+  FastAPI/systemd behind Nginx, using shared private LibreTranslate. Actual server
+  installation, permissions, R2 access and recovery are not established by this audit.
 
 ## Invoicing — what it does not do
 
 - **No server-side PDF.** Printing is the browser's, via `window.print()` and Save-as-PDF.
-  Nothing generates or emails a PDF file, because the hosting environment's capabilities
-  are unknown.
+  Nothing generates or emails a PDF file, as part of the current product scope.
 - **No reissue and no credit note.** An invoice is issued once and either stands or is
   cancelled. A cancelled order cannot be reconfirmed, so it never produces a second
   invoice. Correcting an invoice means cancelling the order and placing a new one.
@@ -57,11 +57,9 @@ These are decisions, not gaps. Adding any of them is a change of product, not a 
   admin-controlled; the background is not yet editable.
 - **Search** is a normalised `LIKE` over `Product.search_text`. It tolerates spelling and
   diacritic variation and is correct, but it is not a full-text index and will not scale.
-- **Cloudflare R2 storage** is implemented but has never touched a real bucket. `save()`,
-  `delete()`, `exists()` and prefix containment are written and unit-tested against a stub
-  S3 client; no credentials have ever been available here, so the live smoke test is
-  **blocked, not passed**. Local disk remains the default and the only provider proven end
-  to end. See [deployment/r2-preview-setup.md](deployment/r2-preview-setup.md).
+- **Cloudflare R2 storage** is implemented and unit-tested with a stub S3 client.
+  Production requires it; local disk is intentional for development/tests. This audit
+  does not verify a live bucket. See [R2 setup](deployment/r2-preview-setup.md).
 
 ## Not verified
 
@@ -73,14 +71,11 @@ Be precise about these when reporting status.
   [acceptance/visual-qa.md](acceptance/visual-qa.md). Firefox, Safari/WebKit and physical
   devices remain untested, and no visual-regression baseline is kept, so a future change
   can still break the design silently.
-- **MySQL is proven in CI, not in production.** `.github/workflows/mysql-compatibility.yml`
-  runs the migration, the client lifecycle, the demo seed and focused integration tests
-  against an ephemeral MySQL 8 service on every relevant push. No MySQL server outside CI
-  has ever been contacted, and nothing has been deployed. An isolated local development
-  container is now configured in `compose.mysql.dev.yml`, but **it has never been run** —
-  Docker is not installed on the machine this was written on. See
-  [future-mysql-migration.md](future-mysql-migration.md) and
-  [deployment/mysql-local-development.md](deployment/mysql-local-development.md).
+- **MySQL compatibility has CI coverage, not production verification.** The ephemeral
+  MySQL gate covers migrations and integration behavior. Isolated local Compose tooling
+  remains available; neither it nor production resources are modified by this audit.
+  See [MySQL notes](future-mysql-migration.md) and
+  [local MySQL](deployment/mysql-local-development.md).
 - **The deployment templates have never been installed or run** on any server. They are
   reviewed examples, not proven configuration.
 - **Python 3.13 is what the development environment runs**, while the code targets 3.12+.
@@ -129,5 +124,4 @@ Be precise about these when reporting status.
 - No typecheck step — the frontend is JavaScript by design; no `tsconfig` exists and none
   should be added.
 - CI covers SQLite backend tests, ephemeral MySQL integration, frontend tests/build, and
-  repository secret/hygiene checks. There is no deployment pipeline because no production
-  target exists yet.
+  repository secret/hygiene checks. Deployment remains a separate authorized operation.

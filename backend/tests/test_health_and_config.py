@@ -115,6 +115,7 @@ def _production_settings(**overrides) -> Settings:
         {"PUBLIC_BASE_URL": "https://shop.example.com/catalog?q=x#top"},
         {"LOCAL_MEDIA_ROOT": ""},
         {"LOCAL_MEDIA_ROOT": "."},
+        {"STORAGE_PROVIDER": "r2", "R2_OBJECT_PREFIX": ""},
     ],
 )
 def test_production_rejects_unsafe_configuration(override: dict[str, object]) -> None:

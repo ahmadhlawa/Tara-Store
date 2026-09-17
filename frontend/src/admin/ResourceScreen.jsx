@@ -33,6 +33,11 @@ function serialize(fields, values) {
   const payload = {};
   fields.forEach((field) => {
     const value = values[field.name];
+    if (field.type === "password") {
+      payload[field.name] = value || "";
+      if (field.omitWhenEmpty && !value) delete payload[field.name];
+      return;
+    }
     if (field.type === "number") {
       payload[field.name] = value === "" || value === null ? null : Number(value);
     } else if (field.type === "checkbox") {
@@ -92,11 +97,13 @@ function FieldControl({ field, value, onChange }) {
       </Field>
     );
   }
-  const type = { number: "number", date: "datetime-local", color: "color" }[field.type] || "text";
+  const type = { number: "number", date: "datetime-local", color: "color", password: "password" }[field.type] || "text";
   return (
     <Field title={field.title} hint={field.hint}>
       <input
         type={type}
+        autoComplete={field.autoComplete}
+        aria-label={field.title}
         step={field.step}
         min={field.min}
         value={value ?? ""}
@@ -136,6 +143,10 @@ export default function ResourceScreen({
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(null);
   const feedback = useFeedback();
+  const closeEditor = () => {
+    setEditing(null);
+    setValues({});
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -183,7 +194,7 @@ export default function ResourceScreen({
         await updateItem(editing.row.id, payload);
         feedback.success("تم حفظ التعديلات.");
       }
-      setEditing(null);
+      closeEditor();
       await load();
     } catch (error) {
       feedback.error(error.message || "تعذّر الحفظ.");
@@ -237,10 +248,10 @@ export default function ResourceScreen({
       {editing && (
         <Modal
           title={editing.mode === "create" ? `${createLabel}` : `تعديل: ${describeRow(editing.row)}`}
-          onClose={() => setEditing(null)}
+          onClose={closeEditor}
           footer={
             <>
-              <Button variant="ghost" onClick={() => setEditing(null)}>إلغاء</Button>
+              <Button variant="ghost" onClick={closeEditor}>إلغاء</Button>
               <Button onClick={save} disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ"}</Button>
             </>
           }
@@ -248,7 +259,7 @@ export default function ResourceScreen({
           {fields.filter((field) => !field.showWhen || field.showWhen(values)).map((field) => (
             <FieldControl
               key={field.name}
-              field={field}
+              field={editing.mode === "edit" && field.editTitle ? { ...field, title: field.editTitle } : field}
               value={values[field.name]}
               onChange={(value) => setValues((current) => ({ ...current, [field.name]: value }))}
             />

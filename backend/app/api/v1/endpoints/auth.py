@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from app.api.deps import CurrentAdmin, DbSession
 from app.core.config import settings
 from app.core.security import create_access_token, hash_password, verify_password
-from app.core.rate_limit import login_rate_limit
+from app.core.rate_limit import login_rate_limit, login_ip_rate_limit, login_account_rate_limit
 from app.db.base import utcnow
 from app.models import AdminUser
 from app.schemas.auth import AdminUserOut, LoginRequest, TokenResponse
@@ -33,16 +33,23 @@ def login(payload: LoginRequest, request: Request, db: DbSession) -> TokenRespon
     # Count only failed credentials. The identifier is part of the in-memory key
     # (hashed by the limiter), so a targeted brute-force cannot evade the IP limit.
     login_rate_limit.check(request, identifier=payload.email)
+    login_ip_rate_limit.check(request)
+    login_account_rate_limit.check(request, identifier=payload.email)
     admin = db.execute(
         select(AdminUser).where(func.lower(AdminUser.email) == payload.email.lower())
     ).scalar_one_or_none()
 
     password_hash = admin.password_hash if admin is not None else _DUMMY_PASSWORD_HASH
-    if admin is None or not verify_password(payload.password, password_hash):
+    password_valid = verify_password(payload.password, password_hash)
+    if admin is None or not password_valid:
         login_rate_limit.record_failure(request, identifier=payload.email)
+        login_ip_rate_limit.record_failure(request)
+        login_account_rate_limit.record_failure(request, identifier=payload.email)
         raise _INVALID_LOGIN
     if not admin.is_active:
         login_rate_limit.record_failure(request, identifier=payload.email)
+        login_ip_rate_limit.record_failure(request)
+        login_account_rate_limit.record_failure(request, identifier=payload.email)
         raise _INVALID_LOGIN
 
     login_rate_limit.clear(request, identifier=payload.email)

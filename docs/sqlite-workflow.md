@@ -1,13 +1,13 @@
 # SQLite workflow
 
 SQLite is the local development and test database. It needs no server, and the file is
-git-ignored. MySQL 8 is the intended server target — see
+git-ignored. MySQL is the fixed production data store — see
 [future-mysql-migration.md](future-mysql-migration.md).
 
 Default location, from `backend/.env`:
 
 ```
-DATABASE_URL=sqlite+pysqlite:///./data/commerce_dev.db
+DATABASE_URL=sqlite+pysqlite:///./data/tara_store_dev.db
 ```
 
 Relative SQLite paths are anchored to `backend/`, not to the process working directory, so
@@ -17,7 +17,7 @@ they are launched from.
 All commands below assume:
 
 ```powershell
-cd D:\Project\vista-store-e-commerce\backend
+cd D:\Project\Tara-Store\backend
 ```
 
 ## Migrations
@@ -29,7 +29,8 @@ cd D:\Project\vista-store-e-commerce\backend
 .venv\Scripts\alembic.exe downgrade -1      # step back one
 ```
 
-A clean database goes to `0001_initial (head)` and gains all 23 tables.
+A clean database upgrades through the retained revisions to `0026_prelaunch_sanitation (head)`;
+stored translations remain defined by migration `0025_translations`.
 
 ### Adding a migration
 
@@ -74,8 +75,8 @@ Two things worth knowing:
 The database is a file; deleting it is the reset.
 
 ```powershell
-.venv\Scripts\python.exe -m uvicorn --version   # make sure nothing is running first
-Remove-Item .\data\commerce_dev.db -Force
+# Stop the local backend and all local writers before resetting a disposable dataset.
+Remove-Item .\data\tara_store_dev.db -Force
 .venv\Scripts\alembic.exe upgrade head
 .venv\Scripts\python.exe -m scripts.seed
 .venv\Scripts\python.exe -m app.initial_data --email you@example.com --password '<choose>'
@@ -84,11 +85,11 @@ Remove-Item .\data\commerce_dev.db -Force
 To also clear uploaded media:
 
 ```powershell
-Get-ChildItem .\data\uploads -Exclude .gitkeep | Remove-Item -Force
+Get-ChildItem .\data\tara-uploads -Exclude .gitkeep | Remove-Item -Force
 ```
 
 Keep `.gitkeep` — it is the only tracked file in that directory, and a parent-level
-`uploads/` ignore rule would make tracking it impossible. That is why no such rule exists
+`tara-uploads/` ignore rule would make tracking it impossible. That is why no such rule exists
 in `.gitignore`.
 
 ## A throwaway database
@@ -115,7 +116,7 @@ deferred until its infrastructure and real data are available.
 ## Inspecting the database
 
 ```powershell
-.venv\Scripts\python.exe -c "import sqlite3; c=sqlite3.connect(r'data\commerce_dev.db'); print([r[0] for r in c.execute(\"select name from sqlite_master where type='table' order by name\")])"
+.venv\Scripts\python.exe -c "import sqlite3; c=sqlite3.connect(r'data\tara_store_dev.db'); print([r[0] for r in c.execute(\"select name from sqlite_master where type='table' order by name\")])"
 ```
 
 Or from Python:
@@ -136,7 +137,7 @@ The file is the backup, but copying it while the server is writing can capture a
 state. Use SQLite's own backup:
 
 ```powershell
-.venv\Scripts\python.exe -c "import sqlite3; s=sqlite3.connect(r'data\commerce_dev.db'); d=sqlite3.connect(r'data\backup.db'); s.backup(d); d.close(); s.close()"
+.venv\Scripts\python.exe -c "import sqlite3; s=sqlite3.connect(r'data\tara_store_dev.db'); d=sqlite3.connect(r'data\backup.db'); s.backup(d); d.close(); s.close()"
 ```
 
 Back up `data/uploads/` at the same time, or the restored database will reference images

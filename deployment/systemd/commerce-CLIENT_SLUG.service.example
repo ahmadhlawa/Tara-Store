@@ -54,9 +54,8 @@ RestrictNamespaces=true
 LockPersonality=true
 MemoryDenyWriteExecute=true
 
-# The only paths the service may write to: uploaded media, and the SQLite
-# database if this instance still uses SQLite. Adjust to match the .env.
-ReadWritePaths=PROJECT_PATH/backend/data
+# Production data is in MySQL/R2. No local data directory is writable.
+# PrivateTmp provides isolated temporary space; logs go to journald.
 
 StandardOutput=journal
 StandardError=journal

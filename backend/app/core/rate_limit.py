@@ -35,9 +35,11 @@ def client_ip(request: Request) -> str:
 class RateLimiter:
     _MAX_CLIENTS = 10_000
 
-    def __init__(self, scope: str, limit_setting: str) -> None:
+    def __init__(self, scope: str, limit_setting: str, *, account_only: bool = False, multiplier: int = 1) -> None:
         self.scope = scope
         self.limit_setting = limit_setting
+        self.account_only = account_only
+        self.multiplier = multiplier
         self._hits: dict[str, deque[float]] = defaultdict(deque)
         self._lock = Lock()
 
@@ -45,10 +47,12 @@ class RateLimiter:
         if not identifier:
             return client_ip(request)
         digest = sha256(identifier.strip().casefold().encode("utf-8")).hexdigest()
+        if self.account_only:
+            return digest
         return f"{client_ip(request)}:{digest}"
 
     def _check(self, key: str, *, record: bool = False) -> deque[float] | None:
-        limit = getattr(settings, self.limit_setting)
+        limit = getattr(settings, self.limit_setting) * self.multiplier
         if limit <= 0:
             return None
         now = monotonic()
@@ -90,5 +94,9 @@ class RateLimiter:
 
 
 login_rate_limit = RateLimiter("login", "LOGIN_RATE_LIMIT")
+# Aggregate budgets prevent rotating accounts or IPs from evading the pair limit.
+# Successful logins clear only their pair, never the shared abuse budgets.
+login_ip_rate_limit = RateLimiter("login-ip", "LOGIN_RATE_LIMIT", multiplier=5)
+login_account_rate_limit = RateLimiter("login-account", "LOGIN_RATE_LIMIT", account_only=True, multiplier=5)
 order_create_rate_limit = RateLimiter("order-create", "ORDER_CREATE_RATE_LIMIT")
 order_lookup_rate_limit = RateLimiter("order-lookup", "ORDER_LOOKUP_RATE_LIMIT")

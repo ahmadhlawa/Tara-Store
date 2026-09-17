@@ -48,7 +48,7 @@ router = APIRouter(prefix="/admin", tags=["admin-commerce"])
 @router.get("/dashboard", response_model=DashboardSummary)
 def dashboard(db: DbSession, admin: CurrentAdmin, days: int = 30):
     summary = orders_service.dashboard_summary(db, days=days)
-    summary["recent_orders"] = [_order_list_payload(db, order) for order in summary["recent_orders"]]
+    summary["recent_orders"] = _order_list_payloads(db, summary["recent_orders"])
     return summary
 
 
@@ -206,13 +206,20 @@ def delete_delivery_area(area_id: int, db: DbSession, admin: CurrentAdmin):
 
 
 # ── Orders ────────────────────────────────────────────────────────────────────
-def _order_list_payload(db: DbSession, order: Order) -> dict:
-    items_count = int(
-        db.execute(
-            select(func.count()).select_from(OrderItem).where(OrderItem.order_id == order.id)
-        ).scalar_one()
-    )
-    return {
+def _order_list_payloads(db: DbSession, orders: list[Order]) -> list[dict]:
+    if not orders:
+        return []
+    ids = [order.id for order in orders]
+    counts = dict(db.execute(
+        select(OrderItem.order_id, func.count()).where(OrderItem.order_id.in_(ids))
+        .group_by(OrderItem.order_id)
+    ).all())
+    payments = dict(db.execute(
+        select(Invoice.order_id, Invoice.payment_status).where(
+            Invoice.order_id.in_(ids), Invoice.status == "active"
+        )
+    ).all())
+    return [{
         "id": order.id,
         "order_number": order.order_number,
         "status": order.status,
@@ -222,15 +229,10 @@ def _order_list_payload(db: DbSession, order: Order) -> dict:
         "delivery_area_name": order.delivery_area_name,
         "total": order.total,
         "payment_method": order.payment_method,
-        "payment_status": db.execute(
-            select(Invoice.payment_status).where(
-                Invoice.order_id == order.id, Invoice.status == "active"
-            )
-        ).scalar_one_or_none()
-        or PaymentStatus.UNPAID.value,
-        "items_count": items_count,
+        "payment_status": payments.get(order.id) or PaymentStatus.UNPAID.value,
+        "items_count": int(counts.get(order.id, 0)),
         "created_at": order.created_at,
-    }
+    } for order in orders]
 
 
 @router.get("/orders", response_model=Page[OrderAdminListOut])
@@ -281,7 +283,7 @@ def list_orders(
         db, stmt, offset=pagination.offset, limit=pagination.page_size
     )
     return Page.build(
-        [OrderAdminListOut.model_validate(_order_list_payload(db, row)) for row in rows],
+        [OrderAdminListOut.model_validate(row) for row in _order_list_payloads(db, rows)],
         total,
         pagination.page,
         pagination.page_size,

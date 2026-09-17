@@ -19,10 +19,10 @@ The allow-list below is the mechanism. Nothing is copied unless a rule names it,
 file added to the repository cannot silently end up in a client archive. The scan at the
 end is a second, independent check on the finished tree.
 
-IMPORTANT: a package built by this script is NOT certified deployable. Whether a FastAPI
-application runs on the client's cPanel account is still an open question — see
-docs/deployment/cpanel-capability-checklist.md. Do not tell the client this archive is
-ready to upload until those answers come back.
+IMPORTANT: this builds files only. It does not deploy or certify actual server readiness.
+Production is MySQL/R2 with FastAPI/systemd behind Nginx and a built static SPA.
+The shared private LibreTranslate service is external infrastructure, not packaged.
+
 """
 
 from __future__ import annotations
@@ -43,8 +43,8 @@ DIRECTORIES: list[tuple[str, str]] = [
     ("backend/alembic", "backend/alembic"),
     ("backend/scripts", "backend/scripts"),
     ("frontend/dist", "frontend/dist"),
-    ("instance", "instance"),
-    ("deployment/cpanel", "deployment/cpanel"),
+    ("deployment/nginx", "deployment/nginx"),
+    ("deployment/systemd", "deployment/systemd"),
 ]
 
 FILES: list[tuple[str, str]] = [
@@ -52,8 +52,19 @@ FILES: list[tuple[str, str]] = [
     ("backend/pyproject.toml", "backend/pyproject.toml"),
     ("backend/constraints.txt", "backend/constraints.txt"),
     ("VERSION", "VERSION"),
-    ("docs/deployment/cpanel-handoff.md", "docs/cpanel-handoff.md"),
-    ("docs/deployment/cpanel-capability-checklist.md", "docs/cpanel-capability-checklist.md"),
+    ("instance/tara-store.yaml", "instance/tara-store.yaml"),
+    ("deployment/env/backend.env.example", "deployment/env/backend.env.example"),
+    ("deployment/README.md", "deployment/README.md"),
+    ("docs/deployment-templates.md", "docs/deployment-templates.md"),
+    ("docs/deployment/r2-preview-setup.md", "docs/deployment/r2-preview-setup.md"),
+    ("docs/deployment/libretranslate.md", "docs/deployment/libretranslate.md"),
+    ("docs/backup-and-restore.md", "docs/backup-and-restore.md"),
+    ("docs/future-mysql-migration.md", "docs/future-mysql-migration.md"),
+    ("docs/deployment/mysql-local-development.md", "docs/deployment/mysql-local-development.md"),
+    ("docs/known-limitations.md", "docs/known-limitations.md"),
+    ("docs/client-data-readiness.md", "docs/client-data-readiness.md"),
+    ("docs/local-setup.md", "docs/local-setup.md"),
+
     ("docs/template-origin.md", "docs/template-origin.md"),
 ]
 
@@ -72,12 +83,21 @@ EXCLUDED_NAMES = {
     "uploads",
     "tara-uploads",
     "htmlcov",
+    "generated",
+    "test-results",
+    "playwright-report",
+    ".artifacts",
 }
 
-EXCLUDED_SUFFIXES = {".db", ".sqlite3", ".db-journal", ".pyc", ".pyo", ".log", ".coverage"}
+EXCLUDED_SUFFIXES = (
+    ".db", ".sqlite", ".sqlite3", ".bak", ".dump", ".sql", ".sql.gz", ".dump.gz",
+    ".sql.bz2", ".sql.xz", ".db-journal", ".db-wal", ".db-shm",
+    ".sqlite-journal", ".sqlite-wal", ".sqlite-shm", ".sqlite3-journal",
+    ".sqlite3-wal", ".sqlite3-shm", ".pyc", ".pyo", ".log", ".coverage", ".pem", ".key",
+)
 
 # Any file whose name matches is a build failure, not a warning.
-FORBIDDEN_NAMES = {".env", ".env.local", ".env.production", "secrets.json", "id_rsa"}
+FORBIDDEN_NAMES = {".env", ".env.local", ".env.production", "secrets.json", "secrets.yaml", "secrets.yml", "id_rsa", "id_ed25519"}
 
 
 def _keep(path: Path) -> bool:
@@ -86,7 +106,7 @@ def _keep(path: Path) -> bool:
     # `.env.example` is intentional and carries no values; a real `.env` never is.
     if path.name.startswith(".env") and not path.name.endswith(".example"):
         return False
-    return path.suffix not in EXCLUDED_SUFFIXES
+    return not path.name.lower().endswith(EXCLUDED_SUFFIXES) and "credentials" not in path.name.lower()
 
 
 def _ignore(directory: str, names: list[str]) -> set[str]:
@@ -125,8 +145,7 @@ def stage(destination: Path) -> None:
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
 
-    # The server installs from a plain requirements file; cPanel's Python App UI expects
-    # one and cannot read pyproject's optional-dependency groups.
+    # Generate the fixed production runtime requirements, including both extras.
     requirements = _requirements_from_pyproject()
     (destination / "backend" / "requirements.txt").write_text(requirements, encoding="utf-8")
 
@@ -138,66 +157,36 @@ def _requirements_from_pyproject() -> str:
     import tomllib
 
     data = tomllib.loads((REPO_ROOT / "backend" / "pyproject.toml").read_text(encoding="utf-8"))
-    dependencies = data["project"]["dependencies"]
-    # MySQL needs PyMySQL's rsa extra for caching_sha2_password, which is MySQL 8's
-    # default. Without it the connection fails at authentication with a confusing error.
-    dependencies = [
-        "PyMySQL[rsa]>=1.1.1" if dep.startswith("PyMySQL") else dep for dep in dependencies
-    ]
+    extras = data["project"]["optional-dependencies"]
+    dependencies = [dep for dep in data["project"]["dependencies"]
+                    if not dep.startswith("PyMySQL")]
+    dependencies += extras["mysql"] + extras["r2"]
     header = "# Generated by scripts/make_release_package.py from backend/pyproject.toml.\n"
     return header + "\n".join(sorted(dependencies)) + "\n"
 
 
 def _instructions() -> str:
-    return f"""# Tara Store — deployment package
+    return f"""# Tara Store deployment package
 
-Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} from the current Tara source tree.
+Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} from the current working tree.
 
-## Read this before uploading anything
+This package is not a deployment or proof of server readiness. Production uses MySQL,
+R2, a static SPA and FastAPI/systemd behind Nginx. The existing shared loopback
+LibreTranslate service, its models and other projects' resources are not included.
 
-**This package is not certified deployable.** It contains the right files, correctly
-built and free of secrets. Whether they *run* on the client's cPanel account is still
-unknown — see `docs/cpanel-capability-checklist.md`. If Setup Python App is missing, or
-capped below Python 3.12, or the host forbids a long-lived process, this application does
-not run there and no amount of uploading will change that.
+Read deployment/README.md and docs/deployment-templates.md before a separately
+approved installation. Templates need placeholder substitution and host review.
+Copy deployment/env/backend.env.example to private backend/.env; fill credentials
+on the target. backend/requirements.txt includes MySQL authentication and R2 extras.
+Install with constraints.txt. Never copy development databases/uploads or seed demos.
+Back up existing MySQL/R2 data before forward Alembic migrations. Never rewrite history.
+Serve frontend/dist as the SPA and proxy API/health/SEO to Tara's dedicated loopback
+backend. Public media URLs come directly from R2_PUBLIC_BASE_URL; no local /media alias.
+Do not recreate or manage the shared translation service from this application release.
 
-## What is inside
-
-```
-backend/app/          FastAPI application
-backend/alembic/      migrations — the schema of record
-backend/scripts/      instance CLI, MySQL portability check
-backend/requirements.txt
-backend/constraints.txt  tested transitive dependency versions
-frontend/dist/        built storefront and admin, ready to serve as static files
-instance/             the Tara Store profile (non-secret)
-deployment/cpanel/    the example environment file
-docs/                 handoff, capability checklist, template origin
-```
-
-## What is NOT inside, by design
-
-No `.env`, no secret of any kind, no database, no uploaded media, no `node_modules`, no
-virtual environment, no Git history, no tests and no caches.
-
-## Order of operations
-
-1. Answer the capability checklist. **Stop if Python 3.12+ with ASGI is unavailable.**
-2. Create the MySQL database and user.
-3. Extract this package into the application root — outside the document root if the host
-   allows it, so the source and the `.env` are never reachable over HTTP.
-4. `pip install -c backend/constraints.txt -r backend/requirements.txt`
-5. Copy `deployment/cpanel/backend.env.example` to the app root as `.env` and fill it in
-   **on the server**. Generate a fresh `SECRET_KEY` there.
-6. `alembic upgrade head` — **take a backup first; this is the first irreversible step.**
-7. `python -m scripts.instance_cli apply --profile instance/tara-store.yaml`
-8. `python -m app.initial_data --email <owner> --password <strong>`
-9. Publish `frontend/dist/` to the document root.
-10. Route `/api`, `/media`, `/health`, `/ready`, `/robots.txt` and `/sitemap.xml` to the backend process.
-11. Enable AutoSSL and force HTTPS.
-
-The store still needs its business data before it can take a real order — no delivery
-area, no catalog, no phone number. See the handoff document.
+The archive excludes real environments, databases, uploads, generated customer catalogs,
+Git history, tests and installed dependencies. Source CLI tools are intentionally kept:
+pyproject exposes them as entrypoints; retaining them avoids broken runtime imports.
 """
 
 
@@ -212,11 +201,11 @@ def audit(root: Path) -> list[str]:
             problems.append(f"secret or runtime file: {relative}")
         if any(part in EXCLUDED_NAMES for part in relative.parts):
             problems.append(f"excluded directory survived: {relative}")
-    for required in ("backend/constraints.txt", "instance/tara-store.yaml"):
+    for required in ("backend/constraints.txt", "instance/tara-store.yaml", "deployment/env/backend.env.example"):
         if not (root / required).is_file():
             problems.append(f"required release file missing: {required}")
-    current_docs = [root / "deployment/cpanel", root / "docs/cpanel-handoff.md",
-                    root / "docs/cpanel-capability-checklist.md", root / "READ-ME-FIRST.md"]
+    current_docs = [root / "deployment", root / "docs/deployment-templates.md",
+                    root / "READ-ME-FIRST.md"]
     for source in current_docs:
         paths = source.rglob("*") if source.is_dir() else [source]
         for path in paths:
@@ -270,7 +259,7 @@ def main() -> int:
     print(f"\nPackaged {files} files -> {archive}")
     print(f"  {archive.stat().st_size / 1024:.0f} KB")
     print("\nNo secrets, databases, uploads or Git history are included.")
-    print("NOT certified deployable: the cPanel capability checklist is still unanswered.")
+    print("Not deployed. Review host configuration and operational readiness separately.")
     return 0
 
 

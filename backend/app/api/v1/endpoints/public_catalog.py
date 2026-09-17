@@ -116,8 +116,8 @@ def list_products(
     is_bestseller: bool | None = None,
     on_sale: bool | None = None,
     in_stock: bool | None = None,
-    min_price: Annotated[float | None, Query(ge=0)] = None,
-    max_price: Annotated[float | None, Query(ge=0)] = None,
+    min_price: Annotated[float | None, Query(ge=0, allow_inf_nan=False)] = None,
+    max_price: Annotated[float | None, Query(ge=0, allow_inf_nan=False)] = None,
     sort: Annotated[str, Query(pattern="^(featured|newest|price-asc|price-desc|name)$")] = "featured",
 ) -> Page[ProductPublicOut]:
     return _product_page(

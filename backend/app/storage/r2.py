@@ -125,7 +125,7 @@ class R2StorageProvider(StorageProvider):
                 CacheControl="public, max-age=31536000, immutable",
             )
         except Exception as exc:  # noqa: BLE001 - re-raised without the credential
-            raise R2StorageError(f"R2 upload failed for {key!r}: {type(exc).__name__}") from exc
+            raise R2StorageError(f"R2 upload failed for {key!r}: {type(exc).__name__}") from None
         return StoredFile(
             key=key,
             url=self.url_for(key),
@@ -159,7 +159,7 @@ class R2StorageProvider(StorageProvider):
                 CacheControl="public, max-age=31536000, immutable",
             )
         except Exception as exc:  # noqa: BLE001 - re-raised without the credential
-            raise R2StorageError(f"R2 repair failed for {key!r}: {type(exc).__name__}") from exc
+            raise R2StorageError(f"R2 repair failed for {key!r}: {type(exc).__name__}") from None
         return StoredFile(
             key=key,
             url=self.url_for(key),
@@ -176,7 +176,7 @@ class R2StorageProvider(StorageProvider):
         try:
             return self.client.get_object(Bucket=self.bucket_name, Key=key)["Body"].read()
         except Exception as exc:  # noqa: BLE001
-            raise R2StorageError(f"R2 read failed for {key!r}: {type(exc).__name__}") from exc
+            raise R2StorageError(f"R2 read failed for {key!r}: {type(exc).__name__}") from None
 
     def delete(self, key: str) -> None:
         if not self.owns_key(key):
@@ -187,7 +187,7 @@ class R2StorageProvider(StorageProvider):
         try:
             self.client.delete_object(Bucket=self.bucket_name, Key=key)
         except Exception as exc:  # noqa: BLE001 - re-raised without the credential
-            raise R2StorageError(f"R2 delete failed for {key!r}: {type(exc).__name__}") from exc
+            raise R2StorageError(f"R2 delete failed for {key!r}: {type(exc).__name__}") from None
 
     def url_for(self, key: str) -> str:
         return f"{self.public_base_url}/{key}"

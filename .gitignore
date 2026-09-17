@@ -19,9 +19,14 @@ venv/
 # and are evidence for one run, never source.
 tmp/
 backend/data/tara_validation_uploads_*/
+backend/data/tara_full_validation_uploads*/
+backend/data/tara_*_uploads*/
+backend/data/vista_*_uploads*/
 frontend/e2e/.artifacts/
 frontend/playwright-report/
 frontend/test-results/
+backend/.r2-verify-tmp/
+coverage/
 
 # Test coverage
 .coverage
@@ -38,6 +43,19 @@ htmlcov/
 *.bak
 *.dump
 *.sql-journal
+*.db-wal
+*.db-shm
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.sql
+*.sql.gz
+*.sql.bz2
+*.sql.xz
+*.dump.gz
 *.orig
 *.swp
 # Timestamped copies taken before a migration, e.g.
@@ -52,6 +70,15 @@ backend/data/*.bak
 *.pem
 *.key
 *credentials*.json
+*credentials*.yaml
+*credentials*.yml
+*credentials*.ini
+*credentials*.toml
+secrets.json
+secrets.yaml
+secrets.yml
+id_rsa
+id_ed25519
 
 # IDE and OS
 .vscode/
@@ -85,8 +112,3 @@ instance/generated/
 *.xlsm
 # …except the empty template we hand to the client. It holds no client data.
 !docs/client-templates/tara-store-catalog-template.xlsx
-
-
-
-.env.mysql.local
-.env.mysql.app.local

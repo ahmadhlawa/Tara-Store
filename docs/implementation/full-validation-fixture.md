@@ -10,8 +10,8 @@ live only inside the disposable database and are useless anywhere else.
 ## Safety model
 
 - The seeder refuses any `DATABASE_URL` whose file name is not
-  `vista_full_validation_<yyyymmdd-hhmmss>.db`. A mistyped argument cannot reach
-  `vista_preview.db` or `vista_store_dev.db`.
+  `tara_full_validation_<yyyymmdd-hhmmss>.db`. A mistyped argument cannot reach
+  `tara_store_dev.db` or `tara_store_dev.db`.
 - The disposable database is a **copy** of the runtime database, upgraded from its
   revision to head. Copying rather than starting empty means the fixture sits next to
   realistic pre-existing data and the legacy upgrade path is exercised for real.
@@ -24,10 +24,11 @@ live only inside the disposable database and are useless anywhere else.
 ## Building one
 
 ```powershell
-cd D:\Project\vista-store-e-commerce\backend
+cd D:\Project\Tara-Store\backend
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
-$rel = "data/vista_full_validation_$stamp.db"
-Copy-Item "data\vista_preview.db" $rel
+$rel = "data/tara_full_validation_$stamp.db"
+# Stop local database/media writers before making this disposable local copy.
+Copy-Item "data\tara_store_dev.db" $rel
 $env:DATABASE_URL = "sqlite+pysqlite:///./$rel"
 .\.venv\Scripts\python.exe -m alembic upgrade head
 .\.venv\Scripts\python.exe scripts\seed_full_validation.py --database-url "sqlite+pysqlite:///./$rel"
@@ -108,12 +109,12 @@ should be read as evidence that cancelling from the invoice screen works; it doe
 
 ## Expanded validation use (2026-08-07)
 
-`vista_full_validation_20260806-041041.db` was used for focused Playwright work only.
+Historical record: the former `vista_full_validation_20260806-041041.db` was used for focused Playwright work only.
 Catalog records use timestamped slugs and are deleted in `finally`; checkout orders
 remain in this disposable file. No preview database is part of those checks.
-The corresponding isolated server must set `LOCAL_MEDIA_ROOT` to
-`./data/vista_full_validation_20260806-041041_uploads`; the default `vista-uploads`
-directory causes public media 404s.
+That historical isolated server used `LOCAL_MEDIA_ROOT` to
+`./data/vista_full_validation_20260806-041041_uploads`. Current runs must use Tara
+fixture names and their matching isolated uploads directory; legacy paths are provenance.
 This fixture exists for local development validation only and does not represent final
 production media storage or deployment configuration.
 

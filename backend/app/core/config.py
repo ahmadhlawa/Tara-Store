@@ -144,6 +144,8 @@ class Settings(BaseSettings):
             raise ValueError("production CORS_ORIGINS must contain only explicit HTTPS origins")
         if self.is_sqlite:
             raise ValueError("production DATABASE_URL must not use the development SQLite database")
+        if self.STORAGE_PROVIDER == "r2" and not self.R2_OBJECT_PREFIX.strip("/ "):
+            raise ValueError("production R2_OBJECT_PREFIX must isolate this store's objects")
         if self.STORAGE_PROVIDER.strip().lower() == "local":
             if not self.LOCAL_MEDIA_ROOT.strip():
                 raise ValueError("production LOCAL_MEDIA_ROOT must be a non-empty media directory")

@@ -1,8 +1,8 @@
 # New client checklist
 
 Cloning the template for a new client. One independent instance per client: separate
-checkout, process, database, media directory, domain and credentials. Nothing is shared —
-no `tenant_id`, no shared database, no shared bucket.
+checkout, process, MySQL database/user, R2 bucket/prefix, domain and credentials.
+LibreTranslate is the existing shared private service; do not recreate it per project.
 
 ## 0 — Decide the identifiers first
 
@@ -27,7 +27,7 @@ uniqueness across instances.
 
 ## 2 — Configure
 
-- [ ] `cp backend/.env.example backend/.env`
+- [ ] `cp deployment/env/backend.env.example backend/.env`
 - [ ] Generate a unique `SECRET_KEY`:
       `python -c "import secrets; print(secrets.token_urlsafe(48))"`
 - [ ] `APP_ENV=production`
@@ -35,15 +35,16 @@ uniqueness across instances.
 - [ ] `APP_NAME` — the client's store name
 - [ ] `DATABASE_URL` — this client's own database and user
 - [ ] `CORS_ORIGINS=https://CLIENT_DOMAIN`
-- [ ] `LOCAL_MEDIA_ROOT` — writable by the service user, matching the Nginx `alias`
-- [ ] Leave `R2_*` empty unless object storage is actually being set up
+- [ ] `STORAGE_PROVIDER=r2`; fill required R2 settings, `R2_REGION=auto`
+- [ ] Tara uses `R2_OBJECT_PREFIX=tara/`; preserve existing key/URL compatibility
+- [ ] `LIBRETRANSLATE_URL=http://127.0.0.1:5000`, `TRANSLATION_ENABLED=true`
 - [ ] Leave `INITIAL_ADMIN_*` empty; create the administrator explicitly in step 4
 - [ ] `chmod 600 backend/.env`, owned by the service user
 - [ ] `git check-ignore -v backend/.env` confirms it is ignored
 
 ## 3 — Build and apply the schema
 
-- [ ] Backend virtualenv, then `pip install -c constraints.txt .` (production; `-c constraints.txt -e ".[dev]"` only for
+- [ ] Backend virtualenv, then `pip install -c constraints.txt ".[mysql,r2]"` (production; `-c constraints.txt -e ".[dev]"` only for
       development machines)
 - [ ] `alembic upgrade head`
 - [ ] `cd frontend && npm ci && npm run build` → `dist/`
@@ -96,23 +97,23 @@ fix in the template, not a reason to hard-code it in a client copy.
 ## 7 — Verify the live instance
 
 - [ ] `https://CLIENT_DOMAIN/` serves the storefront
-- [ ] A deep link such as `https://CLIENT_DOMAIN/product/<slug>` loads on reload — proves
+- [ ] A deep link such as `https://CLIENT_DOMAIN/ar/product/<slug>` loads on reload — proves
       the SPA fallback works
 - [ ] `https://CLIENT_DOMAIN/api/v1/store/settings` returns the client's identity
-- [ ] An uploaded image loads under `https://CLIENT_DOMAIN/media/...`
+- [ ] An uploaded image loads directly from `R2_PUBLIC_BASE_URL`; no local `/media` alias
 - [ ] `/admin/login` signs in; `/api/v1/admin/dashboard` returns 401 without a token
 - [ ] Place a real test order end to end, confirm it appears in `/admin/orders`, change its
-      status, then **delete the test data before handover**
+      status in an isolated disposable test environment; never delete historical orders
 - [ ] Confirm stock decremented on the order and was restored on cancellation
 - [ ] Check the storefront on a phone-width viewport — the design is RTL and responsive,
       but each client's content length differs
 
 ## 8 — Operational handover
 
-- [ ] Backups configured for both the database and the media directory, together — see
+- [ ] Backups configured for matched MySQL and R2 snapshots — see
       [backup-and-restore.md](backup-and-restore.md)
 - [ ] A restore has actually been rehearsed once
-- [ ] Rate limiting added in front of `/api/v1/auth/login`; the application has none
+- [ ] Review application rate limits and trusted proxy settings
 - [ ] Python version pinned (3.12+)
 - [ ] Someone knows how to reach the logs: `journalctl -u commerce-CLIENT_SLUG -f`
 - [ ] The client knows the admin URL, their credentials, and that there is no
@@ -126,7 +127,7 @@ path, database name, and where the credentials are stored.
 
 ## Do not
 
-- Do not point two clients at one database, one bucket or one process.
+- Do not point two clients at one database, one unrestricted bucket credential or one process.
 - Do not copy a `.env`, a database file or uploaded media between clients.
 - Do not reuse a `SECRET_KEY` across instances — one leak would compromise all of them.
 - Do not seed demo data into a live client store.
