@@ -14,7 +14,7 @@ export function HeroSlidesPage() {
   const [categories, setCategories] = useState([]);
   useEffect(() => {
     adminApi.listCategories({ page_size: 100 })
-      .then((result) => setCategories(result.items || []))
+      .then((result) => setCategories((result.items || []).filter((category) => category.parent_id == null)))
       .catch(() => setCategories([]));
   }, []);
   const fields = useMemo(() => [
@@ -31,7 +31,7 @@ export function HeroSlidesPage() {
       ],
     },
     {
-      name: "target_slug", title: "القسم", type: "select", required: true,
+      name: "target_slug", title: "القسم", type: "select", required: true, defaultValue: categories[0]?.slug ?? "",
       options: categories.map((category) => ({ value: category.slug, label: `${category.name}${category.is_active ? "" : " — مخفي"}` })),
       showWhen: (values) => values.target_type === "category",
     },
@@ -56,7 +56,7 @@ export function HeroSlidesPage() {
       fields={fields}
       preparePayload={(payload) => ({
         ...payload,
-        target_slug: payload.target_type === "category" ? payload.target_slug : null,
+        target_slug: payload.target_type === "category" ? (payload.target_slug || categories[0]?.slug || null) : null,
         button_url: null,
       })}
     />

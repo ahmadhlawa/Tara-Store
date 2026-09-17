@@ -1,3 +1,4 @@
+import { useLocale } from "../i18n/locale.jsx";
 import sx from "../sx.js";
 import { whatsappHref } from "../utils/format.js";
 
@@ -10,22 +11,23 @@ import { whatsappHref } from "../utils/format.js";
  * reaches this component.
  */
 export default function MaintenanceScreen({ settings }) {
+  const { locale, t } = useLocale();
   const contacts = [
     settings.whatsapp && {
       key: "whatsapp",
-      label: "واتساب",
+      label: t("واتساب"),
       value: settings.whatsapp,
       href: whatsappHref(settings.whatsapp, ""),
     },
     settings.phone && {
       key: "phone",
-      label: "هاتف",
+      label: t("هاتف"),
       value: settings.phone,
       href: `tel:${String(settings.phone).replace(/\s/g, "")}`,
     },
     settings.email && {
       key: "email",
-      label: "البريد الإلكتروني",
+      label: t("البريد الإلكتروني"),
       value: settings.email,
       href: `mailto:${settings.email}`,
     },
@@ -33,8 +35,8 @@ export default function MaintenanceScreen({ settings }) {
 
   return (
     <div
-      dir="rtl"
-      style={sx`direction:rtl;background:#FFFFFF;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 18px`}
+      dir={locale === "en" ? "ltr" : "rtl"}
+      style={sx`direction:inherit;background:#FFFFFF;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 18px`}
     >
       <main
         role="main"
@@ -64,22 +66,18 @@ export default function MaintenanceScreen({ settings }) {
           🛠️
         </div>
 
-        <h1 style={sx`margin:0 0 12px;font-size:23px;line-height:1.5;color:#3B3243`}>
-          المتجر في وضع الصيانة
-        </h1>
-        <p style={sx`margin:0 auto;max-width:420px;font-size:14.5px;line-height:2;color:#4B4155`}>
-          نجري بعض التحديثات على المتجر الآن، وسنعود للعمل في أقرب وقت. شكراً لصبركم.
-        </p>
+        <h1 style={sx`margin:0 0 12px;font-size:23px;line-height:1.5;color:#3B3243`}>{t("المتجر في وضع الصيانة")}{" "}</h1>
+        <p style={sx`margin:0 auto;max-width:420px;font-size:14.5px;line-height:2;color:#4B4155`}>{t("نجري بعض التحديثات على المتجر الآن، وسنعود للعمل في أقرب وقت. شكراً لصبركم.")}{" "}</p>
         {settings.tagline && (
           <p style={sx`margin:14px 0 0;font-size:13.5px;color:#8A7F95`}>{settings.tagline}</p>
         )}
 
         {contacts.length > 0 && (
           <section
-            aria-label="معلومات التواصل"
+            aria-label={t("معلومات التواصل")}
             style={sx`margin-top:26px;padding-top:22px;border-top:1px solid #E7DCF2;display:flex;flex-direction:column;gap:11px`}
           >
-            <strong style={sx`font-size:14px;color:#3B3243`}>للتواصل معنا</strong>
+            <strong style={sx`font-size:14px;color:#3B3243`}>{t("للتواصل معنا")}</strong>
             {contacts.map((contact) => (
               <div
                 key={contact.key}

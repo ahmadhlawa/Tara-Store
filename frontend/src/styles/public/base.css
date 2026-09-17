@@ -3,7 +3,7 @@
    what keeps the brand centralised. */
 
 .vs-public {
-  direction: rtl;
+  direction: inherit;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -18,7 +18,7 @@
      the logical end side. The gutter is 0 below 900px, where the rail is gone.
      Drawers and the scrim are `position: fixed` and so are unaffected: they
      still cover the viewport edge to edge. */
-  padding-right: var(--vs-rail-gutter);
+  padding-inline-start: var(--vs-rail-gutter);
 }
 
 .vs-public *,
@@ -583,5 +583,40 @@
   /* State feedback must survive: only movement is removed. */
   .vs-public [data-motion="transform"] {
     transform: none !important;
+  }
+}
+
+.vs-header__row .vs-hactions .vs-language-toggle {
+  width: 54px;
+  min-width: 54px;
+  flex: 0 0 54px;
+  gap: 5px;
+  direction: ltr;
+  text-decoration: none;
+}
+.vs-language-toggle__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+.vs-menu__languages { display: none; }
+@media (max-width: 767px) {
+  .vs-header__row .vs-hactions .vs-language-toggle { display: none; }
+  .vs-menu__languages {
+    display: block;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--vs-border);
+  }
+  .vs-menu__languages .vs-menu__label { display: flex; align-items: center; gap: 8px; }
+  .vs-menu__language { display: flex; align-items: center; justify-content: space-between; min-height: 44px; }
+  .vs-menu__language[aria-current="true"] {
+    background: var(--vs-primary-soft);
+    color: var(--vs-primary);
+    font-weight: 600;
   }
 }

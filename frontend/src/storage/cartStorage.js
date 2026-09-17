@@ -19,8 +19,10 @@ function sanitize(items) {
       variantId: item.variantId == null ? null : Number(item.variantId),
       slug: String(item.slug || ""),
       name: String(item.name || ""),
+      ...(item.contentLocale === "en" ? { contentLocale: "en" } : {}),
       unit: Number(item.unit) || 0,
       bg: String(item.bg || ""),
+      imageUrl: item.imageUrl ? String(item.imageUrl) : null,
       variation: String(item.variation || ""),
       qty: Math.max(1, Math.min(999, Math.trunc(Number(item.qty)))),
     }));

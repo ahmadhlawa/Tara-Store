@@ -47,6 +47,7 @@ EXPECTED_TABLES = {
     "products",
     "static_pages",
     "store_settings",
+    "translations",
 }
 
 
@@ -114,6 +115,21 @@ def test_every_revision_id_fits_the_alembic_version_column() -> None:
         "revision ids must fit alembic_version.version_num "
         f"(VARCHAR({VERSION_NUM_LENGTH})); MySQL rejects these: {too_long}"
     )
+
+
+def test_translation_migration_compiles_for_mysql_without_backfill():
+    import io
+    import runpy
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+    buffer = io.StringIO()
+    context = MigrationContext.configure(dialect_name="mysql", opts={"as_sql": True, "output_buffer": buffer})
+    with Operations.context(context):
+        runpy.run_path(str(BACKEND_ROOT / "alembic/versions/0025_translations.py"))["upgrade"]()
+    sql = buffer.getvalue()
+    assert "CREATE TABLE translations" in sql and "AUTO_INCREMENT" in sql
+    assert "UNIQUE" in sql and "CREATE INDEX ix_translations_status" in sql
+    assert "INSERT INTO" not in sql
 
 
 def test_the_revision_chain_is_linear_and_reaches_one_head() -> None:

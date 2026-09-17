@@ -1,3 +1,4 @@
+import { useLocale } from "../../../i18n/locale.jsx";
 import { useEffect, useState } from "react";
 import Media from "../shell/Media.jsx";
 
@@ -7,6 +8,7 @@ import Media from "../shell/Media.jsx";
  * full-resolution pictures the visitor has not asked for.
  */
 export default function Gallery({ images, fallback, alt }) {
+  const { t } = useLocale();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
@@ -38,14 +40,14 @@ export default function Gallery({ images, fallback, alt }) {
         eager
       />
       {list.length > 1 && (
-        <div className="vs-gallery__thumbs" role="group" aria-label="صور المنتج">
+        <div className="vs-gallery__thumbs" role="group" aria-label={t("صور المنتج")}>
           {list.map((image, position) => (
             <button
               key={image.id ?? position}
               type="button"
               className="vs-thumb"
               aria-pressed={position === index}
-              aria-label={`عرض الصورة ${position + 1}`}
+              aria-label={t("عرض الصورة {0}", [position + 1])}
               onClick={() => setIndex(position)}
             >
               <Media src={image.url} fallback={fallback} alt="" ratio="1 / 1" />

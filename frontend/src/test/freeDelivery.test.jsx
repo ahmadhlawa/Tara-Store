@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { cartStorage } from "../storage/cartStorage.js";
@@ -16,7 +16,15 @@ const AREAS = [
   { id: 3, name: "الداخل", delivery_fee: 80, free_delivery_threshold: 400, estimated_days: "3 أيام عمل", sort_order: 3 },
 ];
 
-const routes = { ...storefrontRoutes, "/api/v1/delivery-areas": AREAS };
+const routes = {
+  ...storefrontRoutes,
+  "/api/v1/delivery-areas": AREAS,
+  "POST /api/v1/cart/price": () => {
+    const subtotal = cartStorage.load().reduce((sum, line) => sum + line.unit * line.qty, 0);
+    return { lines: [], subtotal, discount: 0, delivery_fee: 0, total: subtotal,
+      coupon_code: null, delivery_area_name: null };
+  },
+};
 
 const seedCart = (unit, qty = 1) =>
   cartStorage.save([
@@ -48,7 +56,7 @@ describe("free delivery notice", () => {
 
     const panel = within(await notice());
     // 220 − 100 for الضفة and القدس, which share a threshold and so share a line.
-    expect(panel.getByText(/الضفة، القدس/)).toHaveTextContent("أضف 120 ₪");
+    await waitFor(() => expect(panel.getByText(/الضفة، القدس/)).toHaveTextContent("أضف 120 ₪"));
     expect(panel.getByText(/الداخل/)).toHaveTextContent("أضف 300 ₪");
   });
 
@@ -58,7 +66,7 @@ describe("free delivery notice", () => {
     renderApp("/cart");
 
     const panel = within(await notice());
-    expect(panel.getByText(/طلبك مؤهل للتوصيل المجاني إلى الضفة، القدس/)).toBeInTheDocument();
+    await waitFor(() => expect(panel.getByText(/طلبك مؤهل للتوصيل المجاني إلى الضفة، القدس/)).toBeInTheDocument());
     // The higher threshold is not reached and still says so.
     expect(panel.getByText(/الداخل/)).toHaveTextContent("أضف 180 ₪");
   });

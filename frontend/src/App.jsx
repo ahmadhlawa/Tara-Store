@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
+import { LocaleProvider, LegacyRedirect, t } from "./i18n/locale.jsx";
 import { StoreProvider } from "./app/StoreProvider.jsx";
 import PublicShell from "./components/public/shell/PublicShell.jsx";
 import HomePage from "./pages/HomePage.jsx";
@@ -18,7 +19,7 @@ const NotFoundRoutePage = lazy(() => import("./pages/NotFoundRoutePage.jsx"));
 
 const routeFallback = <div role="status" aria-label="Loading" />;
 function RouteSeo({ config, children }) {
-  useSeo(config);
+  useSeo({ ...config, title: t(config.title) });
   return children;
 }
 function lazyRoute(Component, props, seo) {
@@ -37,13 +38,19 @@ function lazyRoute(Component, props, seo) {
 export default function App() {
   return (
     <Routes>
-        <Route path="/admin/*" element={lazyRoute(AdminApp, null, { title: "Admin | Tara Store", noindex: true })} />
+        <Route path="/admin/*" element={lazyRoute(AdminApp, null, { title: "Admin | Tara Store", noindex: true })}>
+          {/* AdminApp renders this page; reserve its match ahead of :locale/categories. */}
+          <Route path="categories" element={<></>} />
+        </Route>
 
         <Route
+          path=":locale"
           element={
-            <StoreProvider>
-              <PublicShell />
-            </StoreProvider>
+            <LocaleProvider>
+              <StoreProvider>
+                <PublicShell />
+              </StoreProvider>
+            </LocaleProvider>
           }
         >
           <Route index element={<HomePage />} />
@@ -66,6 +73,7 @@ export default function App() {
           <Route path="contact" element={lazyRoute(ContactRoutePage)} />
           <Route path="*" element={lazyRoute(NotFoundRoutePage)} />
         </Route>
+        <Route path="*" element={<LegacyRedirect />} />
     </Routes>
   );
 }

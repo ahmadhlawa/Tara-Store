@@ -1,0 +1,29 @@
+# Inactive server-wide configuration. Run once per server, outside Tara's checkout.
+name: shared-translation
+services:
+  libretranslate:
+    image: ${LIBRETRANSLATE_IMAGE:?Set a reviewed LibreTranslate image tag or digest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5000:5000"
+    environment:
+      LT_HOST: "0.0.0.0"
+      LT_PORT: "5000"
+      LT_LOAD_ONLY: "ar,en"
+      LT_UPDATE_MODELS: "false"
+      LT_THREADS: "1"
+      LT_CHAR_LIMIT: "4000"
+      ARGOS_MODEL_PROVIDER: "OPENNMT"
+      XDG_CACHE_HOME: "/home/libretranslate/.local/cache"
+    volumes:
+      - argos_models:/home/libretranslate/.local
+    healthcheck:
+      test: ["CMD", "./venv/bin/python", "scripts/healthcheck.py"]
+      interval: 30s
+      timeout: 5s
+      start_period: 180s
+      retries: 5
+volumes:
+  argos_models:
+    # Stable server-wide name, retained across checkout/container recreation.
+    name: shared-libretranslate-models

@@ -1,3 +1,4 @@
+import { localePath, useLocale } from "../i18n/locale.jsx";
 import { useEffect } from "react";
 
 export function absoluteUrl(base, value) {
@@ -20,7 +21,8 @@ function appendMeta(attribute, key, content) {
 
 /** Synchronizes route metadata with the document head without a runtime dependency. */
 export default function useSeo(config) {
-  const serialized = JSON.stringify(config);
+  const { locale } = useLocale();
+  const serialized = JSON.stringify({ ...config, path: localePath(config?.path, locale) });
   useEffect(() => {
     const value = JSON.parse(serialized);
     document.head.querySelectorAll("[data-tara-seo]").forEach((node) => node.remove());

@@ -1,5 +1,7 @@
+import { useLocale } from "../i18n/locale.jsx";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { Link } from "../i18n/routing.jsx";
 import { storefrontService } from "../services/storefront.js";
 import NotFoundRoutePage from "./NotFoundRoutePage.jsx";
 import { useStore } from "../app/StoreProvider.jsx";
@@ -7,6 +9,7 @@ import useSeo from "../hooks/useSeo.js";
 
 /** Renders a published StaticPage. `slug` may come from the route or be fixed. */
 export default function StaticContentPage({ slug: fixedSlug }) {
+  const { locale, t } = useLocale();
   const params = useParams();
   const slug = fixedSlug || params.slug;
   const { settings } = useStore();
@@ -36,7 +39,7 @@ export default function StaticContentPage({ slug: fixedSlug }) {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, locale]);
 
   if (status === "loading") {
     return (
@@ -51,8 +54,8 @@ export default function StaticContentPage({ slug: fixedSlug }) {
 
   return (
     <article className="vs-container vs-container--narrow vs-section">
-      <nav className="vs-crumbs" aria-label="مسار التصفح">
-        <Link to="/">الرئيسية</Link>
+      <nav className="vs-crumbs" aria-label={t("مسار التصفح")}>
+        <Link to="/">{t("الرئيسية")}</Link>
         <span aria-hidden="true">›</span>
         <span className="vs-crumbs__here">{page.title}</span>
       </nav>
@@ -66,7 +69,7 @@ export default function StaticContentPage({ slug: fixedSlug }) {
             </p>
           ))
         ) : (
-          <p className="vs-prose vs-prose--muted">لا يوجد محتوى منشور لهذه الصفحة بعد.</p>
+          <p className="vs-prose vs-prose--muted">{t("لا يوجد محتوى منشور لهذه الصفحة بعد.")}</p>
         )}
       </div>
     </article>

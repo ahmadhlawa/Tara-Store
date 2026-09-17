@@ -527,7 +527,7 @@ img.vs-logo__img {
    empty corner and read as a detached strip. */
 .vs-catbar {
   position: fixed;
-  right: 0;
+  inset-inline-start: 0;
   top: 0;
   bottom: 0;
   z-index: var(--vs-z-rail);
@@ -644,7 +644,7 @@ img.vs-logo__img {
 .vs-catbar__tip {
   position: absolute;
   top: 50%;
-  right: calc(100% + 10px);
+  inset-inline-start: calc(100% + 10px);
   transform: translateY(-50%);
   padding: 6px 10px;
   border-radius: var(--vs-r-sm);
@@ -680,7 +680,7 @@ img.vs-logo__img {
    `.vs-drawer--right`, which is defined in a later stylesheet. */
 .vs-drawer.vs-drawer--cats {
   width: var(--vs-drawer-cat-w);
-  right: 0;
+  inset-inline-start: 0;
   top: 0;
   bottom: 0;
 }

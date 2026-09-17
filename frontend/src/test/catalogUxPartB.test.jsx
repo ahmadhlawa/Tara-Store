@@ -46,8 +46,8 @@ describe("structured hero destinations", () => {
     renderApp("/");
     await waitFor(() => expect(document.querySelectorAll(".vs-hero__slide")).toHaveLength(2));
     const slides = document.querySelectorAll(".vs-hero__slide");
-    expect(slides[0]).toHaveAttribute("href", "/category/candles");
-    expect(slides[1]).toHaveAttribute("href", "/categories");
+    expect(slides[0]).toHaveAttribute("href", "/ar/category/candles");
+    expect(slides[1]).toHaveAttribute("href", "/ar/categories");
   });
 });
 
@@ -59,7 +59,7 @@ describe("categories navigation", () => {
       "/api/v1/home-sections": [{ id: 1, section_key: "cats", section_type: "categories", title: "تسوّق حسب القسم", description: "", sort_order: 0, config: {} }],
     });
     renderApp("/");
-    expect(await screen.findByRole("link", { name: "عرض الكل" })).toHaveAttribute("href", "/categories");
+    expect(await screen.findByRole("link", { name: "عرض الكل" })).toHaveAttribute("href", "/ar/categories");
   });
 
   it("shows active categories on /categories and excludes inactive rows", async () => {

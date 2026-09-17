@@ -1,3 +1,4 @@
+import { useLocale } from "../i18n/locale.jsx";
 // Small, focused hooks shared by the public components. Deliberately not one
 // god view-model: each surface takes only what it needs.
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -30,6 +31,7 @@ const CART_REVEAL_MS = 620;
  * view because the product needs an option chosen first.
  */
 export function useProductActions() {
+
   const store = useStore();
   const timer = useRef(null);
 
@@ -90,26 +92,27 @@ export function useProductActions() {
 export function useActiveCategorySlug() {
   const { pathname } = useLocation();
   return useMemo(() => {
-    const match = /^\/category\/([^/]+)/.exec(pathname);
+    const match = /^\/(?:ar\/|en\/)?category\/([^/]+)/.exec(pathname);
     return match ? decodeURIComponent(match[1]) : null;
   }, [pathname]);
 }
 
 /** Top-level categories with routes and an active flag, ready for navigation. */
-function decorateCategory(category, activeSlug) {
+function decorateCategory(category, activeSlug, t) {
   return {
     ...category,
     href: `/category/${category.slug}`,
     active: category.slug === activeSlug,
-    countText: category.count === 1 ? "منتج واحد" : `${category.count} منتجاً`,
-    children: (category.children || []).map((child) => decorateCategory(child, activeSlug)),
+    countText: category.count === 1 ? t("منتج واحد") : t("{0} منتجاً", [category.count]),
+    children: (category.children || []).map((child) => decorateCategory(child, activeSlug, t)),
   };
 }
 
 export function useCategoryNav(activeSlug = null) {
+  const { t } = useLocale();
   const { categories } = useStore();
   return useMemo(
-    () => categories.map((category) => decorateCategory(category, activeSlug)),
-    [categories, activeSlug],
+    () => categories.map((category) => decorateCategory(category, activeSlug, t)),
+    [categories, activeSlug, t],
   );
 }

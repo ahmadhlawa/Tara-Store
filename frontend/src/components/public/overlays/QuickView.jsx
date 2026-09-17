@@ -1,5 +1,6 @@
+import { useLocale } from "../../../i18n/locale.jsx";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "../../../i18n/routing.jsx";
 import { Modal } from "./Overlay.jsx";
 import Media from "../shell/Media.jsx";
 import QuantityStepper from "../cart/QuantityStepper.jsx";
@@ -16,6 +17,7 @@ import { ArrowForward } from "../shell/icons.jsx";
  * page would show.
  */
 export default function QuickView({ slug, open, onClose }) {
+  const { t } = useLocale();
   const { product, status } = useProductDetail(open ? slug : null);
   const money = useMoney();
   const { addProduct } = useProductActions();
@@ -41,7 +43,7 @@ export default function QuickView({ slug, open, onClose }) {
   const add = () => {
     if (!product) return false;
     if (selection.missingChoice) {
-      setError("اختر أحد الخيارات المتاحة قبل الإضافة إلى العربة.");
+      setError(t("اختر أحد الخيارات المتاحة قبل الإضافة إلى العربة."));
       return false;
     }
     // The modal is closing, so the cart takes over straight away rather than
@@ -50,7 +52,7 @@ export default function QuickView({ slug, open, onClose }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} label="نظرة سريعة">
+    <Modal open={open} onClose={onClose} label={t("نظرة سريعة")}>
       {status === "loading" && (
         <div className="vs-quick vs-quick--loading">
           <div className="vs-skel vs-quick__media" />
@@ -66,7 +68,7 @@ export default function QuickView({ slug, open, onClose }) {
 
       {(status === "error" || status === "missing") && (
         <div className="vs-state vs-state--error vs-quick__state">
-          <p className="vs-state__body">تعذّر تحميل هذا المنتج. جرّب فتح صفحته كاملة.</p>
+          <p className="vs-state__body">{t("تعذّر تحميل هذا المنتج. جرّب فتح صفحته كاملة.")}</p>
         </div>
       )}
 
@@ -89,7 +91,7 @@ export default function QuickView({ slug, open, onClose }) {
                     type="button"
                     className="vs-thumb"
                     aria-pressed={index === image}
-                    aria-label={`صورة ${index + 1}`}
+                    aria-label={t("صورة {0}", [index + 1])}
                     onClick={() => setImage(index)}
                   >
                     <Media src={item.url} fallback={view.bg} alt="" ratio="1 / 1" />
@@ -124,9 +126,7 @@ export default function QuickView({ slug, open, onClose }) {
             )}
 
             {selection.unavailable && (
-              <p className="vs-quick__notice" role="status">
-                هذا المنتج يحتاج إلى اختيار خيارات من صفحته الكاملة.
-              </p>
+              <p className="vs-quick__notice" role="status">{t("هذا المنتج يحتاج إلى اختيار خيارات من صفحته الكاملة.")}{" "}</p>
             )}
 
             {view.isPackage && view.packageCount > 0 && (
@@ -148,21 +148,18 @@ export default function QuickView({ slug, open, onClose }) {
                 size="lg"
               />
               {selection.unavailable ? (
-                <Link to={view.href} className="vs-btn vs-btn--primary vs-btn--lg vs-quick__cta">
-                  عرض صفحة المنتج
-                </Link>
+                <Link to={view.href} className="vs-btn vs-btn--primary vs-btn--lg vs-quick__cta">{t("عرض صفحة المنتج")}{" "}</Link>
               ) : (
                 <AddToCartButton
                   onAdd={add}
-                  label={selection.soldOut ? "غير متوفر حالياً" : "أضف إلى العربة"}
+                  label={selection.soldOut ? t("غير متوفر حالياً") : t("أضف إلى العربة")}
                   disabled={selection.soldOut}
                   className="vs-btn vs-btn--primary vs-btn--lg vs-quick__cta"
                 />
               )}
             </div>
 
-            <Link to={view.href} className="vs-quick__full" onClick={onClose}>
-              عرض التفاصيل الكاملة <ArrowForward size={15} />
+            <Link to={view.href} className="vs-quick__full" onClick={onClose}>{t("عرض التفاصيل الكاملة")}{" "}<ArrowForward size={15} />
             </Link>
           </div>
         </div>

@@ -1,5 +1,7 @@
+import { useLocale } from "../i18n/locale.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
+import { Link } from "../i18n/routing.jsx";
 import { OVERLAY, useStore } from "../app/StoreProvider.jsx";
 import { useCatalogQuery, SORTS } from "../hooks/useCatalogQuery.js";
 import { useCategoryNav, useMoney } from "../hooks/useStorefront.js";
@@ -67,6 +69,7 @@ function findCategoryPath(categories, slug, path = []) {
  * change; everything else comes from the URL.
  */
 export default function CatalogPage({ mode = "shop" }) {
+  const { locale, t } = useLocale();
   const spec = MODES[mode];
   const params = useParams();
   const [search] = useSearchParams();
@@ -99,10 +102,10 @@ export default function CatalogPage({ mode = "shop" }) {
   const [density, setDensity] = useState("standard");
   const firstLoad = useRef(true);
   const cleanPath = mode === "category" ? `/category/${encodeURIComponent(params.slug || "")}` : `/${mode}`;
-  const seoTitle = mode === "category" && category ? category.name : spec.title;
+  const seoTitle = mode === "category" && category ? category.name : t(spec.title);
   useSeo({
     title: `${seoTitle} | ${store.settings.storeName}`,
-    description: (mode === "category" ? category?.description : spec.subtitle) || store.settings.seoDescription,
+    description: (mode === "category" ? category?.description : t(spec.subtitle)) || store.settings.seoDescription,
     baseUrl: store.settings.publicBaseUrl,
     path: cleanPath,
     noindex: mode === "search" || search.toString().length > 0,
@@ -126,7 +129,7 @@ export default function CatalogPage({ mode = "shop" }) {
   useEffect(() => {
     setPage(1);
     firstLoad.current = true;
-  }, [queryKey]);
+  }, [queryKey, locale]);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,7 +160,7 @@ export default function CatalogPage({ mode = "shop" }) {
     };
     // `queryKey` stands in for the whole query object.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryKey, page]);
+  }, [queryKey, page, locale]);
 
   // The price slider needs a real upper bound, so it comes from the catalogue
   // itself rather than from a number invented in the UI.
@@ -177,7 +180,7 @@ export default function CatalogPage({ mode = "shop" }) {
     return () => {
       cancelled = true;
     };
-  }, [mode, params.slug, selectedCategory?.slug, term, spec.force]);
+  }, [mode, params.slug, selectedCategory?.slug, term, spec.force, locale]);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,18 +195,18 @@ export default function CatalogPage({ mode = "shop" }) {
     return () => {
       cancelled = true;
     };
-  }, [mode, params.slug]);
+  }, [mode, params.slug, locale]);
 
   const views = items.map((product) => productView(product, money));
-  const title = mode === "category" ? category?.name || "القسم" : spec.title;
+  const title = mode === "category" ? category?.name || t("القسم") : t(spec.title);
   const subtitle =
     mode === "category"
       ? category?.description || ""
       : mode === "search"
         ? term
-          ? `نتائج البحث عن «${term}»`
-          : "اكتب كلمة في شريط البحث للبدء"
-        : spec.subtitle;
+          ? t("نتائج البحث عن «{0}»", [term])
+          : t("اكتب كلمة في شريط البحث للبدء")
+        : t(spec.subtitle);
 
   const heroImageUrl = category?.parentId == null
     ? category?.bannerImageUrl || category?.imageUrl
@@ -240,8 +243,8 @@ export default function CatalogPage({ mode = "shop" }) {
           </>
         )}
         <div className="vs-container vs-cathead__inner">
-          <nav className="vs-crumbs" aria-label="مسار التصفح">
-            <Link to="/">الرئيسية</Link>
+          <nav className="vs-crumbs" aria-label={t("مسار التصفح")}>
+            <Link to="/">{t("الرئيسية")}</Link>
             <span aria-hidden="true">›</span>
             <span className="vs-crumbs__here">{title}</span>
           </nav>
@@ -251,7 +254,7 @@ export default function CatalogPage({ mode = "shop" }) {
       </header>
 
       {mode === "category" && children.length > 0 && (
-        <div className="vs-container vs-subcategories vs-subcategories--primary" role="group" aria-label="تصفية حسب القسم الفرعي">
+        <div className="vs-container vs-subcategories vs-subcategories--primary" role="group" aria-label={t("تصفية حسب القسم الفرعي")}>
           <button
             type="button"
             className="vs-subcategory"
@@ -259,7 +262,7 @@ export default function CatalogPage({ mode = "shop" }) {
             onClick={() => patch({ subcat: null })}
           >
             <Media src={category?.imageUrl} fallback={category?.bg} alt="" ratio="1 / 1" />
-            <span>الكل</span>
+            <span>{t("الكل")}</span>
           </button>
           {children.map((child) => (
             <button
@@ -277,7 +280,7 @@ export default function CatalogPage({ mode = "shop" }) {
       )}
 
       {mode === "category" && selectedPath.length > 0 && (
-        <nav className="vs-container vs-category-path" aria-label="مسار القسم المحدد">
+        <nav className="vs-container vs-category-path" aria-label={t("مسار القسم المحدد")}>
           <button type="button" onClick={() => patch({ subcat: null })}>{currentTreeCategory?.name}</button>
           {selectedPath.map((item, index) => (
             <span key={item.slug}>
@@ -295,15 +298,13 @@ export default function CatalogPage({ mode = "shop" }) {
       )}
 
       {mode === "category" && nestedChildren.length > 0 && (
-        <div className="vs-container vs-subcategories vs-subcategories--nested" role="group" aria-label="تصفية حسب القسم الفرعي التالي">
+        <div className="vs-container vs-subcategories vs-subcategories--nested" role="group" aria-label={t("تصفية حسب القسم الفرعي التالي")}>
           <button
             type="button"
             className="vs-nested-category"
             aria-pressed={selectedCategory?.slug === nestedParent.slug}
             onClick={() => patch({ subcat: nestedParent === currentTreeCategory ? null : nestedParent.slug })}
-          >
-            الكل
-          </button>
+          >{t("الكل")}{" "}</button>
           {nestedChildren.map((child) => (
             <button
               type="button"
@@ -324,19 +325,15 @@ export default function CatalogPage({ mode = "shop" }) {
             <span className="vs-state__icon">
               <SearchIcon size={26} />
             </span>
-            <h2 className="vs-state__title">ابدأ بالبحث</h2>
-            <p className="vs-state__body">
-              اكتب اسم منتج أو قسم في شريط البحث أعلى الصفحة لعرض النتائج.
-            </p>
-            <Link to="/shop" className="vs-btn vs-btn--primary">
-              أو تصفّح كل المنتجات
-            </Link>
+            <h2 className="vs-state__title">{t("ابدأ بالبحث")}</h2>
+            <p className="vs-state__body">{t("اكتب اسم منتج أو قسم في شريط البحث أعلى الصفحة لعرض النتائج.")}{" "}</p>
+            <Link to="/shop" className="vs-btn vs-btn--primary">{t("أو تصفّح كل المنتجات")}{" "}</Link>
           </div>
         </div>
       ) : (
       <div className="vs-container vs-section--tight">
         <div className="vs-catalog">
-          <aside className="vs-catalog__side" aria-label="تصفية النتائج">
+          <aside className="vs-catalog__side" aria-label={t("تصفية النتائج")}>
             {filterPanel}
           </aside>
 
@@ -347,21 +344,20 @@ export default function CatalogPage({ mode = "shop" }) {
                 className="vs-btn vs-btn--ghost vs-toolbar__filter"
                 onClick={() => store.openOverlay(OVERLAY.FILTERS)}
               >
-                <FilterIcon size={17} /> التصفية
-              </button>
+                <FilterIcon size={17} />{" "}{t("التصفية")}{" "}</button>
               <span className="vs-toolbar__count">
-                {status === "loading" ? "جارٍ التحميل…" : `${meta.total} منتجاً`}
+                {status === "loading" ? t("جارٍ التحميل…") : t("{0} منتجاً", [meta.total])}
               </span>
 
               <div className="vs-toolbar__spacer" />
 
-              <div className="vs-toolbar__density vs-desk" role="group" aria-label="كثافة العرض">
+              <div className="vs-toolbar__density vs-desk" role="group" aria-label={t("كثافة العرض")}>
                 {DENSITIES.map((item) => (
                   <button
                     key={item.value}
                     type="button"
                     aria-pressed={density === item.value}
-                    aria-label={item.label}
+                    aria-label={t(item.label)}
                     onClick={() => setDensity(item.value)}
                   >
                     <item.Icon size={17} />
@@ -369,16 +365,14 @@ export default function CatalogPage({ mode = "shop" }) {
                 ))}
               </div>
 
-              <label className="vs-sortlabel">
-                ترتيب حسب
-                <select
+              <label className="vs-sortlabel">{t("ترتيب حسب")}{" "}<select
                   className="vs-select"
                   value={filters.sort}
                   onChange={(event) => patch({ sort: event.target.value })}
                 >
                   {SORTS.map((sort) => (
                     <option key={sort.value} value={sort.value}>
-                      {sort.label}
+                      {t(sort.label)}
                     </option>
                   ))}
                 </select>
@@ -397,9 +391,7 @@ export default function CatalogPage({ mode = "shop" }) {
                     {chip.label} ✕
                   </button>
                 ))}
-                <button type="button" className="vs-activefilters__clear" onClick={reset}>
-                  مسح الكل
-                </button>
+                <button type="button" className="vs-activefilters__clear" onClick={reset}>{t("مسح الكل")}{" "}</button>
               </div>
             )}
 
@@ -407,7 +399,7 @@ export default function CatalogPage({ mode = "shop" }) {
 
             {status === "error" && (
               <div className="vs-state vs-state--error" role="alert">
-                <p className="vs-state__body">تعذّر تحميل المنتجات. حاول مرة أخرى بعد قليل.</p>
+                <p className="vs-state__body">{t("تعذّر تحميل المنتجات. حاول مرة أخرى بعد قليل.")}</p>
               </div>
             )}
 
@@ -416,14 +408,10 @@ export default function CatalogPage({ mode = "shop" }) {
                 <span className="vs-state__icon">
                   <SearchIcon size={26} />
                 </span>
-                <h2 className="vs-state__title">لا توجد منتجات مطابقة</h2>
-                <p className="vs-state__body">
-                  جرّب توسيع نطاق السعر أو إلغاء بعض عوامل التصفية.
-                </p>
+                <h2 className="vs-state__title">{t("لا توجد منتجات مطابقة")}</h2>
+                <p className="vs-state__body">{t("جرّب توسيع نطاق السعر أو إلغاء بعض عوامل التصفية.")}{" "}</p>
                 {active.length > 0 && (
-                  <button type="button" className="vs-btn vs-btn--primary" onClick={reset}>
-                    إعادة تعيين التصفية
-                  </button>
+                  <button type="button" className="vs-btn vs-btn--primary" onClick={reset}>{t("إعادة تعيين التصفية")}{" "}</button>
                 )}
               </div>
             )}
@@ -435,8 +423,7 @@ export default function CatalogPage({ mode = "shop" }) {
                 type="button"
                 className="vs-btn vs-btn--outline vs-btn--lg vs-loadmore"
                 onClick={() => setPage((current) => current + 1)}
-              >
-                عرض المزيد ({Math.max(0, meta.total - items.length)})
+              >{t("عرض المزيد (")}{Math.max(0, meta.total - items.length)})
               </button>
             )}
           </div>
@@ -448,16 +435,14 @@ export default function CatalogPage({ mode = "shop" }) {
         open={store.overlay === OVERLAY.FILTERS}
         onClose={store.closeAll}
         side="right"
-        label="تصفية النتائج"
-        title="تصفية النتائج"
+        label={t("تصفية النتائج")}
+        title={t("تصفية النتائج")}
         footer={
           <button
             type="button"
             className="vs-btn vs-btn--primary vs-btn--lg vs-btn--block"
             onClick={store.closeAll}
-          >
-            عرض {meta.total} منتجاً
-          </button>
+          >{t("عرض")}{" "}{meta.total}{" "}{t("منتجاً")}{" "}</button>
         }
       >
         <div className="vs-filterdrawer">{filterPanel}</div>

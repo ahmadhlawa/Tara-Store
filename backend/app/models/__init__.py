@@ -20,6 +20,7 @@ from app.models.marketing import Coupon, DeliveryArea, HeroSlide
 from app.models.media import MediaAsset
 from app.models.orders import Order, OrderActivity, OrderItem, OrderItemPackageComponent, OrderStatusHistory
 from app.models.store import StoreSettings
+from app.models.translation import Translation
 
 __all__ = [
     "AdminUser",

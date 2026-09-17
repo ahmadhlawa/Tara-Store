@@ -55,8 +55,8 @@ describe("category rail", () => {
     await waitFor(() => expect(rail().querySelectorAll(".vs-catbar__item")).toHaveLength(2));
 
     const items = within(rail()).getAllByRole("link");
-    expect(items[0]).toHaveAttribute("href", `/category/${categoryFixture.slug}`);
-    expect(items[1]).toHaveAttribute("href", "/category/event-print");
+    expect(items[0]).toHaveAttribute("href", `/ar/category/${categoryFixture.slug}`);
+    expect(items[1]).toHaveAttribute("href", "/ar/category/event-print");
     // Every item is labelled and carries a tooltip; none shows permanent text.
     items.forEach((item) => {
       expect(item).toHaveAccessibleName();
@@ -142,7 +142,7 @@ describe("category rail", () => {
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(within(panel).getByRole("link", { name: "لافتات" })).toHaveAttribute(
       "href",
-      "/category/signs",
+      "/ar/category/signs",
     );
     expect(within(panel).getByRole("link", { name: "ستاندات" })).toBeInTheDocument();
   });
@@ -433,7 +433,7 @@ describe("homepage category grid", () => {
     // The title is over the image, and readable without any interaction.
     const first = cards[0];
     expect(first.tagName).toBe("A");
-    expect(first).toHaveAttribute("href", `/category/${categoryFixture.slug}`);
+    expect(first).toHaveAttribute("href", `/ar/category/${categoryFixture.slug}`);
     expect(within(first).getByText(categoryFixture.name)).toBeInTheDocument();
     expect(first.querySelector(".vs-cat__center")).toContainElement(
       within(first).getByText(categoryFixture.name),

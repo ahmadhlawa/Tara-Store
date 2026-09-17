@@ -145,7 +145,7 @@ describe("product card behaviour", () => {
     expect(card.getByText("410 ₪")).toBeInTheDocument();
     expect(card.getByRole("link", { name: /التفاصيل/ })).toHaveAttribute(
       "href",
-      "/product/wedding-package",
+      "/ar/product/wedding-package",
     );
 
     await userEvent.click(card.getByRole("button", { name: /أضف البكج إلى العربة/ }));
@@ -187,7 +187,7 @@ describe("product card behaviour", () => {
     expect(within(modal).getByText(productFixture.name)).toBeInTheDocument();
     expect(within(modal).getByRole("link", { name: /عرض التفاصيل الكاملة/ })).toHaveAttribute(
       "href",
-      "/product/clear-resin",
+      "/ar/product/clear-resin",
     );
 
     await userEvent.keyboard("{Escape}");

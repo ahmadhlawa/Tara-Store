@@ -1,3 +1,4 @@
+import { useLocale } from "../../../i18n/locale.jsx";
 import { useCategoryNav, useMoney } from "../../../hooks/useStorefront.js";
 
 /**
@@ -6,6 +7,7 @@ import { useCategoryNav, useMoney } from "../../../hooks/useStorefront.js";
  * not belong on the page.
  */
 export default function FilterPanel({ filters, patch, reset, showCategories, ceiling }) {
+  const { t } = useLocale();
   const categories = useCategoryNav();
   const money = useMoney();
   const max = filters.maxPrice ?? ceiling;
@@ -14,16 +16,14 @@ export default function FilterPanel({ filters, patch, reset, showCategories, cei
     <div className="vs-filters">
       <div className="vs-filters__group">
         <div className="vs-filters__legend-row">
-          <span className="vs-filters__legend">تصفية النتائج</span>
-          <button type="button" className="vs-activefilters__clear" onClick={reset}>
-            إعادة تعيين
-          </button>
+          <span className="vs-filters__legend">{t("تصفية النتائج")}</span>
+          <button type="button" className="vs-activefilters__clear" onClick={reset}>{t("إعادة تعيين")}{" "}</button>
         </div>
       </div>
 
       {showCategories && categories.length > 0 && (
         <fieldset className="vs-filters__group">
-          <legend className="vs-filters__legend">الأقسام</legend>
+          <legend className="vs-filters__legend">{t("الأقسام")}</legend>
           {categories.map((category) => (
             <label key={category.slug} className="vs-check">
               <input
@@ -40,7 +40,7 @@ export default function FilterPanel({ filters, patch, reset, showCategories, cei
       )}
 
       <fieldset className="vs-filters__group">
-        <legend className="vs-filters__legend">السعر الأقصى — {money(max)}</legend>
+        <legend className="vs-filters__legend">{t("السعر الأقصى —")}{" "}{money(max)}</legend>
         <input
           className="vs-range"
           type="range"
@@ -51,28 +51,24 @@ export default function FilterPanel({ filters, patch, reset, showCategories, cei
           onChange={(event) =>
             patch({ max: Number(event.target.value) >= ceiling ? null : event.target.value })
           }
-          aria-label="السعر الأقصى"
+          aria-label={t("السعر الأقصى")}
         />
       </fieldset>
 
       <fieldset className="vs-filters__group">
-        <legend className="vs-filters__legend">التوفّر والعروض</legend>
+        <legend className="vs-filters__legend">{t("التوفّر والعروض")}</legend>
         <label className="vs-check">
           <input
             type="checkbox"
             checked={filters.onSale}
             onChange={(event) => patch({ sale: event.target.checked })}
-          />
-          المنتجات المخفّضة فقط
-        </label>
+          />{t("المنتجات المخفّضة فقط")}{" "}</label>
         <label className="vs-check">
           <input
             type="checkbox"
             checked={filters.inStock}
             onChange={(event) => patch({ stock: event.target.checked })}
-          />
-          المتوفر في المخزون فقط
-        </label>
+          />{t("المتوفر في المخزون فقط")}{" "}</label>
       </fieldset>
     </div>
   );

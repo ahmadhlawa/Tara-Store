@@ -1,3 +1,4 @@
+import { useLocale } from "../i18n/locale.jsx";
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -19,6 +20,7 @@ const SORT_VALUES = SORTS.map((sort) => sort.value);
  * there is no filter here that the server would quietly ignore.
  */
 export function useCatalogQuery() {
+  const { t } = useLocale();
   const [params, setParams] = useSearchParams();
 
   const filters = useMemo(() => {
@@ -73,17 +75,17 @@ export function useCatalogQuery() {
   const active = useMemo(() => {
     const chips = [];
     if (filters.category) chips.push({ key: "cat", label: filters.category, clear: { cat: null } });
-    if (filters.onSale) chips.push({ key: "sale", label: "المخفّضة فقط", clear: { sale: null } });
-    if (filters.inStock) chips.push({ key: "stock", label: "المتوفر فقط", clear: { stock: null } });
+    if (filters.onSale) chips.push({ key: "sale", label: t("المخفّضة فقط"), clear: { sale: null } });
+    if (filters.inStock) chips.push({ key: "stock", label: t("المتوفر فقط"), clear: { stock: null } });
     if (filters.minPrice != null || filters.maxPrice != null) {
       chips.push({
         key: "price",
-        label: "نطاق السعر",
+        label: t("نطاق السعر"),
         clear: { min: null, max: null },
       });
     }
     return chips;
-  }, [filters]);
+  }, [filters, t]);
 
   return { filters, patch, reset, active };
 }

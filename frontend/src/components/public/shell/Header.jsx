@@ -1,18 +1,22 @@
-import { Link, NavLink } from "react-router-dom";
+import { useLocale } from "../../../i18n/locale.jsx";
+import { Link as LanguageLink, useLocation } from "react-router-dom";
+import { localePath } from "../../../i18n/locale.jsx";
+import { Link, NavLink } from "../../../i18n/routing.jsx";
 import { OVERLAY, useStore } from "../../../app/StoreProvider.jsx";
 import { useCartCountPulse } from "../../../hooks/useCartCountPulse.js";
 import { useLogoFit } from "../../../hooks/useLogoFit.js";
 import { useMoney } from "../../../hooks/useStorefront.js";
 import { navLinks } from "../../../store.js";
 import SearchBox from "../search/SearchBox.jsx";
-import { CartIcon, GridIcon, MenuIcon, SearchIcon, UserIcon } from "./icons.jsx";
+import { CartIcon, GlobeIcon, GridIcon, MenuIcon, SearchIcon, UserIcon } from "./icons.jsx";
 
 function StoreMark({ settings }) {
+  const { t } = useLocale();
   // The file is left exactly as the owner supplied it; only how much of the box
   // its artwork is allowed to fill is decided here. See useLogoFit.
   const { boxRef, style } = useLogoFit(settings.logoUrl);
   return (
-    <Link to="/" className="vs-logo" aria-label={`${settings.storeName} — الصفحة الرئيسية`}>
+    <Link to="/" className="vs-logo" aria-label={t("{0} — الصفحة الرئيسية", [settings.storeName])}>
       {settings.logoUrl && (
         <span className="vs-logo__box" ref={boxRef}>
           <img
@@ -41,6 +45,10 @@ function StoreMark({ settings }) {
 }
 
 export default function Header() {
+  const location = useLocation();
+  const { locale, t } = useLocale();
+  const targetLocale = locale === "ar" ? "en" : "ar";
+  const languageLabel = locale === "ar" ? "Switch to English" : "التبديل إلى العربية";
   const store = useStore();
   const money = useMoney();
   const { settings, cart, scrolled, overlay, openOverlay, closeAll } = store;
@@ -61,7 +69,7 @@ export default function Header() {
               type="button"
               className="vs-announce__close"
               onClick={() => store.setAnnounce(false)}
-              aria-label="إغلاق شريط الإعلان"
+              aria-label={t("إغلاق شريط الإعلان")}
             >
               ✕
             </button>
@@ -76,7 +84,7 @@ export default function Header() {
               type="button"
               className="vs-iconbtn vs-mob"
               onClick={() => openOverlay(OVERLAY.MENU)}
-              aria-label="فتح القائمة"
+              aria-label={t("فتح القائمة")}
               aria-expanded={overlay === OVERLAY.MENU}
             >
               <MenuIcon size={20} />
@@ -88,7 +96,7 @@ export default function Header() {
               type="button"
               className="vs-iconbtn vs-mob"
               onClick={toggleCats}
-              aria-label="تصنيفات المنتجات"
+              aria-label={t("تصنيفات المنتجات")}
               aria-expanded={catsOpen}
               aria-controls="vs-catdrawer"
             >
@@ -102,17 +110,23 @@ export default function Header() {
             </div>
 
             <div className="vs-hactions">
+              <LanguageLink className="vs-iconbtn vs-language-toggle" lang={targetLocale}
+                hrefLang={targetLocale} aria-label={languageLabel} title={languageLabel}
+                to={{ pathname: localePath(location.pathname, targetLocale), search: location.search, hash: location.hash }}>
+                <GlobeIcon size={17} />
+                <span className="vs-language-toggle__label" aria-hidden="true">{locale === "ar" ? "EN" : "ع"}</span>
+              </LanguageLink>
               <button
                 type="button"
                 className="vs-iconbtn vs-mob"
                 onClick={() => openOverlay(OVERLAY.SEARCH)}
-                aria-label="فتح البحث"
+                aria-label={t("فتح البحث")}
                 aria-expanded={overlay === OVERLAY.SEARCH}
               >
                 <SearchIcon size={19} />
               </button>
 
-              <Link to="/admin/login" className="vs-iconbtn" aria-label="تسجيل دخول الإدارة" title="تسجيل دخول الإدارة">
+              <Link to="/admin/login" className="vs-iconbtn" aria-label={t("تسجيل دخول الإدارة")} title={t("تسجيل دخول الإدارة")}>
                 <UserIcon size={18} />
               </Link>
 
@@ -120,7 +134,7 @@ export default function Header() {
                 type="button"
                 className="vs-cartbtn"
                 onClick={() => openOverlay(OVERLAY.CART)}
-                aria-label="عربة التسوّق"
+                aria-label={t("عربة التسوّق")}
                 aria-expanded={overlay === OVERLAY.CART}
               >
                 <CartIcon size={19} />
@@ -138,7 +152,7 @@ export default function Header() {
           </div>
         </div>
 
-        <nav className="vs-nav" aria-label="التنقّل الرئيسي">
+        <nav className="vs-nav" aria-label={t("التنقّل الرئيسي")}>
           <div className="vs-container vs-nav__row">
             <button
               type="button"
@@ -147,9 +161,7 @@ export default function Header() {
               aria-expanded={catsOpen}
               aria-controls="vs-catdrawer"
             >
-              <MenuIcon size={15} />
-              كل الأقسام
-            </button>
+              <MenuIcon size={15} />{t("كل الأقسام")}{" "}</button>
 
             {navLinks.map((link) => (
               <NavLink
@@ -158,7 +170,7 @@ export default function Header() {
                 end={link.href === "/"}
                 className="vs-nav__link"
               >
-                {link.label}
+                {t(link.label)}
               </NavLink>
             ))}
 

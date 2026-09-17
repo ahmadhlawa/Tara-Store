@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useLocale } from "../../../i18n/locale.jsx";
+import { Link } from "../../../i18n/routing.jsx";
 import AddToCartButton from "../../AddToCartButton.jsx";
 import Media from "../shell/Media.jsx";
 import { productBadges } from "../../../utils/productView.js";
@@ -24,6 +25,7 @@ import { EyeIcon, PlusIcon } from "../shell/icons.jsx";
  * the product is sold out.
  */
 export default function ProductCard({ view, eager = false, revealDelay = 0 }) {
+  const { t } = useLocale();
   const { openQuick, primaryAction } = useProductActions();
   const { cardProps } = useCardReveal();
   const revealProps = useViewportReveal(revealDelay);
@@ -32,7 +34,7 @@ export default function ProductCard({ view, eager = false, revealDelay = 0 }) {
   const badges = productBadges(view);
   // Sold out is already stated over the artwork and on the disabled button, so
   // the panel stays quiet about it rather than saying it a third time.
-  const stockLabel = view.soldOut ? "" : view.lowStock ? `بقي ${view.stock} فقط` : "متوفر";
+  const stockLabel = view.soldOut ? "" : view.lowStock ? t("بقي {0} فقط", [view.stock]) : t("متوفر");
 
   return (
     <article className="vs-card" {...revealProps} {...cardProps}>
@@ -52,7 +54,7 @@ export default function ProductCard({ view, eager = false, revealDelay = 0 }) {
           <div className="vs-card__badges">
             {badges.map((badge) => (
               <span key={badge.key} className={`vs-badge vs-badge--${badge.tone}`}>
-                {badge.label}
+                {t(badge.label)}
               </span>
             ))}
           </div>
@@ -60,7 +62,7 @@ export default function ProductCard({ view, eager = false, revealDelay = 0 }) {
 
         {view.soldOut && (
           <div className="vs-card__veil">
-            <span>غير متوفر حالياً</span>
+            <span>{t("غير متوفر حالياً")}</span>
           </div>
         )}
       </div>
@@ -90,8 +92,8 @@ export default function ProductCard({ view, eager = false, revealDelay = 0 }) {
             type="button"
             className="vs-iconbtn vs-card__quick"
             onClick={() => openQuick(view)}
-            aria-label={`نظرة سريعة على ${view.name}`}
-            title="نظرة سريعة"
+            aria-label={t("نظرة سريعة على {0}", [view.name])}
+            title={t("نظرة سريعة")}
           >
             <EyeIcon size={16} />
           </button>

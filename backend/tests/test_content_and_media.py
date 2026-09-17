@@ -234,6 +234,29 @@ def test_hero_slide_uses_a_valid_structured_category_target(
     assert created.json()["target_slug"] == "candles"
     assert client.get("/api/v1/hero-slides").json()[0]["target_slug"] == "candles"
 
+    slide_id = created.json()["id"]
+    updated = client.patch(
+        f"/api/v1/admin/hero-slides/{slide_id}",
+        headers=auth(admin_token),
+        json={"image_url": "/media/hero-edited.png", "target_type": "category", "target_slug": "candles", "sort_order": 2},
+    )
+    assert updated.status_code == 200, updated.text
+    reloaded = client.get("/api/v1/admin/hero-slides", headers=auth(admin_token)).json()[0]
+    assert reloaded["image_url"] == "/media/hero-edited.png"
+    assert reloaded["target_slug"] == "candles"
+    assert reloaded["sort_order"] == 2
+
+    invalid = {"image_url": "/media/hero.png", "target_type": "category", "target_slug": ""}
+    missing_slug = client.post("/api/v1/admin/hero-slides", headers=auth(admin_token), json=invalid)
+    assert missing_slug.status_code == 422
+    assert missing_slug.json()["error"]["fields"] == [
+        {"field": "", "message": "Value error, target_slug is required for a category target"}
+    ]
+    bad_order = client.patch(
+        f"/api/v1/admin/hero-slides/{slide_id}", headers=auth(admin_token), json={"sort_order": "invalid"}
+    )
+    assert bad_order.status_code == 422
+
     rejected = client.post(
         "/api/v1/admin/hero-slides",
         headers=auth(admin_token),

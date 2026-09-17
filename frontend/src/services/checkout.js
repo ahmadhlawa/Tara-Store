@@ -1,3 +1,4 @@
+import { t } from "../i18n/locale.jsx";
 // Checkout talks to the server for every number it shows. The browser cart is a
 // convenience; the API is the source of truth for prices, discounts and totals.
 import { publicApi } from "../api/publicApi.js";
@@ -19,22 +20,22 @@ export function buildOrderWhatsAppMessage(order) {
       `- ${item.product_name}${item.sku ? ` (${item.sku})` : ""} × ${item.quantity}: ${displayMoney(item.line_total)}`,
   );
   return [
-    "طلب جديد من الموقع",
-    `رقم الطلب: ${order.order_number}`,
+    t("طلب جديد من الموقع"),
+    t("رقم الطلب: {0}", [order.order_number]),
     "",
-    "بيانات العميل:",
-    `الاسم: ${order.customer_name}`,
-    `الهاتف: ${order.customer_phone}`,
-    `العنوان: ${order.address}`,
+    t("بيانات العميل:"),
+    t("الاسم: {0}", [order.customer_name]),
+    t("الهاتف: {0}", [order.customer_phone]),
+    t("العنوان: {0}", [order.address]),
     "",
-    "المنتجات:",
+    t("المنتجات:"),
     ...lines,
     "",
-    `المجموع الفرعي: ${displayMoney(order.subtotal)}`,
-    `الخصم: ${displayMoney(order.discount)}`,
-    `التوصيل${order.delivery_area_name ? ` (${order.delivery_area_name})` : ""}: ${displayMoney(order.delivery_fee)}`,
-    `الإجمالي: ${displayMoney(order.total)}`,
-    ...(order.customer_notes ? ["", `ملاحظات: ${order.customer_notes}`] : []),
+    t("المجموع الفرعي: {0}", [displayMoney(order.subtotal)]),
+    t("الخصم: {0}", [displayMoney(order.discount)]),
+    t("التوصيل{0}: {1}", [order.delivery_area_name ? ` (${order.delivery_area_name})` : "", displayMoney(order.delivery_fee)]),
+    t("الإجمالي: {0}", [displayMoney(order.total)]),
+    ...(order.customer_notes ? ["", t("ملاحظات: {0}", [order.customer_notes])] : []),
   ].join("\n");
 }
 

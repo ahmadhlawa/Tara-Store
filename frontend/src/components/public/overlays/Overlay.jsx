@@ -1,3 +1,4 @@
+import { useLocale } from "../../../i18n/locale.jsx";
 import { useScrollLock } from "../../../hooks/useScrollLock.js";
 import { useFocusTrap } from "../../../hooks/useFocusTrap.js";
 
@@ -6,6 +7,7 @@ import { useFocusTrap } from "../../../hooks/useFocusTrap.js";
  * second tab stop that reads as "button" would only add noise.
  */
 function Scrim({ onClose }) {
+
   return <div className="vs-scrim" aria-hidden="true" onClick={onClose} />;
 }
 
@@ -30,6 +32,7 @@ export function Drawer({
   autoFocus = true,
   children,
 }) {
+  const { t } = useLocale();
   useScrollLock(open);
   const ref = useFocusTrap(open, { onEscape: onClose, autoFocus });
   if (!open) return null;
@@ -55,7 +58,7 @@ export function Drawer({
             type="button"
             className="vs-iconbtn vs-drawer__close"
             onClick={onClose}
-            aria-label="إغلاق"
+            aria-label={t("إغلاق")}
           >
             <CloseIcon />
           </button>
@@ -69,6 +72,7 @@ export function Drawer({
 
 /** Centred dialog on desktop, bottom sheet on mobile. */
 export function Modal({ open, onClose, label, children }) {
+  const { t } = useLocale();
   useScrollLock(open);
   const ref = useFocusTrap(open, { onEscape: onClose });
   if (!open) return null;
@@ -82,7 +86,7 @@ export function Modal({ open, onClose, label, children }) {
             type="button"
             className="vs-iconbtn vs-modal__close"
             onClick={onClose}
-            aria-label="إغلاق"
+            aria-label={t("إغلاق")}
           >
             <CloseIcon />
           </button>
@@ -94,6 +98,7 @@ export function Modal({ open, onClose, label, children }) {
 }
 
 export function CloseIcon() {
+
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <path d="M6 6l12 12M18 6 6 18" />

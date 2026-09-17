@@ -5,6 +5,7 @@ import { page, renderApp, respond, stubApi } from "./utils.jsx";
 import { authStorage } from "../storage/authStorage.js";
 import { api, setAuthToken, setUnauthorizedHandler } from "../api/client.js";
 import { CategoriesPage, orderCategoriesForAdmin, reorderedSiblingIds } from "../admin/pages/CatalogScreens.jsx";
+import { HeroSlidesPage } from "../admin/pages/ContentScreens.jsx";
 import { orderAxisTicks, salesAxisTicks } from "../admin/pages/DashboardPage.jsx";
 
 const ADMIN = {
@@ -66,6 +67,21 @@ describe("admin category hierarchy", () => {
     { id: 4, name: "شمعة أخرى", slug: "other", parent_id: 1, product_count: 0 },
   ];
 
+  it("renders the exact Admin categories route and creates a category", async () => {
+    signedIn();
+    const calls = stubApi({
+      "/api/v1/auth/me": ADMIN,
+      "/api/v1/admin/categories": page(categories),
+      "POST /api/v1/admin/categories": { id: 5, name: "New category" },
+    });
+    renderApp("/admin/categories");
+    expect(await screen.findByText("Candles")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "إضافة قسم" }));
+    await userEvent.type(screen.getByLabelText("اسم القسم"), "New category");
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "حفظ" }));
+    await waitFor(() => expect(calls.some((call) => call.method === "POST" && JSON.parse(call.body).name === "New category")).toBe(true));
+  });
+
   it("groups each child directly under its parent without duplicates", () => {
     const ordered = orderCategoriesForAdmin(categories);
     expect(ordered.map((category) => category.id)).toEqual([1, 2, 4, 3]);
@@ -120,6 +136,47 @@ describe("admin category hierarchy", () => {
     await waitFor(() => expect(calls.some((call) =>
       call.method === "PATCH" && JSON.parse(call.body).show_on_home === true,
     )).toBe(true));
+  });
+});
+
+describe("admin hero slides", () => {
+  it("creates with the displayed root default, edits and reloads the saved target", async () => {
+    let slides = [];
+    const calls = stubApi({
+      "/api/v1/admin/categories": page([
+        { id: 2, name: "Child", slug: "child", parent_id: 1 },
+        { id: 1, name: "Candles", slug: "candles", parent_id: null, is_active: true },
+        { id: 3, name: "Crochet", slug: "crochet", parent_id: null, is_active: true },
+      ]),
+      "/api/v1/admin/hero-slides": () => slides,
+      "POST /api/v1/admin/hero-slides": ({ init }) => {
+        slides = [{ id: 1, ...JSON.parse(init.body) }];
+        return slides[0];
+      },
+      "PATCH /api/v1/admin/hero-slides/1": ({ init }) => {
+        slides = [{ ...slides[0], ...JSON.parse(init.body) }];
+        return slides[0];
+      },
+    });
+    const view = render(<HeroSlidesPage />);
+    await userEvent.click(screen.getByRole("button", { name: "إضافة شريحة" }));
+    await userEvent.click(screen.getByRole("button", { name: "إدخال رابط صورة يدويًا" }));
+    await userEvent.type(screen.getByLabelText(/رابط يدوي/), "/media/hero.png");
+    await userEvent.selectOptions(screen.getByLabelText("وجهة الإعلان"), "category");
+    const selector = screen.getByLabelText("القسم");
+    expect(within(selector).queryByRole("option", { name: "Child" })).not.toBeInTheDocument();
+    expect(selector).toHaveValue("candles");
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "حفظ" }));
+    await screen.findByRole("button", { name: "تعديل" });
+    expect(JSON.parse(calls.find((call) => call.method === "POST").body).target_slug).toBe("candles");
+    await userEvent.click(screen.getByRole("button", { name: "تعديل" }));
+    await userEvent.selectOptions(screen.getByLabelText("القسم"), "crochet");
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "حفظ" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    view.unmount();
+    render(<HeroSlidesPage />);
+    await userEvent.click(await screen.findByRole("button", { name: "تعديل" }));
+    await waitFor(() => expect(screen.getByLabelText("القسم")).toHaveValue("crochet"));
   });
 });
 

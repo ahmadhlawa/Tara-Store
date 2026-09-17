@@ -20,6 +20,14 @@ const icon = (path, extra = {}) =>
     );
   };
 
+export const GlobeIcon = icon(
+  <>
+    <circle cx="12" cy="12" r="9" />
+    <ellipse cx="12" cy="12" rx="4" ry="9" />
+    <path d="M3 12h18" />
+  </>,
+);
+
 export const SearchIcon = icon(
   <>
     <circle cx="11" cy="11" r="7" />

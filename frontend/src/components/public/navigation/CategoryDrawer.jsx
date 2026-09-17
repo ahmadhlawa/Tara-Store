@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useLocale } from "../../../i18n/locale.jsx";
+import { Link } from "../../../i18n/routing.jsx";
 import { useStore } from "../../../app/StoreProvider.jsx";
 import { useActiveCategorySlug, useCategoryNav } from "../../../hooks/useStorefront.js";
 import { Drawer } from "../overlays/Overlay.jsx";
@@ -13,6 +14,7 @@ import { useCategoryHover } from "./CategoryHover.jsx";
  * `Drawer`; a route change closes it through the shell's own `closeAll`.
  */
 export default function CategoryDrawer({ open, onClose }) {
+  const { t } = useLocale();
   const { navOpenCat, setNavOpenCat } = useStore();
   const activeSlug = useActiveCategorySlug();
   const categories = useCategoryNav(activeSlug);
@@ -29,17 +31,16 @@ export default function CategoryDrawer({ open, onClose }) {
       autoFocus={!openedByHover}
       id="vs-catdrawer"
       className="vs-drawer--cats"
-      label="تصنيفات المنتجات"
-      title="تصنيفات المنتجات"
+      label={t("تصنيفات المنتجات")}
+      title={t("تصنيفات المنتجات")}
       bodyClass="vs-catdrawer"
       footer={
-        <Link to="/shop" className="vs-btn vs-btn--primary vs-btn--block" onClick={onClose}>
-          تصفّح كل المنتجات <ArrowForward size={16} />
+        <Link to="/shop" className="vs-btn vs-btn--primary vs-btn--block" onClick={onClose}>{t("تصفّح كل المنتجات")}{" "}<ArrowForward size={16} />
         </Link>
       }
     >
       {categories.length === 0 ? (
-        <p className="vs-catdrawer__empty">لا توجد أقسام معروضة حالياً.</p>
+        <p className="vs-catdrawer__empty">{t("لا توجد أقسام معروضة حالياً.")}</p>
       ) : (
         <ul className="vs-catdrawer__list">
           {categories.map((category) => {
@@ -76,7 +77,7 @@ export default function CategoryDrawer({ open, onClose }) {
                       className="vs-iconbtn vs-iconbtn--bare vs-catdrawer__toggle"
                       onClick={() => setNavOpenCat(expanded ? null : category.slug)}
                       aria-expanded={expanded}
-                      aria-label={`الأقسام الفرعية لـ ${category.name}`}
+                      aria-label={t("الأقسام الفرعية لـ {0}", [category.name])}
                       data-open={expanded}
                     >
                       <ChevronDown size={16} />

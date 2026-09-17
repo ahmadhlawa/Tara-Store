@@ -1,4 +1,5 @@
 // Store identity, homepage composition and editorial content.
+import { getLocale } from "../i18n/locale.jsx";
 import { LOGO_URL, STORE_NAME_AR, STORE_NAME_LATIN, STORE_TAGLINE } from "../brand.js";
 import { publicApi } from "../api/publicApi.js";
 import { heroDestination } from "../utils/storeRoutes.js";
@@ -30,7 +31,7 @@ export function normalizeSettings(raw) {
     // copy straight over a default, and a store that has filled in only its
     // latin name must keep it rather than be renamed تارا. Every one of these
     // stays editable from Admin; clearing a field only restores Tara's value.
-    storeName: settings.store_name_ar || settings.store_name || STORE_NAME_AR,
+    storeName: getLocale() === "en" ? (settings.store_name || "Tara") : (settings.store_name_ar || settings.store_name || STORE_NAME_AR),
     storeNameLatin: settings.store_name || STORE_NAME_LATIN,
     tagline: settings.store_tagline || STORE_TAGLINE,
     logoUrl: settings.logo_url || LOGO_URL,

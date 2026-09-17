@@ -1,5 +1,6 @@
+import { useLocale } from "../../../i18n/locale.jsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "../../../i18n/routing.jsx";
 import { useStore } from "../../../app/StoreProvider.jsx";
 import { useMoney } from "../../../hooks/useStorefront.js";
 import { SearchIcon } from "../shell/icons.jsx";
@@ -11,6 +12,7 @@ import Media from "../shell/Media.jsx";
  * it inline; the mobile search sheet renders the same component.
  */
 export default function SearchBox({ autoFocus = false, onNavigate, placeholder }) {
+  const { t } = useLocale();
   const store = useStore();
   const money = useMoney();
   const navigate = useNavigate();
@@ -109,27 +111,25 @@ export default function SearchBox({ autoFocus = false, onNavigate, placeholder }
         // A blur straight into a suggestion must not close the list first.
         onBlur={() => setTimeout(() => setFocused(false), 140)}
         onKeyDown={onKeyDown}
-        aria-label="ابحث في المتجر"
+        aria-label={t("ابحث في المتجر")}
         aria-expanded={open}
         aria-controls="vs-suggest-list"
         role="combobox"
         autoComplete="off"
-        placeholder={placeholder || "ابحث عن منتج أو قسم…"}
+        placeholder={placeholder || t("ابحث عن منتج أو قسم…")}
       />
       <span className="vs-hsearch__icon">
         <SearchIcon size={19} />
       </span>
-      <button type="submit" className="vs-hsearch__submit">
-        بحث
-      </button>
+      <button type="submit" className="vs-hsearch__submit">{t("بحث")}{" "}</button>
 
       {open && (
         <div className="vs-suggest" id="vs-suggest-list" role="listbox">
           {rows.length === 0 && tried && (
-            <p className="vs-suggest__empty">لا توجد نتائج لـ «{term}» — جرّب كلمة أعم.</p>
+            <p className="vs-suggest__empty">{t("لا توجد نتائج لـ «")}{term}{t("» — جرّب كلمة أعم.")}</p>
           )}
           {rows.length > 0 && term.length < 2 && (
-            <div className="vs-suggest__label">عمليات بحث سابقة</div>
+            <div className="vs-suggest__label">{t("عمليات بحث سابقة")}</div>
           )}
           {rows.map((row, index) => (
             <button
@@ -158,7 +158,7 @@ export default function SearchBox({ autoFocus = false, onNavigate, placeholder }
               ) : (
                 <>
                   <span className="vs-suggest__kind">
-                    {row.kind === "category" ? "قسم" : "بحث سابق"}
+                    {row.kind === "category" ? t("قسم") : t("بحث سابق")}
                   </span>
                   <span className="vs-suggest__name">{row.label}</span>
                 </>

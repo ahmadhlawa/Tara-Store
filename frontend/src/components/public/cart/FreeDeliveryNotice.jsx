@@ -1,3 +1,4 @@
+import { useLocale } from "../../../i18n/locale.jsx";
 import { useMemo } from "react";
 import { useStore } from "../../../app/StoreProvider.jsx";
 import { useMoney } from "../../../hooks/useStorefront.js";
@@ -16,6 +17,7 @@ import { useMoney } from "../../../hooks/useStorefront.js";
  * know what they will pay. Once an area is selected the notice narrows to it.
  */
 export default function FreeDeliveryNotice({ subtotal, areaId = null }) {
+  const { t } = useLocale();
   const { deliveryAreas } = useStore();
   const money = useMoney();
 
@@ -37,18 +39,17 @@ export default function FreeDeliveryNotice({ subtotal, areaId = null }) {
 
   return (
     <div className="vs-freeship" role="status">
-      <span className="vs-freeship__title">التوصيل المجاني</span>
+      <span className="vs-freeship__title">{t("التوصيل المجاني")}</span>
       {groups.map((group) => (
         <p
           key={group.threshold}
           className={`vs-freeship__row${group.reached ? " is-reached" : ""}`}
         >
           {group.reached ? (
-            <>طلبك مؤهل للتوصيل المجاني إلى {group.names.join("، ")}.</>
+            <>{t("طلبك مؤهل للتوصيل المجاني إلى")}{" "}{group.names.join(t("، "))}.</>
           ) : (
-            <>
-              أضف {money(group.threshold - subtotal)} للحصول على توصيل مجاني إلى{" "}
-              {group.names.join("، ")} (الطلبات من {money(group.threshold)}).
+            <>{t("أضف")}{" "}{money(group.threshold - subtotal)}{" "}{t("للحصول على توصيل مجاني إلى")}{" "}
+              {group.names.join(t("، "))}{" "}{t("(الطلبات من")}{" "}{money(group.threshold)}).
             </>
           )}
         </p>

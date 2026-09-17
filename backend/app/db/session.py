@@ -22,6 +22,9 @@ def build_engine(url: str | None = None) -> Engine:
 engine = build_engine()
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, future=True)
 
+# Register durable translation write hooks for API, import and CLI sessions alike.
+from app.services import translations as _translations  # noqa: E402,F401
+
 
 @event.listens_for(Engine, "connect")
 def _enable_sqlite_foreign_keys(dbapi_connection, connection_record) -> None:

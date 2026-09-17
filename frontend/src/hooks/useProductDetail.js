@@ -1,3 +1,4 @@
+import { useLocale } from "../i18n/locale.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { catalogService } from "../services/catalog.js";
 
@@ -7,6 +8,7 @@ import { catalogService } from "../services/catalog.js";
  * and one status vocabulary.
  */
 export function useProductDetail(slug) {
+  const { locale } = useLocale();
   const [product, setProduct] = useState(null);
   const [status, setStatus] = useState(slug ? "loading" : "idle");
 
@@ -33,7 +35,7 @@ export function useProductDetail(slug) {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, locale]);
 
   return { product, status };
 }
@@ -45,6 +47,7 @@ export function useProductDetail(slug) {
  * put a size the visitor never chose into the cart.
  */
 export function useVariantSelection(product) {
+  const { t } = useLocale();
   const [variantId, setVariantId] = useState(null);
   const [simpleChoices, setSimpleChoices] = useState({});
   const [presentationValueId, setPresentationValueId] = useState(null);
@@ -83,7 +86,7 @@ export function useVariantSelection(product) {
   ) : null;
   const simpleSelection = simpleComplete && simple ? {
     selected_option_value_ids: selectedOptionValueIds,
-    title: (product.options || []).flatMap((option) => (option.values || []).filter((value) => selectedOptionValueIds.includes(Number(value.id))).map((value) => `${option.name}: ${value.value}`)).join("، "),
+    title: (product.options || []).flatMap((option) => (option.values || []).filter((value) => selectedOptionValueIds.includes(Number(value.id))).map((value) => `${option.name}: ${value.value}`)).join(t("، ")),
     price_override: simpleValue?.price_override ?? null,
   } : null;
 

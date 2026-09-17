@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import Select, or_, select
 
@@ -17,6 +19,9 @@ from app.schemas.content import (
 from app.schemas.marketing import DeliveryAreaOut
 from app.schemas.store import StoreSettingsPublic
 from app.services import store_settings as settings_service
+from app.services.translations import localize
+
+Locale = Literal["ar", "en"]
 
 router = APIRouter(tags=["public-content"])
 
@@ -41,13 +46,16 @@ def _within_window(stmt: Select, model) -> Select:
 
 
 @identity_router.get("/store/settings", response_model=StoreSettingsPublic)
-def store_settings(db: DbSession, request: Request):
-    value = StoreSettingsPublic.model_validate(settings_service.public_settings(db))
+def store_settings(db: DbSession, request: Request, locale: Locale = "ar"):
+    row = settings_service.public_settings(db)
+    data = StoreSettingsPublic.model_validate(row).model_dump()
+    data["id"] = row.id
+    value = StoreSettingsPublic.model_validate(localize(db, data, [row], locale, "store_settings"))
     return value.model_copy(update={"public_base_url": request.app.state.config.PUBLIC_BASE_URL})
 
 
 @router.get("/hero-slides", response_model=list[HeroSlideOut])
-def hero_slides(db: DbSession):
+def hero_slides(db: DbSession, locale: Locale = "ar"):
     stmt = _within_window(select(HeroSlide), HeroSlide).order_by(
         HeroSlide.sort_order.asc(), HeroSlide.id.asc()
     )
@@ -55,7 +63,7 @@ def hero_slides(db: DbSession):
 
 
 @router.get("/home-sections", response_model=list[HomeSectionOut])
-def home_sections(db: DbSession):
+def home_sections(db: DbSession, locale: Locale = "ar"):
     stmt = (
         select(HomeSection)
         .where(
@@ -64,24 +72,26 @@ def home_sections(db: DbSession):
         )
         .order_by(HomeSection.sort_order.asc(), HomeSection.id.asc())
     )
-    return list(db.execute(stmt).scalars().all())
+    rows = list(db.execute(stmt).scalars().all())
+    return localize(db, [HomeSectionOut.model_validate(row).model_dump() for row in rows], rows, locale, "home_sections")
 
 
 @router.get("/delivery-areas", response_model=list[DeliveryAreaOut])
-def delivery_areas(db: DbSession):
+def delivery_areas(db: DbSession, locale: Locale = "ar"):
     stmt = (
         select(DeliveryArea)
         .where(DeliveryArea.is_active.is_(True))
         .order_by(DeliveryArea.sort_order.asc(), DeliveryArea.id.asc())
     )
-    return list(db.execute(stmt).scalars().all())
+    rows = list(db.execute(stmt).scalars().all())
+    return localize(db, [DeliveryAreaOut.model_validate(row).model_dump() for row in rows], rows, locale, "delivery_areas")
 
 
 @router.get("/pages/{slug}", response_model=StaticPageOut)
-def get_page(slug: str, db: DbSession):
+def get_page(slug: str, db: DbSession, locale: Locale = "ar"):
     page = db.execute(
         select(StaticPage).where(StaticPage.slug == slug, StaticPage.is_published.is_(True))
     ).scalar_one_or_none()
     if page is None:
         raise _NOT_FOUND
-    return page
+    return localize(db, StaticPageOut.model_validate(page).model_dump(), [page], locale, "static_pages")

@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useLocale } from "../../../i18n/locale.jsx";
+import { Link } from "../../../i18n/routing.jsx";
 import AddToCartButton from "../../AddToCartButton.jsx";
 import Media from "../shell/Media.jsx";
 import { useCardReveal } from "../../../hooks/useCardReveal.js";
@@ -21,6 +22,7 @@ import { ArrowForward, BoxIcon } from "../shell/icons.jsx";
  * height or move the row. Below 900px it is static and always visible.
  */
 export default function PackageCard({ view, eager = false, revealDelay = 0 }) {
+  const { t } = useLocale();
   const { primaryAction } = useProductActions();
   const { cardProps } = useCardReveal();
   const revealProps = useViewportReveal(revealDelay);
@@ -37,8 +39,8 @@ export default function PackageCard({ view, eager = false, revealDelay = 0 }) {
         .join(" • ")
     : view.packageCount > 0
       ? view.packageCount === 1
-        ? "يحتوي على عنصر واحد"
-        : `يحتوي على ${view.packageCount} عناصر`
+        ? t("يحتوي على عنصر واحد")
+        : t("يحتوي على {0} عناصر", [view.packageCount])
       : view.short || "";
 
   return (
@@ -65,13 +67,13 @@ export default function PackageCard({ view, eager = false, revealDelay = 0 }) {
         </Link>
 
         <div className="vs-pkg__badges">
-          <span className="vs-badge vs-badge--package">بكج</span>
+          <span className="vs-badge vs-badge--package">{t("بكج")}</span>
           {view.hasSale && <span className="vs-badge vs-badge--sale">{view.discountText}</span>}
         </div>
 
         {view.soldOut && (
           <div className="vs-card__veil">
-            <span>غير متوفر حالياً</span>
+            <span>{t("غير متوفر حالياً")}</span>
           </div>
         )}
       </div>
@@ -100,8 +102,7 @@ export default function PackageCard({ view, eager = false, revealDelay = 0 }) {
             disabled={view.soldOut}
             className="vs-btn vs-btn--primary vs-pkg__cta"
           />
-          <Link to={view.href} className="vs-btn vs-btn--quiet" data-card-action="details">
-            التفاصيل <ArrowForward size={15} />
+          <Link to={view.href} className="vs-btn vs-btn--quiet" data-card-action="details">{t("التفاصيل")}{" "}<ArrowForward size={15} />
           </Link>
         </div>
       </div>

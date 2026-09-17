@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { useLocale } from "../../../i18n/locale.jsx";
+import { NavLink } from "../../../i18n/routing.jsx";
 import { OVERLAY, useStore } from "../../../app/StoreProvider.jsx";
 import { useActiveCategorySlug, useCategoryNav } from "../../../hooks/useStorefront.js";
 import { MenuIcon, TagIcon } from "../shell/icons.jsx";
@@ -17,6 +18,7 @@ import { useCategoryHover } from "./CategoryHover.jsx";
  * never disagree about whether the drawer is open.
  */
 export default function CategoryRail() {
+  const { t } = useLocale();
   const { overlay, openOverlay, closeAll } = useStore();
   const activeSlug = useActiveCategorySlug();
   const categories = useCategoryNav(activeSlug);
@@ -29,7 +31,7 @@ export default function CategoryRail() {
   // into the catalogue, and it is labelled so it sits alongside the header nav
   // without either becoming ambiguous.
   return (
-    <nav className="vs-catbar" aria-label="أقسام المتجر" data-open={open} {...hoverProps}>
+    <nav className="vs-catbar" aria-label={t("أقسام المتجر")} data-open={open} {...hoverProps}>
       <button
         type="button"
         className="vs-catbar__trigger"
@@ -40,8 +42,8 @@ export default function CategoryRail() {
         }}
         aria-expanded={open}
         aria-controls="vs-catdrawer"
-        aria-label="تصنيفات المنتجات"
-        title="تصنيفات المنتجات"
+        aria-label={t("تصنيفات المنتجات")}
+        title={t("تصنيفات المنتجات")}
       >
         <MenuIcon size={18} />
       </button>

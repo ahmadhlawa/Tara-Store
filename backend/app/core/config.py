@@ -27,6 +27,24 @@ class Settings(BaseSettings):
     APP_NAME: str = "Tara Store"
     API_V1_PREFIX: str = "/api/v1"
     PUBLIC_BASE_URL: str = ""
+    # Private shared service; never exposed through public settings.
+    LIBRETRANSLATE_URL: str = ""
+    LIBRETRANSLATE_API_KEY: str = ""
+    TRANSLATION_ENABLED: bool = False
+    TRANSLATION_TIMEOUT_SECONDS: int = Field(default=15, ge=1, le=60)
+    TRANSLATION_POLL_SECONDS: int = Field(default=30, ge=1)
+    TRANSLATION_BATCH_SIZE: int = Field(default=20, ge=1, le=100)
+
+    @field_validator("LIBRETRANSLATE_URL")
+    @classmethod
+    def validate_translation_url(cls, value):
+        value = value.strip().rstrip("/")
+        if value:
+            parsed = urlsplit(value)
+            if parsed.scheme not in {"http", "https"} or not parsed.hostname or \
+                    parsed.username or parsed.password or parsed.query or parsed.fragment:
+                raise ValueError("LIBRETRANSLATE_URL must be a credential-free HTTP(S) service URL")
+        return value
 
     SECRET_KEY: str = "development-only-secret-change-me"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60, ge=1)

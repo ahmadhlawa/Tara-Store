@@ -33,7 +33,7 @@ export function useCartLines() {
 
   const lines = useMemo(
     () =>
-      store.cart.map((line) => ({
+      (store.localizedCart || store.cart).map((line) => ({
         ...line,
         href: `/product/${line.slug}`,
         unitText: money(line.unit),

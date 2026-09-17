@@ -57,6 +57,11 @@ Keep a record of which port belongs to which instance; the templates cannot enfo
 
 ## Files
 
+The independent server-wide translation example is
+[`libretranslate/compose.yml`](libretranslate/compose.yml). Install it once per
+server using [the shared-service guide](../docs/deployment/libretranslate.md),
+outside individual project deployments. It is also inactive.
+
 | File | Purpose |
 | --- | --- |
 | `systemd/commerce-CLIENT_SLUG.service.example` | Runs the FastAPI backend under Uvicorn |

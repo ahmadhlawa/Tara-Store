@@ -134,28 +134,38 @@ describe("public storefront", () => {
     expect(line.qty).toBe(1);
   });
 
-  it("restores a saved cart on the cart page", async () => {
-    cartStorage.save([
-      { key: "1|", productId: 1, variantId: null, slug: "clear-resin", name: "ريزن شفاف", unit: 100, bg: "", variation: "", qty: 2 },
-    ]);
-    stubApi(storefrontRoutes);
-    renderApp("/cart");
+  it.each(["ar", "en"])("redirects the legacy %s cart to checkout", async (locale) => {
+    cartStorage.save([{ key: "1|", productId: 1, slug: "clear-resin", name: "Resin", imageUrl: "/rose.jpg", unit: 100, variation: "Rose", qty: 2 }]);
+    stubApi({ ...storefrontRoutes, "POST /api/v1/cart/price": { lines: [], subtotal: 200, discount: 0, delivery_fee: 0, total: 200 } });
+    renderApp(`/${locale}/cart?source=bookmark#summary`);
+    await waitFor(() => expect(document.querySelector(".vs-checkout")).toBeInTheDocument());
+    const summary = document.querySelector(".vs-summary");
+    expect(summary.querySelector("img")).toHaveAttribute("src", "/rose.jpg");
+    expect(summary).toHaveTextContent("Rose");
+    expect(summary).toHaveTextContent("×2");
+    await waitFor(() => expect(summary.querySelector(".vs-summary__total")).toHaveTextContent("200"));
+  });
 
-    expect(await screen.findByRole("heading", { name: "عربة التسوّق", level: 1 })).toBeInTheDocument();
-    expect(screen.getByText("2 منتجاً في عربتك")).toBeInTheDocument();
-
-    // 2 × 100 ₪ appears twice by design: once as the cart line total and once as the
-    // order-summary subtotal. Assert each in its own scope instead of ambiguously.
-    const line = screen.getByRole("button", { name: "إزالة المنتج" }).closest("div");
-    expect(within(line).getByText("200 ₪")).toBeInTheDocument();
-
-    // In the summary it is both the subtotal and the total, since delivery is only
-    // priced at checkout. Assert each labelled row separately.
-    const summary = screen.getByRole("complementary");
-    const subtotalRow = within(summary).getByText("المجموع الفرعي").closest("div");
-    expect(within(subtotalRow).getByText("200 ₪")).toBeInTheDocument();
-    const totalRow = within(summary).getByText("الإجمالي").closest("div");
-    expect(within(totalRow).getByText("200 ₪")).toBeInTheDocument();
+  it("applies, removes and rejects coupons directly in checkout", async () => {
+    const user = userEvent.setup();
+    cartStorage.save([{ key: "1|", productId: 1, slug: "clear-resin", name: "Resin", unit: 100, variation: "Rose", qty: 2 }]);
+    stubApi({ ...storefrontRoutes,
+      "POST /api/v1/cart/price": ({ init }) => ({ lines: [], subtotal: 200, discount: JSON.parse(init.body).coupon_code ? 20 : 0, delivery_fee: 0, total: JSON.parse(init.body).coupon_code ? 180 : 200 }),
+      "POST /api/v1/coupons/validate": ({ init }) => JSON.parse(init.body).code === "SAVE" ? { code: "SAVE", label: "Save", discount: 20 } : respond(422, { error: { code: "coupon_invalid", message: "Invalid coupon" } }),
+    });
+    renderApp("/en/checkout");
+    const disclosure = await screen.findByText("Have a discount coupon?");
+    expect(disclosure.closest("details")).not.toHaveAttribute("open");
+    await user.click(disclosure);
+    await user.type(screen.getByRole("textbox", { name: "Discount code" }), "SAVE");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await waitFor(() => expect(document.querySelector(".vs-summary__total")).toHaveTextContent("180"));
+    expect(document.querySelector(".vs-coupon__msg")).toHaveTextContent("Save");
+    await user.click(screen.getByRole("button", { name: "Remove coupon" }));
+    await waitFor(() => expect(document.querySelector(".vs-summary__total")).toHaveTextContent("200"));
+    await user.type(screen.getByRole("textbox", { name: "Discount code" }), "BAD");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(await screen.findByText("Invalid discount code.")).toBeInTheDocument();
   });
 
   it("blocks checkout until the customer fields are valid", async () => {
@@ -186,7 +196,7 @@ describe("public storefront", () => {
     expect(screen.getByText("اختر منطقة التوصيل")).toBeInTheDocument();
     expect(await screen.findByRole("alert")).toHaveTextContent("الرجاء إدخال الاسم الكامل");
     expect(screen.getByPlaceholderText("مثال: محمد أحمد")).toHaveFocus();
-    expect(calls.some((call) => call.path === "/api/v1/orders")).toBe(false);
+    expect(calls.some((call) => call.path.split("?")[0] === "/api/v1/orders")).toBe(false);
   });
 
   it("requires return-policy acknowledgement before enabling final confirmation", async () => {
@@ -207,7 +217,7 @@ describe("public storefront", () => {
     const submit = screen.getByRole("button", { name: /تأكيد وإرسال الطلب/ });
     expect(acknowledgement).not.toBeChecked();
     expect(submit).toBeDisabled();
-    expect(screen.getByRole("link", { name: "سياسة الإرجاع والاستبدال" })).toHaveAttribute("href", "/page/return-policy");
+    expect(screen.getByRole("link", { name: "سياسة الإرجاع والاستبدال" })).toHaveAttribute("href", "/ar/page/return-policy");
 
     await userEvent.click(acknowledgement);
     expect(submit).toBeEnabled();
@@ -265,9 +275,9 @@ describe("public storefront", () => {
     expect(await screen.findByRole("heading", { name: "تم استلام طلبك بنجاح" })).toBeInTheDocument();
     expect(screen.getByText("ORD-260731-1234")).toBeInTheDocument();
     expect(cartStorage.load()).toHaveLength(0);
-    const orderRequest = calls.find((call) => call.path === "/api/v1/orders");
+    const orderRequest = calls.find((call) => call.path.split("?")[0] === "/api/v1/orders");
     expect(JSON.parse(orderRequest.body).client_reference).toMatch(/^[-\w]{8,}$/);
-    const lookupRequest = calls.find((call) => call.path === "/api/v1/orders/ORD-260731-1234");
+    const lookupRequest = calls.find((call) => call.path.split("?")[0] === "/api/v1/orders/ORD-260731-1234");
     expect(lookupRequest.headers["X-Order-Token"]).toBe("token-value-123456");
     expect(open).toHaveBeenCalledTimes(1);
     const message = decodeURIComponent(open.mock.calls[0][0].split("?text=")[1]);

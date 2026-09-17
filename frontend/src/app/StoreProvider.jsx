@@ -1,5 +1,7 @@
+import { useLocale } from "../i18n/locale.jsx";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { catalogService } from "../services/catalog.js";
+import { checkoutService } from "../services/checkout.js";
 import { storefrontService, FALLBACK_SETTINGS, normalizeSettings } from "../services/storefront.js";
 import { cartStorage, lineKey, searchStorage, viewedStorage } from "../storage/cartStorage.js";
 
@@ -20,12 +22,14 @@ export const OVERLAY = {
 };
 
 export function useStore() {
+
   const context = useContext(StoreContext);
   if (!context) throw new Error("useStore must be used inside <StoreProvider>");
   return context;
 }
 
 export function StoreProvider({ children }) {
+  const { locale, t } = useLocale();
   const [settings, setSettings] = useState(() => normalizeSettings(FALLBACK_SETTINGS));
   const [categories, setCategories] = useState([]);
   const [deliveryAreas, setDeliveryAreas] = useState([]);
@@ -33,6 +37,34 @@ export function StoreProvider({ children }) {
   const [loadError, setLoadError] = useState(null);
 
   const [cart, setCart] = useState(() => cartStorage.load());
+  const [cartCopy, setCartCopy] = useState({ locale: null, products: {} });
+  const cartSubjects = [...new Set(cart.map((line) => line.slug).filter(Boolean))].join("\n");
+  useEffect(() => {
+    let cancelled = false;
+    const slugs = cartSubjects.split("\n").filter(Boolean);
+    Promise.allSettled(slugs.map((slug) => catalogService.bySlug(slug))).then((results) => {
+      if (cancelled) return;
+      const products = {};
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") products[slugs[index]] = result.value;
+      });
+      setCartCopy({ locale, products });
+    });
+    return () => { cancelled = true; };
+  }, [cartSubjects, locale]);
+  const localizedCart = useMemo(() => cart.map((line) => {
+    const product = cartCopy.locale === locale ? cartCopy.products[line.slug] : null;
+    const displayLine = line.imageUrl || !product?.imageUrl ? line : { ...line, imageUrl: product.imageUrl };
+    if (locale === "ar" && line.contentLocale !== "en") return displayLine;
+    if (!product?.name) return displayLine;
+    const ids = line.selectedOptionValueIds || [];
+    const variant = product.variants.find((row) => row.id === line.variantId);
+    const selectedIds = ids.length ? ids : (variant?.option_value_ids || []);
+    const variation = product.options.flatMap((option) => option.values
+      .filter((value) => selectedIds.includes(Number(value.id)))
+      .map((value) => `${option.name}: ${value.value}`)).join(locale === "en" ? ", " : "، ");
+    return { ...displayLine, name: product.name, variation: variation || variant?.title || line.variation };
+  }), [cart, cartCopy, locale]);
   const [bump, setBump] = useState(0);
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
@@ -63,6 +95,16 @@ export function StoreProvider({ children }) {
     ok: false,
     discount: 0,
   });
+  useEffect(() => {
+    if (!coupon.applied) return;
+    let cancelled = false;
+    const subtotal = cart.reduce((total, line) => total + line.unit * line.qty, 0);
+    checkoutService.validateCoupon(coupon.applied, subtotal).then((result) => {
+      if (!cancelled) setCoupon((current) => ({ ...current, label: result.label,
+        message: t("تم تطبيق {0}", [result.label]) }));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [locale, coupon.applied, t]);
   const [checkoutForm, setCheckoutForm] = useState({
     name: "",
     phone: "",
@@ -97,7 +139,7 @@ export function StoreProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -171,7 +213,7 @@ export function StoreProvider({ children }) {
           .flatMap((option) => (option.values || [])
             .filter((value) => selectedIds.has(Number(value.id)))
             .map((value) => `${option.name}: ${value.value}`))
-          .join("، ") : "";
+          .join(t("، ")) : "";
         next.push({
           key,
           productId: product.id,
@@ -179,6 +221,7 @@ export function StoreProvider({ children }) {
           selectedOptionValueIds,
           slug: product.slug,
           name: product.name,
+          ...(locale === "en" ? { contentLocale: "en" } : {}),
           unit,
           bg: product.bg,
           imageUrl: product.imageUrl || null,
@@ -189,9 +232,9 @@ export function StoreProvider({ children }) {
       persistCart(next);
       setBump((value) => value + 1);
       const label = product.name.length > 34 ? `${product.name.slice(0, 34)}…` : product.name;
-      showToast(`تمت إضافة «${label}» إلى العربة`);
+      showToast(t("تمت إضافة «{0}» إلى العربة", [label]));
     },
-    [cart, persistCart, showToast],
+    [cart, persistCart, showToast, t],
   );
 
   const setLineQty = useCallback(
@@ -228,7 +271,9 @@ export function StoreProvider({ children }) {
           const needle = value.trim();
           setSuggestions({
             products: result.items,
-            cats: categories.filter((category) => category.name.includes(needle)).slice(0, 3),
+            cats: categories.filter((category) => locale === "en"
+              ? category.name.toLowerCase().includes(needle.toLowerCase())
+              : category.name.includes(needle)).slice(0, 3),
           });
         } catch {
           setSuggestions({ products: [], cats: [] });
@@ -237,7 +282,7 @@ export function StoreProvider({ children }) {
         }
       }, 260);
     },
-    [categories],
+    [categories, locale],
   );
 
   const rememberSearch = useCallback((term) => {
@@ -256,6 +301,7 @@ export function StoreProvider({ children }) {
       categories,
       deliveryAreas,
       cart,
+      localizedCart,
       bump,
       addToCart,
       setLineQty,
@@ -287,7 +333,7 @@ export function StoreProvider({ children }) {
       setCheckoutForm,
     }),
     [
-       ready, loadError, settings, categories, deliveryAreas, cart, bump,
+       ready, loadError, settings, categories, deliveryAreas, cart, localizedCart, bump,
       addToCart, setLineQty, removeLine, clearCart, toast, showToast, overlay, quickSlug,
       openOverlay, closeAll, navOpenCat, announce, scrolled, query,
       suggestions, suggestTried, runSuggest, recentSearches, rememberSearch,

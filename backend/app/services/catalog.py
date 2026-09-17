@@ -78,6 +78,7 @@ def apply_product_filters(
     stmt: Select,
     *,
     q: str | None = None,
+    locale: str = "ar",
     category_slug: str | None = None,
     category_id: int | None = None,
     product_type: str | None = None,
@@ -92,7 +93,15 @@ def apply_product_filters(
 ) -> Select:
     if q:
         needle = f"%{normalize_arabic(q)}%"
-        stmt = stmt.where(Product.search_text.like(needle))
+        condition = Product.search_text.like(needle)
+        if locale == "en":
+            from app.models import Translation
+            translated = select(Translation.entity_id).where(
+                Translation.locale == "en", Translation.status == "ready",
+                Translation.field == "name", Translation.translated_text.ilike(f"%{q}%"))
+            condition = condition | Product.id.in_(translated.where(Translation.entity_type == "products"))
+            condition = condition | Product.category_id.in_(translated.where(Translation.entity_type == "categories"))
+        stmt = stmt.where(condition)
     if category_slug:
         hierarchy = select(Category.id).where(
             Category.slug == category_slug, Category.is_active.is_(True)

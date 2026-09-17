@@ -128,7 +128,7 @@ describe("category navigation", () => {
     await userEvent.click(await screen.findByRole("button", { name: "كل الأقسام" }));
     const panel = screen.getByRole("dialog", { name: "تصنيفات المنتجات" });
     const link = within(panel).getByText(categoryFixture.name).closest("a");
-    expect(link).toHaveAttribute("href", `/category/${categoryFixture.slug}`);
+    expect(link).toHaveAttribute("href", `/ar/category/${categoryFixture.slug}`);
 
     await userEvent.click(link);
     await waitFor(() => expect(dialogs()).toHaveLength(0));
@@ -182,7 +182,7 @@ describe("drawers", () => {
     expect(within(drawer).getByText("لا توجد منتجات بعد")).toBeInTheDocument();
     expect(within(drawer).getByRole("link", { name: "تصفّح المتجر" })).toHaveAttribute(
       "href",
-      "/shop",
+      "/ar/shop",
     );
   });
 

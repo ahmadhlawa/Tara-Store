@@ -1,5 +1,6 @@
+import { useLocale } from "../i18n/locale.jsx";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "../i18n/routing.jsx";
 import { useStore } from "../app/StoreProvider.jsx";
 import { useCategoryNav, useMoney } from "../hooks/useStorefront.js";
 import { catalogService } from "../services/catalog.js";
@@ -65,11 +66,13 @@ const LOADERS = {
 };
 
 function RevealSection({ className, children }) {
+
   const revealProps = useViewportReveal();
   return <section className={className} {...revealProps}>{children}</section>;
 }
 
 export default function HomePage() {
+  const { locale, t } = useLocale();
   const store = useStore();
   const money = useMoney();
   const categories = useCategoryNav();
@@ -127,7 +130,7 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [locale]);
 
   const needed = useMemo(() => {
     const wanted = new Map();
@@ -164,7 +167,7 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [needed]);
+  }, [needed, locale]);
 
   useEffect(() => {
     let cancelled = false;
@@ -196,7 +199,7 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [homeCategories]);
+  }, [homeCategories, locale]);
 
   const views = (source) =>
     (lists[source]?.items || []).map((product) => productView(product, money));
@@ -205,7 +208,7 @@ export default function HomePage() {
     .map((section) => {
       const spec = SECTIONS[section.type];
       if (!spec) return null;
-      const title = section.title || spec.fallbackTitle;
+      const title = section.title || t(spec.fallbackTitle);
 
       if (spec.kind === "categories") {
         if (!categories.length) return null;
@@ -233,8 +236,7 @@ export default function HomePage() {
             <div className="vs-split__panel">
               <h2 className="vs-split__title">{section.title}</h2>
               {section.description && <p className="vs-split__desc">{section.description}</p>}
-              <Link to="/shop" className="vs-btn vs-btn--lg vs-split__cta">
-                تصفّح المتجر <ArrowForward size={16} />
+              <Link to="/shop" className="vs-btn vs-btn--lg vs-split__cta">{t("تصفّح المتجر")}{" "}<ArrowForward size={16} />
               </Link>
             </div>
           </RevealSection>
@@ -265,8 +267,7 @@ export default function HomePage() {
               <div className="vs-split__panel">
                 <h2 className="vs-split__title">{title}</h2>
                 {section.description && <p className="vs-split__desc">{section.description}</p>}
-                <Link to={spec.more} className="vs-btn vs-btn--lg vs-split__cta">
-                  عرض الكل <ArrowForward size={16} />
+                <Link to={spec.more} className="vs-btn vs-btn--lg vs-split__cta">{t("عرض الكل")}{" "}<ArrowForward size={16} />
                 </Link>
               </div>
               <div className="vs-split__grid">
@@ -364,14 +365,9 @@ export default function HomePage() {
       {nothingToShow && (
         <RevealSection className="vs-container vs-section">
           <div className="vs-state">
-            <h2 className="vs-state__title">المتجر قيد التجهيز</h2>
-            <p className="vs-state__body">
-              نعمل على إضافة المنتجات، وسيظهر المعروض هنا فور توفره. يسعدنا تواصلكم معنا في
-              أي وقت.
-            </p>
-            <Link to="/contact" className="vs-btn vs-btn--primary vs-btn--lg">
-              تواصل معنا
-            </Link>
+            <h2 className="vs-state__title">{t("المتجر قيد التجهيز")}</h2>
+            <p className="vs-state__body">{t("نعمل على إضافة المنتجات، وسيظهر المعروض هنا فور توفره. يسعدنا تواصلكم معنا في أي وقت.")}{" "}</p>
+            <Link to="/contact" className="vs-btn vs-btn--primary vs-btn--lg">{t("تواصل معنا")}{" "}</Link>
           </div>
         </RevealSection>
       )}

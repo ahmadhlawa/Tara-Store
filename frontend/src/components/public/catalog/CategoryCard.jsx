@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useLocale } from "../../../i18n/locale.jsx";
+import { Link } from "../../../i18n/routing.jsx";
 import Media from "../shell/Media.jsx";
 import { ArrowForward } from "../shell/icons.jsx";
 import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
@@ -13,6 +14,7 @@ import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
  * rather than on the artwork, which keeps the tile image-led.
  */
 export default function CategoryCard({ category, compact = false, eager = false, revealDelay = 0 }) {
+  const { t } = useLocale();
   const revealProps = useViewportReveal(revealDelay);
   if (!category) return null;
   return (
@@ -35,8 +37,7 @@ export default function CategoryCard({ category, compact = false, eager = false,
         <span className="vs-cat__plate">
           <span className="vs-cat__name">{category.name}</span>
           {!compact && (
-            <span className="vs-cat__go">
-              تصفّح القسم <ArrowForward size={14} />
+            <span className="vs-cat__go">{t("تصفّح القسم")}{" "}<ArrowForward size={14} />
             </span>
           )}
         </span>

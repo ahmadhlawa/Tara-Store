@@ -1,15 +1,17 @@
+import { useLocale } from "../i18n/locale.jsx";
 import CategoryCard from "../components/public/catalog/CategoryCard.jsx";
-import { Link } from "react-router-dom";
+import { Link } from "../i18n/routing.jsx";
 import { useStore } from "../app/StoreProvider.jsx";
 import { useCategoryNav } from "../hooks/useStorefront.js";
 import useSeo from "../hooks/useSeo.js";
 
 export default function CategoriesPage() {
+  const { t } = useLocale();
   const { settings } = useStore();
   const categories = useCategoryNav();
   useSeo({
-    title: `الأقسام | ${settings.storeName}`,
-    description: "تصفّح أقسام متجر تارا.",
+    title: t("الأقسام | {0}", [settings.storeName]),
+    description: t("تصفّح أقسام متجر تارا."),
     baseUrl: settings.publicBaseUrl,
     path: "/categories",
   });
@@ -18,9 +20,9 @@ export default function CategoriesPage() {
     <>
       <header className="vs-cathead vs-cathead--plain">
         <div className="vs-container vs-cathead__inner">
-          <nav className="vs-crumbs" aria-label="مسار التصفح"><Link to="/">الرئيسية</Link><span aria-hidden="true">›</span><span>الأقسام</span></nav>
-          <h1 className="vs-cathead__title">كل الأقسام</h1>
-          <p className="vs-cathead__desc">اختر القسم المناسب لتصفّح منتجاته.</p>
+          <nav className="vs-crumbs" aria-label={t("مسار التصفح")}><Link to="/">{t("الرئيسية")}</Link><span aria-hidden="true">›</span><span>{t("الأقسام")}</span></nav>
+          <h1 className="vs-cathead__title">{t("كل الأقسام")}</h1>
+          <p className="vs-cathead__desc">{t("اختر القسم المناسب لتصفّح منتجاته.")}</p>
         </div>
       </header>
       <main className="vs-container vs-section">

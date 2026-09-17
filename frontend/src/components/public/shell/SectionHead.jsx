@@ -1,9 +1,11 @@
-import { Link } from "react-router-dom";
+import { useLocale } from "../../../i18n/locale.jsx";
+import { Link } from "../../../i18n/routing.jsx";
 import { ArrowForward } from "./icons.jsx";
 import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
 
 /** Shared section heading: eyebrow, title, optional description, optional link. */
-export default function SectionHead({ eyebrow, title, description, moreHref, moreLabel = "عرض الكل", level = 2 }) {
+export default function SectionHead({ eyebrow, title, description, moreHref, moreLabel, level = 2 }) {
+  const { t } = useLocale();
   const Heading = `h${level}`;
   const revealProps = useViewportReveal();
   return (
@@ -15,7 +17,7 @@ export default function SectionHead({ eyebrow, title, description, moreHref, mor
       </div>
       {moreHref && (
         <Link to={moreHref} className="vs-sec-head__more">
-          {moreLabel}
+          {moreLabel || t("عرض الكل")}
           <ArrowForward size={15} />
         </Link>
       )}

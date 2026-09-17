@@ -1,3 +1,4 @@
+import { t } from "../i18n/locale.jsx";
 // One place that turns a normalized product into everything a card, a quick
 // view or a detail page needs to display. Pure — no hooks, no store — so the
 // same shape is reachable from tests and from every surface.
@@ -59,7 +60,7 @@ export function productView(product, money) {
     priceText: money(effective),
     oldText: hasSale ? money(product.price) : "",
     discount: hasSale ? discountPercent(product.sale, product.price) : 0,
-    discountText: hasSale ? `−${discountPercent(product.sale, product.price)}٪` : "",
+    discountText: hasSale ? t("−{0}٪", [discountPercent(product.sale, product.price)]) : "",
     isNew: !!product.isNew,
     featured: !!product.featured,
     bestSeller: !!product.bestSeller,
@@ -79,8 +80,8 @@ export function productBadges(view) {
   if (!view) return [];
   const all = [];
   if (view.hasSale) all.push({ key: "sale", label: view.discountText, tone: "sale" });
-  if (view.isNew) all.push({ key: "new", label: "جديد", tone: "new" });
-  if (view.bestSeller) all.push({ key: "best", label: "الأكثر مبيعاً", tone: "best" });
-  if (view.featured) all.push({ key: "featured", label: "مُختار", tone: "featured" });
+  if (view.isNew) all.push({ key: "new", label: t("جديد"), tone: "new" });
+  if (view.bestSeller) all.push({ key: "best", label: t("الأكثر مبيعاً"), tone: "best" });
+  if (view.featured) all.push({ key: "featured", label: t("مُختار"), tone: "featured" });
   return all.slice(0, 2);
 }

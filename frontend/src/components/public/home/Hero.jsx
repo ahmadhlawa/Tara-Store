@@ -1,11 +1,13 @@
+import { useLocale } from "../../../i18n/locale.jsx";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "../../../i18n/routing.jsx";
 import Media from "../shell/Media.jsx";
 
 const INTERVAL_MS = 6000;
 
 /** The uploaded artwork is the complete Hero; the application adds no copy or chrome. */
 export default function Hero({ slides }) {
+  const { t } = useLocale();
   const [index, setIndex] = useState(0);
   const [loadedIndexes, setLoadedIndexes] = useState(() => new Set([0]));
   const [hidden, setHidden] = useState(false);
@@ -31,7 +33,7 @@ export default function Hero({ slides }) {
   if (!count) return null;
 
   return (
-    <section className="vs-hero" aria-label="العروض">
+    <section className="vs-hero" aria-label={t("العروض")}>
       {slides.map((slide, slideIndex) => {
         const Slide = slide.destination ? Link : "div";
         return (

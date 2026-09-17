@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 import json
 import logging
 import os
@@ -23,7 +24,7 @@ from sqlalchemy.orm import Session
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.enums import StorageProviderName
-from app.db.session import get_db
+from app.db.session import get_db, SessionLocal
 from app.models import Category, Product, StaticPage
 from app.services.errors import DomainError
 
@@ -51,6 +52,7 @@ def _sitemap_xml(base: str, db: Session) -> bytes:
         f"/{slug}" if slug in special_pages else f"/page/{quote(slug, safe='')}"
         for slug in db.execute(select(StaticPage.slug).where(StaticPage.is_published.is_(True))).scalars()
     )
+    paths = [f"/{locale}{path}" for locale in ("ar", "en") for path in paths]
     for path in dict.fromkeys(paths):
         url = ElementTree.SubElement(root, "url")
         ElementTree.SubElement(url, "loc").text = _public_url(base, path)
@@ -66,7 +68,20 @@ def _error(status_code: int, code: str, message: str, *, headers=None, **extra) 
 
 def create_app(config=settings) -> FastAPI:
     production = config.APP_ENV == "production"
+    @asynccontextmanager
+    async def lifespan(app):
+        from app.services.translations import TranslationWorker
+        worker = TranslationWorker(SessionLocal, config) if config.TRANSLATION_ENABLED else None
+        if worker:
+            worker.thread.start()
+        try:
+            yield
+        finally:
+            if worker:
+                worker.close()
+
     app = FastAPI(
+        lifespan=lifespan,
         title=config.APP_NAME,
         version="0.1.0",
         description="Reusable single-store commerce API.",
@@ -161,6 +176,8 @@ def create_app(config=settings) -> FastAPI:
     def robots() -> Response:
         base = config.PUBLIC_BASE_URL
         lines = ["User-agent: *", "Disallow: /admin/", "Disallow: /cart", "Disallow: /checkout", "Disallow: /order-success/", "Disallow: /search"]
+        for locale in ("ar", "en"):
+            lines.extend(f"Disallow: /{locale}/{path}" for path in ("cart", "checkout", "order-success/", "search"))
         if base:
             lines.append(f"Sitemap: {base}/sitemap.xml")
         return Response("\n".join(lines) + "\n", media_type="text/plain")

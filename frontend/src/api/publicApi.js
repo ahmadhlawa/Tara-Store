@@ -1,5 +1,11 @@
 // Public storefront endpoints. No authentication is ever sent from here.
-import { api } from "./client.js";
+import { api as client } from "./client.js";
+import { getLocale } from "../i18n/locale.jsx";
+
+const api = {
+  get: (path, options = {}) => client.get(path, { ...options, params: { ...options.params, locale: getLocale() } }),
+  post: (path, body, options = {}) => client.post(path, body, { ...options, params: { ...options.params, locale: getLocale() } }),
+};
 
 export const publicApi = {
   settings: () => api.get("/store/settings"),

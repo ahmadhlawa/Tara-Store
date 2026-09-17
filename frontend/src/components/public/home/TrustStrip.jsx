@@ -1,13 +1,15 @@
-import { Link } from "react-router-dom";
+import { useLocale } from "../../../i18n/locale.jsx";
+import { Link } from "../../../i18n/routing.jsx";
 import { ShieldIcon, TruckIcon, WalletIcon } from "../shell/icons.jsx";
 import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
 
 export default function TrustStrip() {
+  const { t } = useLocale();
   const paymentReveal = useViewportReveal(0);
   const deliveryReveal = useViewportReveal(70);
   const returnReveal = useViewportReveal(140);
 
-  const paymentText = "ادفع نقداً للمندوب عند التسليم";
+  const paymentText = t("ادفع نقداً للمندوب عند التسليم");
 
   return (
     <div className="vs-trust">
@@ -16,7 +18,7 @@ export default function TrustStrip() {
           <WalletIcon size={20} />
         </span>
         <span>
-          <span className="vs-trust__title">الدفع عند الاستلام</span>
+          <span className="vs-trust__title">{t("الدفع عند الاستلام")}</span>
           <br />
           <span className="vs-trust__desc">{paymentText}</span>
         </span>
@@ -27,9 +29,9 @@ export default function TrustStrip() {
           <TruckIcon size={20} />
         </span>
         <span>
-          <span className="vs-trust__title">التوصيل إلى جميع المناطق</span>
+          <span className="vs-trust__title">{t("التوصيل إلى جميع المناطق")}</span>
           <br />
-          <span className="vs-trust__desc">تُحتسب رسوم التوصيل عند إتمام الطلب</span>
+          <span className="vs-trust__desc">{t("تُحتسب رسوم التوصيل عند إتمام الطلب")}</span>
         </span>
       </div>
 
@@ -38,9 +40,9 @@ export default function TrustStrip() {
           <ShieldIcon size={20} />
         </span>
         <span>
-          <span className="vs-trust__title">سياسة التبديل والإرجاع</span>
+          <span className="vs-trust__title">{t("سياسة التبديل والإرجاع")}</span>
           <br />
-          <span className="vs-trust__desc">اقرأ الشروط قبل الطلب</span>
+          <span className="vs-trust__desc">{t("اقرأ الشروط قبل الطلب")}</span>
         </span>
       </Link>
     </div>

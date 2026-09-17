@@ -11,7 +11,7 @@ describe("route SEO", () => {
   it("publishes canonical home metadata and real organization data", async () => {
     stubApi({ ...storefrontRoutes, "/api/v1/store/settings": settings });
     renderApp("/");
-    await waitFor(() => expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute("href", "https://shop.example.com/"));
+    await waitFor(() => expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute("href", "https://shop.example.com/ar/"));
     expect(document.querySelector('meta[name="description"]')).toHaveAttribute("content", settingsFixture.seo_description);
     const records = [...document.querySelectorAll('script[type="application/ld+json"]')].map((node) => JSON.parse(node.textContent));
     expect(records.map((record) => record["@type"])).toEqual(["Organization", "WebSite"]);
@@ -28,7 +28,7 @@ describe("route SEO", () => {
     });
     renderApp("/product/clear-resin");
     await waitFor(() => expect(document.title).toBe("SEO Product"));
-    expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute("href", "https://shop.example.com/product/clear-resin");
+    expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute("href", "https://shop.example.com/ar/product/clear-resin");
     const records = [...document.querySelectorAll('script[type="application/ld+json"]')].map((node) => JSON.parse(node.textContent));
     expect(records.find((record) => record["@type"] === "Product").offers).toMatchObject({ price: "100", priceCurrency: "ILS", availability: "https://schema.org/InStock" });
     expect(records.some((record) => record["@type"] === "WebSite")).toBe(false);

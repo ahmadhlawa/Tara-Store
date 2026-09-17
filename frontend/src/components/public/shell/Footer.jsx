@@ -1,10 +1,12 @@
-import { Link } from "react-router-dom";
+import { useLocale } from "../../../i18n/locale.jsx";
+import { Link } from "../../../i18n/routing.jsx";
 import { useStore } from "../../../app/StoreProvider.jsx";
 import { useLogoFit } from "../../../hooks/useLogoFit.js";
 import { footerLinks } from "../../../store.js";
 import { whatsappHref } from "../../../utils/format.js";
 
 function SocialIcon({ name }) {
+
   const paths = {
     instagram: <><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></>,
     facebook: <path d="M13.5 21v-8h2.75l.41-3h-3.16V8.08c0-.87.24-1.46 1.49-1.46H16.6V3.94c-.28-.04-1.24-.12-2.36-.12-2.33 0-3.92 1.42-3.92 4.03V10H7.7v3h2.62v8h3.18Z" fill="currentColor" stroke="none" />,
@@ -29,6 +31,7 @@ function validExternalUrl(value) {
  * a phone number, an address or a legal claim.
  */
 export default function Footer() {
+  const { t } = useLocale();
   const { settings } = useStore();
   const year = new Date().getFullYear();
   // The same viewport as the header's, so the mark is the size of the mark here
@@ -37,10 +40,10 @@ export default function Footer() {
   const { boxRef: logoBox, style: logoStyle } = useLogoFit(settings.logoUrl);
 
   const socials = [
-    { key: "instagram", label: "إنستغرام", href: settings.instagram, visible: settings.instagramVisible },
-    { key: "facebook", label: "فيسبوك", href: settings.facebook, visible: settings.facebookVisible },
-    { key: "tiktok", label: "تيك توك", href: settings.tiktok, visible: settings.tiktokVisible },
-    { key: "youtube", label: "يوتيوب", href: settings.youtube, visible: settings.youtubeVisible },
+    { key: "instagram", label: t("إنستغرام"), href: settings.instagram, visible: settings.instagramVisible },
+    { key: "facebook", label: t("فيسبوك"), href: settings.facebook, visible: settings.facebookVisible },
+    { key: "tiktok", label: t("تيك توك"), href: settings.tiktok, visible: settings.tiktokVisible },
+    { key: "youtube", label: t("يوتيوب"), href: settings.youtube, visible: settings.youtubeVisible },
   ].map((item) => ({ ...item, href: item.visible ? validExternalUrl(item.href) : null })).filter((item) => item.href);
 
   const contact = [
@@ -65,8 +68,8 @@ export default function Footer() {
       <div className="vs-footer__transition" aria-hidden="true" />
 
       <div className="vs-container vs-footer__top">
-        <nav className="vs-footer__social-area" aria-label="روابط التواصل الاجتماعي">
-          <h2 className="vs-footer__title">تابعونا</h2>
+        <nav className="vs-footer__social-area" aria-label={t("روابط التواصل الاجتماعي")}>
+          <h2 className="vs-footer__title">{t("تابعونا")}</h2>
           {socials.length > 0 && (
             <div className="vs-footer__social-row">
               {socials.map((item) => (
@@ -89,22 +92,22 @@ export default function Footer() {
         </div>
 
         <div className="vs-footer__essentials">
-          <nav className="vs-footer__col" aria-label="معلومات">
-            <h2 className="vs-footer__title">معلومات</h2>
+          <nav className="vs-footer__col" aria-label={t("معلومات")}>
+            <h2 className="vs-footer__title">{t("معلومات")}</h2>
             {informationLinks.map(([label, href]) => (
               <Link key={href} to={href}>
-                {label}
+                {t(label)}
               </Link>
             ))}
           </nav>
 
           <div className="vs-footer__col">
-            <h2 className="vs-footer__title">الدفع والتوصيل</h2>
+            <h2 className="vs-footer__title">{t("الدفع والتوصيل")}</h2>
             {contact.map((item) => (
               <span key={item.key}>{item.node}</span>
             ))}
             <div className="vs-footer__pay">
-              <span>الدفع عند الاستلام</span>
+              <span>{t("الدفع عند الاستلام")}</span>
             </div>
           </div>
         </div>
@@ -112,14 +115,13 @@ export default function Footer() {
 
       <div className="vs-footer__bottom">
         <div className="vs-container vs-footer__bottom-row">
-          <Link to="/page/terms">الشروط والأحكام</Link>
+          <Link to="/page/terms">{t("الشروط والأحكام")}</Link>
           <div className="vs-footer__credit">
             <img src="/branding/tfn.png" alt="TFN Technologies Team" />
             <span>Developed by TFN Technologies Team</span>
           </div>
           <span className="vs-footer__copyright">
-            © {year} {settings.storeName} — جميع الحقوق محفوظة
-          </span>
+            © {year} {settings.storeName}{" "}{t("— جميع الحقوق محفوظة")}{" "}</span>
         </div>
       </div>
     </footer>

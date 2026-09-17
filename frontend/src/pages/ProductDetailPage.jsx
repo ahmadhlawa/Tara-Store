@@ -1,5 +1,7 @@
+import { useLocale } from "../i18n/locale.jsx";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { Link } from "../i18n/routing.jsx";
 import { useStore } from "../app/StoreProvider.jsx";
 import { useProductDetail, useVariantSelection } from "../hooks/useProductDetail.js";
 import useMediaQuery from "../hooks/useMediaQuery.js";
@@ -25,6 +27,7 @@ function paragraphsOf(text) {
 }
 
 export default function ProductDetailPage() {
+  const { locale, t } = useLocale();
   const { slug } = useParams();
   const store = useStore();
   const money = useMoney();
@@ -97,7 +100,7 @@ export default function ProductDetailPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, product?.slug]);
+  }, [status, product?.slug, locale]);
 
   if (status === "loading") {
     return (
@@ -122,7 +125,7 @@ export default function ProductDetailPage() {
     return (
       <div className="vs-container vs-section">
         <div className="vs-state vs-state--error" role="alert">
-          <p className="vs-state__body">تعذّر تحميل هذا المنتج. حاول مرة أخرى لاحقاً.</p>
+          <p className="vs-state__body">{t("تعذّر تحميل هذا المنتج. حاول مرة أخرى لاحقاً.")}</p>
         </div>
       </div>
     );
@@ -135,7 +138,7 @@ export default function ProductDetailPage() {
   // success that did not happen.
   const add = () => {
     if (selection.missingChoice) {
-      setError("اختر أحد الخيارات المتاحة قبل الإضافة إلى العربة.");
+      setError(t("اختر أحد الخيارات المتاحة قبل الإضافة إلى العربة."));
       return false;
     }
     addProduct(view, qty, selection.selected);
@@ -145,8 +148,8 @@ export default function ProductDetailPage() {
   return (
     <>
       <div className="vs-container vs-pdp-crumbs">
-        <nav className="vs-crumbs" aria-label="مسار التصفح">
-          <Link to="/">الرئيسية</Link>
+        <nav className="vs-crumbs" aria-label={t("مسار التصفح")}>
+          <Link to="/">{t("الرئيسية")}</Link>
           <span aria-hidden="true">›</span>
           {view.categoryHref ? (
             <>
@@ -169,9 +172,9 @@ export default function ProductDetailPage() {
 
           <div className="vs-pdp__info">
             <div className="vs-pdp__badges">
-              {view.isPackage && <span className="vs-badge vs-badge--package">بكج</span>}
+              {view.isPackage && <span className="vs-badge vs-badge--package">{t("بكج")}</span>}
               {view.hasSale && <span className="vs-badge vs-badge--sale">{view.discountText}</span>}
-              {view.isNew && <span className="vs-badge vs-badge--new">جديد</span>}
+              {view.isNew && <span className="vs-badge vs-badge--new">{t("جديد")}</span>}
             </div>
 
             <h1 className="vs-pdp__title">{view.name}</h1>
@@ -201,16 +204,13 @@ export default function ProductDetailPage() {
             )}
 
             {selection.unavailable && (
-              <p className="vs-pdp__notice" role="status">
-                هذا المنتج بحاجة إلى تحديد الخيارات مع فريق المتجر قبل الطلب.
-              </p>
+              <p className="vs-pdp__notice" role="status">{t("هذا المنتج بحاجة إلى تحديد الخيارات مع فريق المتجر قبل الطلب.")}{" "}</p>
             )}
 
             {view.isPackage && product.packageItems.length > 0 && (
               <div className="vs-pkgbox">
                 <h2 className="vs-pkgbox__title">
-                  <BoxIcon size={17} /> محتويات البكج
-                </h2>
+                  <BoxIcon size={17} />{" "}{t("محتويات البكج")}{" "}</h2>
                 <ul>
                   {product.packageItems.map((item) => (
                     <li key={item.id}>
@@ -237,8 +237,8 @@ export default function ProductDetailPage() {
                 onAdd={add}
                 label={
                   selection.soldOut
-                    ? "غير متوفر حالياً"
-                    : `أضف إلى العربة — ${money(selection.price * qty)}`
+                    ? t("غير متوفر حالياً")
+                    : t("أضف إلى العربة — {0}", [money(selection.price * qty)])
                 }
                 disabled={selection.soldOut || selection.unavailable}
                 className="vs-btn vs-btn--primary vs-btn--lg vs-pdp__cta"
@@ -246,11 +246,11 @@ export default function ProductDetailPage() {
             </div>
 
             <section className="vs-pdp__description" aria-labelledby="product-description-title">
-              <h2 id="product-description-title">الوصف</h2>
+              <h2 id="product-description-title">{t("الوصف")}</h2>
               {description.length ? description.map((text, index) => (
-                <p key={index} className="vs-prose">{text}</p>
+                <p key={index} className="vs-prose">{t(text)}</p>
               )) : (
-                <p className="vs-prose vs-prose--muted">لا يتوفر وصف تفصيلي لهذا المنتج بعد.</p>
+                <p className="vs-prose vs-prose--muted">{t("لا يتوفر وصف تفصيلي لهذا المنتج بعد.")}</p>
               )}
             </section>
           </div>
@@ -259,7 +259,7 @@ export default function ProductDetailPage() {
 
       {related.length > 0 && (
         <section className="vs-container vs-section">
-          <SectionHead title="منتجات ذات صلة" moreHref={view.categoryHref || "/shop"} />
+          <SectionHead title={t("منتجات ذات صلة")} moreHref={view.categoryHref || "/shop"} />
           <ProductGrid
             views={related.map((item) => productView(item, money))}
             eagerCount={0}
@@ -278,7 +278,7 @@ export default function ProductDetailPage() {
         </div>
         <AddToCartButton
           onAdd={add}
-          label={selection.soldOut ? "غير متوفر" : "أضف إلى العربة"}
+          label={selection.soldOut ? t("غير متوفر") : t("أضف إلى العربة")}
           disabled={selection.soldOut || selection.unavailable}
           className="vs-btn vs-btn--primary vs-buybar__cta"
         />

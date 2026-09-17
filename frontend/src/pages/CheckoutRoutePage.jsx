@@ -1,5 +1,6 @@
+import { useLocale } from "../i18n/locale.jsx";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "../i18n/routing.jsx";
 import { useStore } from "../app/StoreProvider.jsx";
 import { useCartLines } from "../components/public/cart/useCartLines.js";
 import FreeDeliveryNotice from "../components/public/cart/FreeDeliveryNotice.jsx";
@@ -35,11 +36,41 @@ function validate(form) {
 
 /** Cash on delivery only — the form never asks for card or transfer details. */
 export default function CheckoutRoutePage() {
+  const { locale, t } = useLocale();
   const store = useStore();
   const money = useMoney();
   const navigate = useNavigate();
-  const { lines } = useCartLines();
-  const { checkoutForm: form, setCheckoutForm, cart, coupon, deliveryAreas } = store;
+  const { lines, subtotal } = useCartLines();
+  const { checkoutForm: form, setCheckoutForm, cart, coupon, setCoupon, deliveryAreas } = store;
+
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const applyCoupon = async () => {
+    const code = coupon.input.trim();
+    if (!code) return;
+    setApplyingCoupon(true);
+    try {
+      const result = await checkoutService.validateCoupon(code, subtotal);
+      setCoupon((current) => ({
+        ...current,
+        applied: result.code,
+        label: result.label,
+        discount: result.discount,
+        message: t("تم تطبيق {0}", [result.label]),
+        ok: true,
+      }));
+    } catch (error) {
+      setCoupon((current) => ({
+        ...current,
+        applied: "",
+        label: "",
+        discount: 0,
+        message: error.message || t("الكود غير صالح أو منتهي الصلاحية"),
+        ok: false,
+      }));
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
 
   const [errors, setErrors] = useState({});
   const [placing, setPlacing] = useState(false);
@@ -79,7 +110,7 @@ export default function CheckoutRoutePage() {
     return () => {
       cancelled = true;
     };
-  }, [cart, coupon.applied, form.areaId]);
+  }, [cart, coupon.applied, form.areaId, locale]);
 
   const update = (patch) => {
     const next = { ...form, ...patch };
@@ -125,7 +156,7 @@ export default function CheckoutRoutePage() {
       store.setCoupon({ input: "", applied: "", label: "", message: "", ok: false, discount: 0 });
       navigate(`/order-success/${order.order_number}`, { replace: true });
     } catch (error) {
-      setSubmitError(error.message || "تعذّر إتمام الطلب. حاول مرة أخرى.");
+      setSubmitError(error.message || t("تعذّر إتمام الطلب. حاول مرة أخرى."));
     } finally {
       submitting.current = false;
       setPlacing(false);
@@ -137,13 +168,11 @@ export default function CheckoutRoutePage() {
   if (!cart.length) {
     return (
       <section className="vs-container vs-container--narrow vs-section">
-        <h1 className="vs-page__title">إتمام الطلب</h1>
+        <h1 className="vs-page__title">{t("إتمام الطلب")}</h1>
         <div className="vs-state">
-          <h2 className="vs-state__title">لا توجد منتجات لإتمام الطلب</h2>
-          <p className="vs-state__body">أضف منتجات إلى العربة ثم عد إلى هنا.</p>
-          <Link to="/shop" className="vs-btn vs-btn--primary vs-btn--lg">
-            تصفّح المتجر
-          </Link>
+          <h2 className="vs-state__title">{t("لا توجد منتجات لإتمام الطلب")}</h2>
+          <p className="vs-state__body">{t("أضف منتجات إلى العربة ثم عد إلى هنا.")}</p>
+          <Link to="/shop" className="vs-btn vs-btn--primary vs-btn--lg">{t("تصفّح المتجر")}{" "}</Link>
         </div>
       </section>
     );
@@ -153,34 +182,30 @@ export default function CheckoutRoutePage() {
 
   return (
     <section className="vs-container vs-section">
-      <h1 className="vs-page__title">إتمام الطلب</h1>
+      <h1 className="vs-page__title">{t("إتمام الطلب")}</h1>
 
       <div className="vs-checkout">
         <form className="vs-form vs-checkout__form" onSubmit={placeOrder} noValidate ref={formRef}>
           <fieldset className="vs-panel vs-checkout__customer">
-            <legend className="vs-panel__title">بيانات العميل</legend>
+            <legend className="vs-panel__title">{t("بيانات العميل")}</legend>
 
             <div className="vs-checkout__fields">
-              <label className="vs-field">
-                الاسم الكامل
-                <input
+              <label className="vs-field">{t("الاسم الكامل")}{" "}<input
                   className="vs-input"
                   type="text"
                   value={form.name}
                   onChange={(event) => update({ name: event.target.value })}
-                  placeholder="مثال: محمد أحمد"
+                  placeholder={t("مثال: محمد أحمد")}
                   {...field("name")}
                 />
                 {errors.name && (
                   <span className="vs-field__error" id="vs-err-name">
-                    {errors.name}
+                    {t(errors.name)}
                   </span>
                 )}
               </label>
 
-              <label className="vs-field">
-                رقم الهاتف
-                <input
+              <label className="vs-field">{t("رقم الهاتف")}{" "}<input
                   className="vs-input"
                   type="tel"
                   dir="ltr"
@@ -191,14 +216,12 @@ export default function CheckoutRoutePage() {
                 />
                 {errors.phone && (
                   <span className="vs-field__error" id="vs-err-phone">
-                    {errors.phone}
+                    {t(errors.phone)}
                   </span>
                 )}
               </label>
 
-              <label className="vs-field">
-                منطقة التوصيل
-                <select
+              <label className="vs-field">{t("منطقة التوصيل")}{" "}<select
                   className="vs-input"
                   value={form.areaId ?? ""}
                   onChange={(event) =>
@@ -206,7 +229,7 @@ export default function CheckoutRoutePage() {
                   }
                   {...field("area")}
                 >
-                  <option value="">اختر المنطقة…</option>
+                  <option value="">{t("اختر المنطقة…")}</option>
                   {deliveryAreas.map((area) => (
                     <option key={area.id} value={area.id}>
                       {area.name} — {money(area.price)}
@@ -216,43 +239,39 @@ export default function CheckoutRoutePage() {
                 </select>
                 {errors.area && (
                   <span className="vs-field__error" id="vs-err-area">
-                    {errors.area}
+                    {t(errors.area)}
                   </span>
                 )}
               </label>
 
-              <label className="vs-field">
-                العنوان بالتفصيل
-                <textarea
+              <label className="vs-field">{t("العنوان بالتفصيل")}{" "}<textarea
                   className="vs-input vs-textarea"
                   rows="2"
                   value={form.address}
                   onChange={(event) => update({ address: event.target.value })}
-                  placeholder="الشارع، رقم البناية، أقرب معلم"
+                  placeholder={t("الشارع، رقم البناية، أقرب معلم")}
                   {...field("address")}
                 />
                 {errors.address && (
                   <span className="vs-field__error" id="vs-err-address">
-                    {errors.address}
+                    {t(errors.address)}
                   </span>
                 )}
               </label>
 
-              <label className="vs-field vs-checkout__notes">
-                ملاحظات على الطلب (اختياري)
-                <textarea
+              <label className="vs-field vs-checkout__notes">{t("ملاحظات على الطلب (اختياري)")}{" "}<textarea
                   className="vs-input vs-textarea"
                   rows="1"
                   value={form.notes}
                   onChange={(event) => update({ notes: event.target.value })}
-                  placeholder="أي تفاصيل تساعدنا في التوصيل"
+                  placeholder={t("أي تفاصيل تساعدنا في التوصيل")}
                 />
               </label>
             </div>
           </fieldset>
 
           <fieldset className="vs-panel vs-checkout__payment">
-            <legend className="vs-panel__title">طريقة الدفع</legend>
+            <legend className="vs-panel__title">{t("طريقة الدفع")}</legend>
             {paymentMethods.map((method) => (
               <label
                 key={method.key}
@@ -266,19 +285,17 @@ export default function CheckoutRoutePage() {
                   onChange={() => update({ payment: method.key })}
                 />
                 <span>
-                  <strong>{method.label}</strong>
-                  <span className="vs-payopt__desc">{method.desc}</span>
+                  <strong>{t(method.label)}</strong>
+                  <span className="vs-payopt__desc">{t(method.desc)}</span>
                 </span>
               </label>
             ))}
 
-            <p className="vs-form__note">
-              لا يتم تحصيل أي مبلغ الآن؛ يُدفع نقداً للمندوب عند التسليم.
-            </p>
+            <p className="vs-form__note">{t("لا يتم تحصيل أي مبلغ الآن؛ يُدفع نقداً للمندوب عند التسليم.")}{" "}</p>
 
             <div className="vs-return-policy" aria-labelledby="vs-return-policy-title">
-              <h2 id="vs-return-policy-title">سياسة الإرجاع والاستبدال</h2>
-              {RETURN_POLICY_NOTICE.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+              <h2 id="vs-return-policy-title">{t("سياسة الإرجاع والاستبدال")}</h2>
+              {RETURN_POLICY_NOTICE.map((paragraph) => <p key={paragraph}>{t(paragraph)}</p>)}
             </div>
 
             <label className="vs-check vs-check--terms">
@@ -288,13 +305,11 @@ export default function CheckoutRoutePage() {
                 onChange={() => update({ terms: !form.terms })}
                 {...field("terms")}
               />
-              <span>
-                قرأت <Link to="/page/return-policy">سياسة الإرجاع والاستبدال</Link> وأوافق عليها
-              </span>
+              <span>{t("قرأت")}{" "}<Link to="/page/return-policy">{t("سياسة الإرجاع والاستبدال")}</Link>{" "}{t("وأوافق عليها")}{" "}</span>
             </label>
             {errors.terms && (
               <span className="vs-field__error" id="vs-err-terms">
-                {errors.terms}
+                {t(errors.terms)}
               </span>
             )}
           </fieldset>
@@ -311,12 +326,12 @@ export default function CheckoutRoutePage() {
             disabled={placing || !form.terms}
           >
             {placing && <span className="vs-spinner" aria-hidden="true" />}
-            {placing ? "جارٍ إرسال الطلب…" : `تأكيد وإرسال الطلب — ${money(totals.total)}`}
+            {placing ? t("جارٍ إرسال الطلب…") : t("تأكيد وإرسال الطلب — {0}", [money(totals.total)])}
           </button>
         </form>
 
-        <aside className="vs-summary" aria-label="ملخّص الطلب">
-          <h2 className="vs-summary__title">ملخّص الطلب</h2>
+        <aside className="vs-summary" aria-label={t("ملخّص الطلب")}>
+          <h2 className="vs-summary__title">{t("ملخّص الطلب")}</h2>
           {lines.map((line) => (
             <div className="vs-summary__line" key={line.key}>
               <span className="vs-summary__thumb">
@@ -324,24 +339,25 @@ export default function CheckoutRoutePage() {
               </span>
               <span className="vs-summary__linetext">
                 <span className="vs-clamp-2">{line.name}</span>
-                <span className="vs-summary__muted">×{line.qty}</span>
+                {line.variationText && <span className="vs-summary__muted">{line.variationText}</span>}
+                <span className="vs-summary__muted">{t("سعر القطعة:")} {line.unitText} · ×{line.qty}</span>
               </span>
               <strong>{line.lineText}</strong>
             </div>
           ))}
 
           <div className="vs-summary__row">
-            <span>المجموع الفرعي</span>
+            <span>{t("المجموع الفرعي")}</span>
             <strong>{money(totals.subtotal)}</strong>
           </div>
           {totals.discount > 0 && (
             <div className="vs-summary__row vs-summary__row--good">
-              <span>الخصم</span>
+              <span>{t("الخصم")}</span>
               <strong>−{money(totals.discount)}</strong>
             </div>
           )}
           <div className="vs-summary__row">
-            <span>التوصيل {totals.areaName ? `(${totals.areaName})` : ""}</span>
+            <span>{t("التوصيل")}{" "}{totals.areaName ? `(${totals.areaName})` : ""}</span>
             <strong>{totals.shipping ? money(totals.shipping) : "—"}</strong>
           </div>
 
@@ -349,10 +365,36 @@ export default function CheckoutRoutePage() {
               number, and narrows to the chosen area once there is one. */}
           <FreeDeliveryNotice subtotal={totals.subtotal} areaId={form.areaId} />
           <div className="vs-summary__total">
-            <span>الإجمالي</span>
+            <span>{t("الإجمالي")}</span>
             <strong>{money(totals.total)}</strong>
           </div>
-          <p className="vs-summary__note">جميع المبالغ محسوبة من الخادم عند إتمام الطلب.</p>
+          <details className="vs-coupon-disclosure">
+            <summary>{t("هل لديك كوبون خصم؟")}</summary>
+            <div className="vs-coupon">
+              <input
+                className="vs-input"
+                type="text"
+                value={coupon.input}
+                onChange={(event) =>
+                  setCoupon((current) => ({ ...current, input: event.target.value }))
+                }
+                placeholder={t("كود الخصم")}
+                aria-label={t("كود الخصم")}
+              />
+              <button type="button" className="vs-btn vs-btn--outline" disabled={applyingCoupon || !coupon.input.trim()} onClick={applyCoupon}>{t("تطبيق")}{" "}</button>
+            </div>
+            {coupon.message && (
+              <span
+                role="status"
+                className={`vs-coupon__msg${coupon.ok ? " is-ok" : " is-bad"}`}
+              >
+                {t(coupon.message)}
+              </span>
+            )}
+
+            {coupon.applied && <button type="button" className="vs-btn vs-btn--ghost" disabled={applyingCoupon} onClick={() => setCoupon({ input: "", applied: "", label: "", message: "", ok: false, discount: 0 })}>{t("إزالة الكوبون")}</button>}
+          </details>
+          <p className="vs-summary__note">{t("جميع المبالغ محسوبة من الخادم عند إتمام الطلب.")}</p>
         </aside>
       </div>
     </section>

@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useLocale } from "../../../i18n/locale.jsx";
+import { Link } from "../../../i18n/routing.jsx";
 import { Drawer } from "../overlays/Overlay.jsx";
 import Media from "../shell/Media.jsx";
 import FreeDeliveryNotice from "./FreeDeliveryNotice.jsx";
@@ -7,6 +8,7 @@ import { useCartLines } from "./useCartLines.js";
 import { CartIcon, TrashIcon } from "../shell/icons.jsx";
 
 export default function CartDrawer({ open, onClose }) {
+  const { t } = useLocale();
   const { lines, count, subtotal, subtotalText, empty } = useCartLines();
 
   return (
@@ -14,29 +16,22 @@ export default function CartDrawer({ open, onClose }) {
       open={open}
       onClose={onClose}
       side="left"
-      label="عربة التسوّق"
-      title={`عربة التسوّق (${count})`}
+      label={t("عربة التسوّق")}
+      title={t("عربة التسوّق ({0})", [count])}
       footer={
         empty ? null : (
           <>
             <div className="vs-cartdrawer__totals">
-              <span>المجموع الفرعي</span>
+              <span>{t("المجموع الفرعي")}</span>
               <strong>{subtotalText}</strong>
             </div>
-            <p className="vs-cartdrawer__hint">
-              تُحتسب رسوم التوصيل حسب المنطقة في صفحة إتمام الطلب.
-            </p>
+            <p className="vs-cartdrawer__hint">{t("تُحتسب رسوم التوصيل حسب المنطقة في صفحة إتمام الطلب.")}{" "}</p>
             <FreeDeliveryNotice subtotal={subtotal} />
             <Link
               to="/checkout"
               className="vs-btn vs-btn--primary vs-btn--lg vs-btn--block"
               onClick={onClose}
-            >
-              إتمام الطلب
-            </Link>
-            <Link to="/cart" className="vs-btn vs-btn--ghost vs-btn--block" onClick={onClose}>
-              عرض العربة
-            </Link>
+            >{t("إتمام الطلب")}{" "}</Link>
           </>
         )
       }
@@ -46,11 +41,9 @@ export default function CartDrawer({ open, onClose }) {
           <span className="vs-state__icon">
             <CartIcon size={26} />
           </span>
-          <strong className="vs-state__title">لا توجد منتجات بعد</strong>
-          <p className="vs-state__body">أضف منتجات من الأقسام لتظهر هنا.</p>
-          <Link to="/shop" className="vs-btn vs-btn--primary" onClick={onClose}>
-            تصفّح المتجر
-          </Link>
+          <strong className="vs-state__title">{t("لا توجد منتجات بعد")}</strong>
+          <p className="vs-state__body">{t("أضف منتجات من الأقسام لتظهر هنا.")}</p>
+          <Link to="/shop" className="vs-btn vs-btn--primary" onClick={onClose}>{t("تصفّح المتجر")}{" "}</Link>
         </div>
       ) : (
         <ul className="vs-cartdrawer__list">
@@ -66,21 +59,21 @@ export default function CartDrawer({ open, onClose }) {
                 {line.variationText && (
                   <span className="vs-cartline__variant">{line.variationText}</span>
                 )}
-                <span className="vs-cartline__unit">سعر القطعة: {line.unitText}</span>
+                <span className="vs-cartline__unit">{t("سعر القطعة:")}{" "}{line.unitText}</span>
                 <div className="vs-cartline__row">
                   <QuantityStepper
                     value={line.qty}
                     onDecrease={line.decrease}
                     onIncrease={line.increase}
                     size="sm"
-                    label={`الكمية من ${line.name}`}
+                    label={t("الكمية من {0}", [line.name])}
                   />
                   <strong className="vs-cartline__total">{line.lineText}</strong>
                   <button
                     type="button"
                     className="vs-iconbtn vs-iconbtn--bare vs-cartline__remove"
                     onClick={line.remove}
-                    aria-label={`إزالة ${line.name} من العربة`}
+                    aria-label={t("إزالة {0} من العربة", [line.name])}
                   >
                     <TrashIcon size={17} />
                   </button>

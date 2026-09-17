@@ -1,3 +1,4 @@
+import { useLocale } from "../../../i18n/locale.jsx";
 import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useStore } from "../../../app/StoreProvider.jsx";
@@ -18,6 +19,7 @@ import { buildStorefrontThemeVariables } from "../../../theme/storefrontTheme.js
  * therefore inherits none of it.
  */
 export default function PublicShell() {
+  const { t } = useLocale();
   const location = useLocation();
   const store = useStore();
 
@@ -39,9 +41,7 @@ export default function PublicShell() {
   return (
     <div className="vs-public" style={buildStorefrontThemeVariables(store.settings.raw)}>
       <CategoryHoverProvider>
-        <a className="vs-skip" href="#vs-content">
-          تخطَّ إلى المحتوى
-        </a>
+        <a className="vs-skip" href="#vs-content">{t("تخطَّ إلى المحتوى")}{" "}</a>
         <PreviewNotice />
         <FreeShippingBar />
         <Header />
@@ -50,10 +50,7 @@ export default function PublicShell() {
         <main className="vs-main" id="vs-content">
           {store.loadError && (
             <div className="vs-container" style={{ paddingTop: 16 }}>
-              <div role="alert" className="vs-inline-alert">
-                تعذّر تحميل بيانات المتجر من الخادم. تأكد من تشغيل واجهة FastAPI ثم أعد تحميل
-                الصفحة.
-              </div>
+              <div role="alert" className="vs-inline-alert">{t("تعذّر تحميل بيانات المتجر من الخادم. تأكد من تشغيل واجهة FastAPI ثم أعد تحميل الصفحة.")}{" "}</div>
             </div>
           )}
           <Outlet />

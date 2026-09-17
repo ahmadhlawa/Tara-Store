@@ -1,3 +1,4 @@
+import { useLocale } from "../i18n/locale.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // Shared "add to cart" affordance for the product and package cards. The cards
@@ -15,6 +16,7 @@ export const SUCCESS_MS = 1000;
  * for something it refused to do.
  */
 export function useAddToCartFeedback(onAdd) {
+
   const [added, setAdded] = useState(false);
   const timer = useRef(null);
 
@@ -41,6 +43,7 @@ export default function AddToCartButton({
   style,
   className = "",
 }) {
+  const { t } = useLocale();
   const { added, fire } = useAddToCartFeedback(onAdd);
   return (
     <button
@@ -54,12 +57,12 @@ export default function AddToCartButton({
       {added ? (
         <>
           <span aria-hidden="true">✓</span>
-          {ADDED_LABEL}
+          {t(ADDED_LABEL)}
         </>
       ) : (
         <>
           {icon}
-          {label}
+          {t(label)}
         </>
       )}
     </button>

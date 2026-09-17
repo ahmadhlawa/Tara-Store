@@ -884,7 +884,8 @@
 .vs-contact-page__header { text-align: center; max-width: 620px; margin: 0 auto 40px; }
 .vs-contact-page__eyebrow { display: block; margin-bottom: 8px; color: var(--vs-accent); font-size: 13px; font-weight: 600; letter-spacing: .04em; }
 .vs-contact-page__layout { direction: ltr; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .82fr); gap: clamp(28px, 6vw, 76px); align-items: center; max-width: 1040px; margin-inline: auto; }
-.vs-contact-methods { direction: rtl; }
+.vs-contact-methods { direction: inherit; }
+[dir="rtl"] .vs-contact-methods { direction: rtl; }
 .vs-contact-methods h2 { margin: 0 0 8px; font-size: clamp(22px, 3vw, 30px); font-weight: 600; }
 .vs-contact-methods > p { margin: 0 0 24px; color: var(--vs-ink-4); line-height: 1.8; }
 .vs-contact-methods__list { display: grid; gap: 14px; }
@@ -1017,4 +1018,12 @@
   background: var(--vs-success) !important;
   border-color: var(--vs-success) !important;
   color: var(--vs-ink-invert) !important;
+}
+
+.vs-coupon-disclosure summary { cursor: pointer; font-size: 13px; }
+.vs-coupon-disclosure .vs-coupon { margin-block-start: 10px; }
+.vs-coupon-disclosure .vs-input { min-width: 0; }
+.vs-summary__linetext { overflow-wrap: anywhere; }
+@media (max-width: 899px) {
+  .vs-checkout .vs-summary { order: -1; }
 }

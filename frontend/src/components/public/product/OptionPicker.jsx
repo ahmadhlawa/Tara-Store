@@ -1,3 +1,4 @@
+import { useLocale } from "../../../i18n/locale.jsx";
 import { useEffect, useMemo, useState } from "react";
 
 /**
@@ -20,6 +21,7 @@ const comboKey = (ids) =>
     .join("-");
 
 export default function OptionPicker({ product, variants, variantId, onPick, simpleChoices = {}, onSimplePick, presentationValueId, onPresentationPick, error }) {
+  const { t } = useLocale();
   const axes = useMemo(
     () => (product?.options || []).filter((option) => (option.values || []).length),
     [product],
@@ -58,12 +60,12 @@ export default function OptionPicker({ product, variants, variantId, onPick, sim
         <span className="vs-options__legend">{axis.name}<span className="vs-options__required" aria-hidden="true">*</span></span>
         <div className="vs-options__row">{axis.values.map((value) => <button key={value.id} type="button" className="vs-option" aria-pressed={Number(simpleChoices[axis.id]) === Number(value.id)} onClick={() => onSimplePick(axis.id, value.id)}>{value.value}</button>)}</div>
       </div>)}
-      {error && <p className="vs-options__error" id="vs-option-error" role="alert">{error}</p>}
+      {error && <p className="vs-options__error" id="vs-option-error" role="alert">{t(error)}</p>}
     </fieldset>
   );
 
   if (!resolvable) {
-    const groupName = product?.options?.[0]?.name || "الخيار";
+    const groupName = product?.options?.[0]?.name || t("الخيار");
     return (
       <fieldset className="vs-options" aria-describedby={errorId}>
         <legend className="vs-options__legend">
@@ -91,14 +93,14 @@ export default function OptionPicker({ product, variants, variantId, onPick, sim
                 }}
               >
                 {variant.title}
-                {out && <span className="vs-option__out"> — نفد</span>}
+                {out && <span className="vs-option__out">{" "}{t("— نفد")}</span>}
               </button>
             );
           })}
         </div>
         {error && (
           <p className="vs-options__error" id="vs-option-error" role="alert">
-            {error}
+            {t(error)}
           </p>
         )}
       </fieldset>
@@ -153,7 +155,7 @@ export default function OptionPicker({ product, variants, variantId, onPick, sim
                   onClick={() => pick(axis, value)}
                 >
                   {value.value}
-                  {out && <span className="vs-option__out"> — نفد</span>}
+                  {out && <span className="vs-option__out">{" "}{t("— نفد")}</span>}
                 </button>
               );
             })}
@@ -162,7 +164,7 @@ export default function OptionPicker({ product, variants, variantId, onPick, sim
       ))}
       {error && (
         <p className="vs-options__error" id="vs-option-error" role="alert">
-          {error}
+          {t(error)}
         </p>
       )}
     </fieldset>
