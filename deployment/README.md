@@ -19,7 +19,7 @@ upgrade, stop, or delete that service or its models.
 Replace `CLIENT_SLUG`, `CLIENT_DOMAIN`, `BACKEND_PORT` (an allocated unused loopback
 port), and `PROJECT_PATH` (Tara's absolute application directory). Keep Tara's service
 user, checkout, unit, site/logs, database/user, credentials and R2 objects separate
-from other projects. Use `R2_OBJECT_PREFIX=tara/` and Tara-scoped bucket credentials.
+from other projects. Use `R2_OBJECT_PREFIX=tara-store/` and Tara-scoped bucket credentials.
 The application's prefix guard does not replace storage permissions; prefer a
 Tara-only bucket. Never replace shared server configuration or another project's unit.
 

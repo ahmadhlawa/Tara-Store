@@ -10,7 +10,7 @@ none of them and must not affect shared server resources.
 | Item | Scope |
 | --- | --- |
 | MySQL snapshot | Tara's database only: catalog, orders, content, translations, admins |
-| R2 object snapshot | Tara's referenced keys under `tara/`, with bytes and metadata |
+| R2 object snapshot | Tara's referenced keys under `tara-store/`, with bytes and metadata |
 | Manifest | Timestamp, commit, Alembic revision, database identity, bucket/prefix, object keys and checksums |
 | Private environment | Encrypted, separately controlled copy of `backend/.env` |
 

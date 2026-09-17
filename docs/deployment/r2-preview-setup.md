@@ -37,7 +37,7 @@ Cloudflare documents `r2.dev` as a rate-limited testing endpoint, not production
 Public URLs come directly from this origin; production Nginx has no local `/media` alias.
 
 Keep stored object keys and URLs stable. Existing `MediaAsset.stored_key` values and
-product/order references are not automatically converted by setting `tara/` or changing
+product/order references are not automatically converted by setting `tara-store/` or changing
 the public origin. Audit existing keys/URLs before deployment; arrange a separate,
 backed-up compatibility plan if they use local `/media`, another prefix or testing URLs.
 Do not rewrite historical orders or delete existing objects as part of configuration.

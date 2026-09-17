@@ -36,7 +36,7 @@ uniqueness across instances.
 - [ ] `DATABASE_URL` — this client's own database and user
 - [ ] `CORS_ORIGINS=https://CLIENT_DOMAIN`
 - [ ] `STORAGE_PROVIDER=r2`; fill required R2 settings, `R2_REGION=auto`
-- [ ] Tara uses `R2_OBJECT_PREFIX=tara/`; preserve existing key/URL compatibility
+- [ ] Tara uses `R2_OBJECT_PREFIX=tara-store/`; preserve existing key/URL compatibility
 - [ ] `LIBRETRANSLATE_URL=http://127.0.0.1:5000`, `TRANSLATION_ENABLED=true`
 - [ ] Leave `INITIAL_ADMIN_*` empty; create the administrator explicitly in step 4
 - [ ] `chmod 600 backend/.env`, owned by the service user

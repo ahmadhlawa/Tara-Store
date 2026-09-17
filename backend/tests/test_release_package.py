@@ -42,7 +42,7 @@ def test_production_templates_have_no_local_media_write_or_serve_path():
     env = (ROOT / "deployment/env/backend.env.example").read_text()
     assert "alias " not in nginx
     assert "ReadWritePaths=" not in unit
-    for setting in ["STORAGE_PROVIDER=r2", "R2_OBJECT_PREFIX=tara/", "R2_REGION=auto",
+    for setting in ["STORAGE_PROVIDER=r2", "R2_OBJECT_PREFIX=tara-store/", "R2_REGION=auto",
                     "DATABASE_URL=mysql+pymysql://", "TRANSLATION_ENABLED=true",
                     "LIBRETRANSLATE_URL=http://127.0.0.1:5000"]:
         assert setting in env

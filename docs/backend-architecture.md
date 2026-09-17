@@ -124,7 +124,7 @@ filename or content type, and are size-limited by `MAX_UPLOAD_SIZE_BYTES`.
 The database stores metadata and a URL; files are never stored as Base64 or BLOBs.
 
 `R2StorageProvider` implements save, delete, exists and public URL resolution.
-Production stores media objects in R2 under `tara/`; missing required credentials
+Production stores media objects in R2 under `tara-store/`; missing required credentials
 raise a clear configuration error. Local disk and its `/media` mount remain for
 intentional development/tests only. See
 [deployment/r2-preview-setup.md](deployment/r2-preview-setup.md).

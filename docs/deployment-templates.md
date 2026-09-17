@@ -17,7 +17,7 @@ Review changes against all sites before reloading Nginx; never replace another
 project's resources or global configuration.
 
 Copy the environment template to private untracked `backend/.env`. Production uses
-`STORAGE_PROVIDER=r2`, `R2_REGION=auto`, `R2_OBJECT_PREFIX=tara/`, and
+`STORAGE_PROVIDER=r2`, `R2_REGION=auto`, `R2_OBJECT_PREFIX=tara-store/`, and
 `DATABASE_URL=mysql+pymysql://...`. Fill all required R2 blanks with Tara settings.
 See [R2 setup](deployment/r2-preview-setup.md). Media URLs come directly from
 `R2_PUBLIC_BASE_URL`; Nginx rejects `/media` and has no local filesystem alias.
