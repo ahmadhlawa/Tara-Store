@@ -462,6 +462,8 @@
 /* â”€â”€ skeleton / empty / error â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .vs-skel {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(
     90deg,
     var(--vs-surface-2) 8%,
@@ -469,16 +471,27 @@
     var(--vs-surface-2) 33%
   );
   background-size: 800px 100%;
-  animation: vs-shimmer 1.4s linear infinite;
   border-radius: var(--vs-r-sm);
+}
+
+.vs-skel::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: -800px;
+  width: calc(100% + 1600px);
+  background: inherit;
+  background-size: 800px 100%;
+  animation: vs-shimmer 1.4s linear infinite;
+  pointer-events: none;
 }
 
 @keyframes vs-shimmer {
   0% {
-    background-position: -420px 0;
+    transform: translateX(-420px);
   }
   100% {
-    background-position: 420px 0;
+    transform: translateX(420px);
   }
 }
 

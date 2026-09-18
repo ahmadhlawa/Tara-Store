@@ -5,6 +5,7 @@ import { useActiveCategorySlug, useCategoryNav } from "../../../hooks/useStorefr
 import { Drawer } from "../overlays/Overlay.jsx";
 import { ArrowForward, ChevronDown, TagIcon } from "../shell/icons.jsx";
 import { useCategoryHover } from "./CategoryHover.jsx";
+import { responsiveImageProps } from "../../../utils/responsiveImage.js";
 
 /**
  * The category panel, opened from the rail trigger on desktop and from the header
@@ -60,7 +61,7 @@ export default function CategoryDrawer({ open, onClose }) {
                         neutral icon — never a tint pretending to be one. */}
                     <span className="vs-catdrawer__thumb">
                       {category.imageUrl ? (
-                        <img src={category.imageUrl} alt="" loading="lazy" />
+                        <img src={category.imageUrl} {...responsiveImageProps(category.imageUrl, "46px")} alt="" width="46" height="46" loading="lazy" decoding="async" />
                       ) : (
                         <TagIcon size={20} />
                       )}

@@ -7,6 +7,7 @@ import { useCardReveal } from "../../../hooks/useCardReveal.js";
 import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
 import { useProductActions } from "../../../hooks/useStorefront.js";
 import { EyeIcon, PlusIcon } from "../shell/icons.jsx";
+import { CARD_IMAGE_SIZES } from "../../../utils/responsiveImage.js";
 
 /**
  * The catalogue card. Takes a view built by `productView`, so a card never
@@ -43,6 +44,7 @@ export default function ProductCard({ view, eager = false, revealDelay = 0 }) {
           <Media
             ratio="var(--vs-ar-product)"
             src={view.imageUrl}
+            sizes={CARD_IMAGE_SIZES}
             fallback={view.bg}
             alt=""
             imgClass="vs-card__img"

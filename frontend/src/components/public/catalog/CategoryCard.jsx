@@ -3,6 +3,7 @@ import { Link } from "../../../i18n/routing.jsx";
 import Media from "../shell/Media.jsx";
 import { ArrowForward } from "../shell/icons.jsx";
 import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
+import { CARD_IMAGE_SIZES } from "../../../utils/responsiveImage.js";
 
 /**
  * Image-only category tile: the artwork fills the card and the name sits centred
@@ -13,7 +14,7 @@ import { useViewportReveal } from "../../../hooks/useViewportReveal.js";
  * The whole card is one link, and the product count stays in the accessible name
  * rather than on the artwork, which keeps the tile image-led.
  */
-export default function CategoryCard({ category, compact = false, eager = false, revealDelay = 0 }) {
+export default function CategoryCard({ category, compact = false, eager = false, revealDelay = 0, sizes = CARD_IMAGE_SIZES }) {
   const { t } = useLocale();
   const revealProps = useViewportReveal(revealDelay);
   if (!category) return null;
@@ -27,6 +28,7 @@ export default function CategoryCard({ category, compact = false, eager = false,
       <Media
         ratio="var(--vs-ar-category)"
         src={category.imageUrl}
+        sizes={sizes}
         fallback={category.bg}
         alt=""
         imgClass="vs-cat__img"

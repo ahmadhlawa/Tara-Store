@@ -50,7 +50,7 @@ export default function Gallery({ images, fallback, alt }) {
               aria-label={t("عرض الصورة {0}", [position + 1])}
               onClick={() => setIndex(position)}
             >
-              <Media src={image.url} fallback={fallback} alt="" ratio="1 / 1" />
+              <Media src={image.url} sizes="76px" fallback={fallback} alt="" ratio="1 / 1" />
             </button>
           ))}
         </div>

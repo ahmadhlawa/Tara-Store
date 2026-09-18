@@ -46,7 +46,9 @@ class LocalStorageProvider(StorageProvider):
             return False
         return path.is_file()
 
-    def restore(self, key: str, data: bytes, *, content_type: str) -> StoredFile:
+    def restore(
+        self, key: str, data: bytes, *, content_type: str, cache_control: str | None = None
+    ) -> StoredFile:
         path = self._path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)

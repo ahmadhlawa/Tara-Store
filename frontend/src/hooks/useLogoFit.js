@@ -41,7 +41,9 @@ function measureMark(src) {
     // Without this the pixels are unreadable from a CDN-hosted logo; with it a
     // host that sends no CORS header fails the load instead, which is the same
     // fallback either way.
-    image.crossOrigin = "anonymous";
+    // Same-origin reads need no CORS mode; matching the visible img lets the
+    // browser reuse its request instead of downloading the logo twice.
+    if (new URL(src, window.location.href).origin !== window.location.origin) image.crossOrigin = "anonymous";
     image.onerror = () => resolve(null);
     image.onload = () => {
       canvas.width = SAMPLE;

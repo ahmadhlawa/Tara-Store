@@ -41,11 +41,14 @@ export default function Hero({ slides }) {
           key={slide.id}
           {...(slide.destination ? { to: slide.destination } : {})}
           className="vs-hero__slide"
+          aria-label={slide.title || t("العروض")}
+          tabIndex={slideIndex === index ? undefined : -1}
           data-active={slideIndex === index}
           aria-hidden={slideIndex !== index}
         >
           <Media
             className="vs-hero__media"
+            sizes="(min-width: 900px) calc(100vw - 64px), 100vw"
             src={slideIndex === index || loadedIndexes.has(slideIndex) ? slide.imageUrl : undefined}
             alt=""
             eager={slideIndex === 0}

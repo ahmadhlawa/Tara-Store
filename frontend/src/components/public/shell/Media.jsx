@@ -1,3 +1,5 @@
+import { responsiveImageProps } from "../../../utils/responsiveImage.js";
+
 /**
  * The one way the storefront shows a picture.
  *
@@ -12,6 +14,7 @@ export default function Media({
   ratio,
   eager = false,
   fetchPriority,
+  sizes = "100vw",
   className = "",
   imgClass = "",
   backdrop = false,
@@ -26,6 +29,7 @@ export default function Media({
             <img
               className="vs-media vs-media--backdrop"
               src={src}
+              {...responsiveImageProps(src, sizes)}
               alt=""
               aria-hidden="true"
               loading={eager ? "eager" : "lazy"}
@@ -35,9 +39,10 @@ export default function Media({
           <img
             className={`vs-media ${backdrop ? "vs-media--foreground" : ""} ${imgClass}`.trim()}
             src={src}
+            {...responsiveImageProps(src, sizes)}
             alt={alt}
             loading={eager ? "eager" : "lazy"}
-            fetchPriority={fetchPriority}
+            fetchpriority={fetchPriority}
             decoding="async"
           />
         </>

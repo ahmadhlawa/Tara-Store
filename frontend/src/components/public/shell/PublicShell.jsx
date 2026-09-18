@@ -23,7 +23,8 @@ export default function PublicShell() {
   const store = useStore();
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "auto" });
+    // scrollTo flushes layout; the initial page is already at the requested position.
+    if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     // A route change always dismisses whatever overlay was open; leaving one up
     // over a page the visitor did not ask for is never right.
     store.closeAll();

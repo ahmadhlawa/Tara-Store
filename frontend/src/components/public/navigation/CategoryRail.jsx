@@ -4,6 +4,7 @@ import { OVERLAY, useStore } from "../../../app/StoreProvider.jsx";
 import { useActiveCategorySlug, useCategoryNav } from "../../../hooks/useStorefront.js";
 import { MenuIcon, TagIcon } from "../shell/icons.jsx";
 import { useCategoryHover } from "./CategoryHover.jsx";
+import { responsiveImageProps } from "../../../utils/responsiveImage.js";
 
 /**
  * The fixed category rail at the far right of the desktop viewport.
@@ -72,7 +73,7 @@ export default function CategoryRail() {
                       and a neutral icon where it has not — never a tinted square
                       standing in for a photograph that does not exist. */}
                   {category.imageUrl ? (
-                    <img className="vs-catbar__thumb" src={category.imageUrl} alt="" loading="lazy" />
+                    <img className="vs-catbar__thumb" src={category.imageUrl} {...responsiveImageProps(category.imageUrl, "38px")} width="38" height="38" alt="" loading="lazy" decoding="async" />
                   ) : (
                     <span className="vs-catbar__ico" aria-hidden="true">
                       <TagIcon size={18} />

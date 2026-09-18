@@ -156,6 +156,7 @@ describe("categories navigation", () => {
     const calls = stubApi({
       ...storefrontRoutes,
       "/api/v1/categories": [{ ...enabled, children: [{ ...second, parent_id: enabled.id }] }, disabled],
+      "/api/v1/home-showcases": { 30: [productFixture], 31: [productFixture] },
       "/api/v1/products": page([productFixture]),
     });
     renderApp("/");
@@ -164,9 +165,7 @@ describe("categories navigation", () => {
     expect(document.querySelectorAll(".vs-home-showcase__content .vs-sec-head")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "Candles" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Crochet" })).toBeInTheDocument();
-    expect(calls.some((call) => call.path.includes("show_on_home=true"))).toBe(true);
-    expect(calls.some((call) => call.path.includes("category_id=30"))).toBe(true);
-    expect(calls.some((call) => call.path.includes("category_id=31"))).toBe(true);
-    expect(calls.some((call) => call.path.includes("category_id=32"))).toBe(false);
+    expect(calls.filter((call) => call.path.includes("home-showcases"))).toHaveLength(1);
+    expect(calls.some((call) => call.path.includes("category_id="))).toBe(false);
   });
 });

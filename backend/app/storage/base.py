@@ -179,12 +179,13 @@ class StorageProvider(ABC):
         ...
 
     @abstractmethod
-    def restore(self, key: str, data: bytes, *, content_type: str) -> StoredFile:
-        """Re-write `data` at an existing `key`, keeping its URL.
+    def restore(
+        self, key: str, data: bytes, *, content_type: str, cache_control: str | None = None
+    ) -> StoredFile:
+        """Write `data` at a caller-known stable `key`, keeping its URL.
 
-        Only for repairing an object whose key is already recorded. It deliberately does
-        not mint a key: reusing the recorded one is what lets a caller repair storage
-        without touching the database row that points at it.
+        Used for repairs and deterministic derived objects. It deliberately does not mint
+        a key: callers retain control of stable cache identity.
         """
         ...
 

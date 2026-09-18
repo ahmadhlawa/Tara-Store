@@ -118,6 +118,7 @@ export const storefrontRoutes = {
   ],
   "/api/v1/hero-slides": [],
   "/api/v1/home-sections": [],
+  "/api/v1/home-showcases": {},
   "/api/v1/products/featured": page([productFixture]),
   "/api/v1/products/new": page([]),
   "/api/v1/products/bestsellers": page([]),

@@ -23,6 +23,7 @@ export const publicApi = {
 
   heroSlides: () => api.get("/hero-slides"),
   homeSections: () => api.get("/home-sections"),
+  homeShowcases: () => api.get("/home-showcases"),
   deliveryAreas: () => api.get("/delivery-areas"),
 
   page: (slug) => api.get(`/pages/${encodeURIComponent(slug)}`),

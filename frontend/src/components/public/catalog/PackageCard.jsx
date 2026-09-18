@@ -50,6 +50,7 @@ export default function PackageCard({ view, eager = false, revealDelay = 0 }) {
           <Media
             ratio="var(--vs-ar-package)"
             src={view.imageUrl}
+            sizes="(max-width: 899px) calc(100vw - 40px), 480px"
             fallback={view.bg}
             alt=""
             imgClass="vs-pkg__img"

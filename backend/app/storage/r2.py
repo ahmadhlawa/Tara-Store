@@ -144,7 +144,9 @@ class R2StorageProvider(StorageProvider):
             return False
         return True
 
-    def restore(self, key: str, data: bytes, *, content_type: str) -> StoredFile:
+    def restore(
+        self, key: str, data: bytes, *, content_type: str, cache_control: str | None = None
+    ) -> StoredFile:
         if not self.owns_key(key):
             raise R2StorageError(
                 f"Refusing to write {key!r}: it is outside the configured prefix "
@@ -156,7 +158,7 @@ class R2StorageProvider(StorageProvider):
                 Key=key,
                 Body=data,
                 ContentType=content_type,
-                CacheControl="public, max-age=31536000, immutable",
+                CacheControl=cache_control or "public, max-age=31536000, immutable",
             )
         except Exception as exc:  # noqa: BLE001 - re-raised without the credential
             raise R2StorageError(f"R2 repair failed for {key!r}: {type(exc).__name__}") from None

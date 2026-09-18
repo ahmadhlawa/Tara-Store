@@ -117,18 +117,13 @@ export default function HomePage() {
   // fetched, so a store with three sections makes three requests, not six.
   useEffect(() => {
     let cancelled = false;
-    Promise.allSettled([storefrontService.heroSlides(), storefrontService.homeSections()]).then(
-      ([heroResult, sectionResult]) => {
-        if (cancelled) return;
-        setHero({
-          slides: heroResult.status === "fulfilled" ? heroResult.value : [],
-          status: heroResult.status === "fulfilled" ? "ready" : "error",
-        });
-        setSections({
-          list: sectionResult.status === "fulfilled" ? sectionResult.value.sections : [],
-          status: sectionResult.status === "fulfilled" ? "ready" : "error",
-        });
-      },
+    storefrontService.heroSlides().then(
+      slides => { if (!cancelled) setHero({ slides, status: "ready" }); },
+      () => { if (!cancelled) setHero({ slides: [], status: "error" }); },
+    );
+    storefrontService.homeSections().then(
+      result => { if (!cancelled) setSections({ list: result.sections, status: "ready" }); },
+      () => { if (!cancelled) setSections({ list: [], status: "error" }); },
     );
     return () => {
       cancelled = true;
@@ -181,24 +176,22 @@ export default function HomePage() {
       });
       return next;
     });
-    homeCategories.forEach((category) => {
-      catalogService
-        .list({ category_id: category.id, show_on_home: true, page_size: 4 })
-        .then((result) => {
+    if (homeCategories.length) {
+      catalogService.homeShowcases().then(
+        result => {
           if (cancelled) return;
-          setShowcases((current) => ({
-            ...current,
-            [category.slug]: { items: result.items, status: "ready" },
-          }));
-        })
-        .catch(() => {
+          setShowcases(Object.fromEntries(homeCategories.map(category => [
+            category.slug, { items: result[category.id] || [], status: "ready" },
+          ])));
+        },
+        () => {
           if (cancelled) return;
-          setShowcases((current) => ({
-            ...current,
-            [category.slug]: { items: [], status: "error" },
-          }));
-        });
-    });
+          setShowcases(Object.fromEntries(homeCategories.map(category => [
+            category.slug, { items: [], status: "error" },
+          ])));
+        },
+      );
+    }
     return () => {
       cancelled = true;
     };
@@ -315,7 +308,7 @@ export default function HomePage() {
       <RevealSection key={category.slug} className="vs-container vs-section">
         <div className="vs-home-showcase">
           <div className="vs-home-showcase__category">
-            <CategoryCard category={category} />
+            <CategoryCard category={category} sizes="(max-width: 899px) calc(100vw - 40px), 320px" />
           </div>
           <div className="vs-home-showcase__content">
             <SectionHead title={category.name} moreHref={category.href} />

@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from typing import Annotated, Literal
+import logging
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
+from fastapi.responses import RedirectResponse
 
 from app.api.deps import DbSession, PageParams
 from app.core.enums import ProductType
-from app.models import Category, Product
+from app.models import Category, MediaAsset, Product
+from app.storage import get_storage
+from app.services.storefront_derivatives import ensure_storefront_derivative
 from app.schemas.catalog import (
     CategoryOut,
     CategoryTreeOut,
@@ -23,6 +27,50 @@ from app.services.translations import localize, localized_products
 Locale = Literal["ar", "en"]
 
 router = APIRouter(tags=["public-catalog"])
+_logger = logging.getLogger(__name__)
+
+
+@router.get("/storefront-media/{key:path}", response_class=RedirectResponse)
+def storefront_media(key: str, db: DbSession, width: Literal["96", "240", "480", "800", "1440", "2048"]):
+    # Only registered, provider-owned uploads. Never fetch a caller-supplied URL.
+    if any(part in {"", ".", ".."} for part in key.split("/")) or "\\" in key:
+        raise _NOT_FOUND
+    asset = db.scalar(select(MediaAsset).where(MediaAsset.stored_key == key))
+    storage = get_storage()
+    if asset is None or asset.storage_provider != storage.name or asset.url != storage.url_for(key):
+        raise _NOT_FOUND
+    try:
+        derivative = ensure_storefront_derivative(storage, key, int(width))
+    except Exception as exc:
+        # An unreadable/animated upload must not break a previously working picture.
+        _logger.warning("Storefront derivative unavailable for asset %s (%s)", asset.id, type(exc).__name__)
+        return RedirectResponse(asset.url, status_code=307, headers={"Cache-Control": "no-store"})
+    # R2 public URLs already sit behind the configured media CDN. A redirect avoids
+    # proxying cached bytes through every FastAPI worker.
+    return RedirectResponse(
+        derivative.url,
+        status_code=307,
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
+
+
+@router.get("/home-showcases", response_model=dict[int, list[ProductPublicOut]])
+def home_showcases(db: DbSession, locale: Locale = "ar"):
+    category_ids = select(Category.id).where(Category.is_active.is_(True), Category.show_on_home.is_(True))
+    # Rank before loading relationships: four rows per category, not the entire catalog.
+    ordering = (Product.is_featured.desc(), Product.sort_order.asc(), Product.id.desc())
+    ranked = select(Product.id, func.row_number().over(partition_by=Product.category_id, order_by=ordering).label("rank")).where(
+        Product.is_active.is_(True), Product.show_on_home.is_(True),
+        Product.category_id.in_(category_ids), catalog_service.publicly_available_condition(),
+    ).subquery()
+    stmt = catalog_service.apply_product_sort(catalog_service.product_list_query(active_only=True), "featured").where(
+        Product.id.in_(select(ranked.c.id).where(ranked.c.rank <= 4))
+    )
+    rows = db.execute(stmt).scalars().unique().all()
+    result = {}
+    for item in localized_products(db, rows, locale):
+        result.setdefault(item["category_id"], []).append(item)
+    return result
 
 _NOT_FOUND = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
