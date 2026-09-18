@@ -1,6 +1,7 @@
 """Production packaging must include R2/MySQL and exclude client runtime data."""
 
 import importlib.util
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -78,6 +79,71 @@ def test_wheel_installs_backend_packages_and_storefront_media_backfill_cli(tmp_p
         cwd=tmp_path,
     )
     subprocess.run([str(scripts_dir / "tara-storefront-media-backfill"), "--help"], check=True, cwd=tmp_path)
+
+
+def test_installed_wheel_uses_deployment_working_directory_for_runtime_configuration(tmp_path):
+    """An installed package must not derive runtime paths from site-packages."""
+    wheel_dir = tmp_path / "wheels"
+    subprocess.run(
+        [sys.executable, "-m", "pip", "wheel", "--no-deps", "--wheel-dir", str(wheel_dir), str(ROOT / "backend")],
+        check=True,
+    )
+    environment = tmp_path / "venv"
+    venv.EnvBuilder(with_pip=True, system_site_packages=True).create(environment)
+    scripts_dir = environment / ("Scripts" if os.name == "nt" else "bin")
+    python = scripts_dir / ("python.exe" if os.name == "nt" else "python")
+    wheel = next(wheel_dir.glob("tara_store_backend-*.whl"))
+    subprocess.run([str(python), "-m", "pip", "install", "--no-deps", str(wheel)], check=True)
+
+    deployment = tmp_path / "deployment" / "backend"
+    deployment.mkdir(parents=True)
+    deployment.joinpath(".env").write_text(
+        "\n".join([
+            "STORAGE_PROVIDER=r2",
+            "LOCAL_MEDIA_ROOT=runtime-media",
+            "R2_ENDPOINT_URL=https://r2.example.test",
+            "R2_ACCESS_KEY_ID=test-access-key",
+            "R2_SECRET_ACCESS_KEY=test-secret-key",
+            "R2_BUCKET_NAME=test-bucket",
+            "R2_PUBLIC_BASE_URL=https://media.example.test",
+            "R2_OBJECT_PREFIX=test-store/",
+            "",
+        ]),
+        encoding="utf-8",
+    )
+    environment_variables = os.environ.copy()
+    environment_variables.pop("PYTHONPATH", None)
+    probe = subprocess.run(
+        [str(python), "-I", "-c", """
+import json
+from app.core.config import BACKEND_ROOT, settings
+from app.storage import get_storage
+print(json.dumps({
+    "module_path": __import__("app.core.config", fromlist=["*"]).__file__,
+    "backend_root": str(BACKEND_ROOT),
+    "storage_provider": settings.STORAGE_PROVIDER,
+    "media_root": str(settings.media_root),
+    "storage_name": get_storage().name,
+}))
+"""],
+        cwd=deployment,
+        env=environment_variables,
+        text=True,
+        capture_output=True,
+    )
+    assert probe.returncode == 0, probe.stderr
+    result = json.loads(probe.stdout)
+    assert "site-packages" in result["module_path"]
+    assert result["backend_root"] == str(deployment)
+    assert result["storage_provider"] == "r2"
+    assert result["storage_name"] == "r2"
+    assert result["media_root"] == str(deployment / "runtime-media")
+    subprocess.run(
+        [str(scripts_dir / "tara-storefront-media-backfill"), "--help"],
+        check=True,
+        cwd=deployment,
+        env=environment_variables,
+    )
 
 
 def test_product_home_migration_preserves_rows_and_default():

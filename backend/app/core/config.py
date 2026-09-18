@@ -12,7 +12,12 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
-BACKEND_ROOT = Path(__file__).resolve().parents[2]
+_PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+# A source checkout carries its project metadata beside ``app``.  Wheels do not,
+# so installed processes use their deployment working directory as the runtime root.
+BACKEND_ROOT = (
+    _PACKAGE_ROOT if (_PACKAGE_ROOT / "pyproject.toml").is_file() else Path.cwd().resolve()
+)
 
 
 class Settings(BaseSettings):
