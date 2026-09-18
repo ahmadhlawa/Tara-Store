@@ -15,8 +15,6 @@ from app.cli.reset_admin_password import (
     reset_password,
 )
 from app.core.security import verify_password
-from app.core.config import settings
-from app.core.rate_limit import login_rate_limit
 from tests.conftest import ADMIN_EMAIL, TEST_PASSWORD, auth, login, make_admin
 
 
@@ -113,35 +111,26 @@ def test_disabled_admin_cannot_log_in(client: TestClient, db: Session) -> None:
     assert response.json()["error"]["code"] == "invalid_credentials"
 
 
-def test_login_is_rate_limited(client: TestClient, monkeypatch) -> None:
-    monkeypatch.setattr(settings, "LOGIN_RATE_LIMIT", 2)
-    login_rate_limit._hits.clear()
+def test_login_is_rate_limited(client: TestClient) -> None:
     payload = {"email": "nobody@example.com", "password": TEST_PASSWORD}
+    assert client.post("/api/v1/auth/login", json=payload).status_code == 401
     assert client.post("/api/v1/auth/login", json=payload).status_code == 401
     assert client.post("/api/v1/auth/login", json=payload).status_code == 401
     limited = client.post("/api/v1/auth/login", json=payload)
     assert limited.status_code == 429
     assert limited.json()["error"]["code"] == "rate_limited"
-    assert limited.headers["Retry-After"] == str(settings.RATE_LIMIT_WINDOW_SECONDS)
-    login_rate_limit._hits.clear()
+    assert int(limited.headers["Retry-After"]) <= 15 * 60
 
 
-def test_login_limit_is_scoped_to_identifier_and_success_clears_failures(
-    client: TestClient, normal_admin: AdminUser, monkeypatch
+def test_successful_login_clears_its_identifier_failures(
+    client: TestClient, normal_admin: AdminUser
 ) -> None:
-    monkeypatch.setattr(settings, "LOGIN_RATE_LIMIT", 2)
-    login_rate_limit._hits.clear()
     wrong = {"email": ADMIN_EMAIL, "password": "not-the-password"}
     assert client.post("/api/v1/auth/login", json=wrong).status_code == 401
-    # A different account from the same IP is not treated as a failed attempt for this one.
-    assert client.post(
-        "/api/v1/auth/login", json={"email": "other@example.com", "password": TEST_PASSWORD}
-    ).status_code == 401
     assert client.post(
         "/api/v1/auth/login", json={"email": ADMIN_EMAIL, "password": TEST_PASSWORD}
     ).status_code == 200
     assert client.post("/api/v1/auth/login", json=wrong).status_code == 401
-    login_rate_limit._hits.clear()
 
 
 def test_api_responses_include_baseline_security_headers(client: TestClient) -> None:

@@ -89,29 +89,18 @@ def test_database_exceptions_do_not_log_bound_password_hashes(db):
     assert secret not in "".join(traceback.format_exception(error.value))
 
 
-@pytest.fixture()
-def login_budgets(monkeypatch):
-    monkeypatch.setattr(settings, "LOGIN_RATE_LIMIT", 1)
-    budgets = (rate_limit.login_rate_limit, rate_limit.login_ip_rate_limit, rate_limit.login_account_rate_limit)
-    for budget in budgets:
-        budget._hits.clear()
-    yield
-    for budget in budgets:
-        budget._hits.clear()
-
-
-def test_login_ip_budget_blocks_account_rotation(client, login_budgets):
-    for i in range(5):
+def test_login_ip_budget_blocks_account_rotation(client):
+    for i in range(3):
         response = client.post("/api/v1/auth/login", json={"email": f"rotate{i}@example.com", "password": "wrong"})
         assert response.status_code == 401
-    response = client.post("/api/v1/auth/login", json={"email": "rotate5@example.com", "password": "wrong"})
+    response = client.post("/api/v1/auth/login", json={"email": "rotate3@example.com", "password": "wrong"})
     assert response.status_code == 429 and int(response.headers["Retry-After"]) > 0
 
 
-def test_login_account_budget_blocks_ip_rotation(client, login_budgets, monkeypatch):
+def test_login_account_budget_blocks_ip_rotation(client, monkeypatch):
     # Simulate the already-resolved peer address; trusted-proxy parsing has its own tests.
     monkeypatch.setattr(rate_limit, "client_ip", lambda request: request.headers["x-test-peer"])
-    for i in range(5):
+    for i in range(3):
         assert client.post("/api/v1/auth/login", headers={"x-test-peer": f"192.0.2.{i}"},
                            json={"email": "target@example.com", "password": "wrong"}).status_code == 401
     response = client.post("/api/v1/auth/login", headers={"x-test-peer": "192.0.2.99"},

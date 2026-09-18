@@ -50,6 +50,15 @@ server {
     http2 on;
     server_name CLIENT_DOMAIN;
 
+    # Production behind Cloudflare: install a separately maintained include with
+    # Cloudflare's current CIDR allowlist, then enable these directives. Nginx
+    # will accept CF-Connecting-IP only from those networks and pass the
+    # verified client address to FastAPI in X-Forwarded-For below. Do not enable
+    # real_ip_header without that allowlist.
+    # include /etc/nginx/snippets/cloudflare-realip.conf;
+    # real_ip_header CF-Connecting-IP;
+    # real_ip_recursive on;
+
     # TLS — issue a certificate for CLIENT_DOMAIN before enabling this site.
     ssl_certificate     /etc/letsencrypt/live/CLIENT_DOMAIN/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/CLIENT_DOMAIN/privkey.pem;
@@ -161,5 +170,6 @@ server {
 #   curl -I <public-image-URL-from-R2_PUBLIC_BASE_URL>
 #
 # Login and public-order abuse limits are enforced by the application. Keep
-# TRUSTED_PROXY_IPS restricted to this reverse proxy so client IPs are reliable.
+# TRUSTED_PROXY_IPS restricted to this reverse proxy so it accepts only the
+# X-Forwarded-For address set by Nginx, never a direct client's spoofed header.
 # ─────────────────────────────────────────────────────────────────────────────

@@ -101,6 +101,18 @@
   animation: vs-slide-down var(--vs-t-drawer) var(--vs-ease) both;
 }
 
+/* Search needs a real flex height: an auto-height top drawer leaves its result
+   list with no remaining space and clips it behind the page on small screens. */
+.vs-searchdrawer {
+  height: 100dvh;
+  max-height: 100dvh;
+}
+
+.vs-searchdrawer__body {
+  display: flex;
+  overflow: hidden;
+}
+
 .vs-drawer__head {
   display: flex;
   align-items: center;

@@ -1,4 +1,4 @@
-from app.models.admin import AdminUser
+from app.models.admin import AdminLoginThrottle, AdminUser
 from app.models.audit import AuditLog
 from app.models.catalog import (
     Category,
@@ -24,6 +24,7 @@ from app.models.translation import Translation
 
 __all__ = [
     "AdminUser",
+    "AdminLoginThrottle",
     "AuditLog",
     "Category",
     "Coupon",

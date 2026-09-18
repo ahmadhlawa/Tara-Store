@@ -10,6 +10,8 @@ export default function SearchOverlay({ open, onClose }) {
       open={open}
       onClose={onClose}
       side="top"
+      className="vs-searchdrawer"
+      bodyClass="vs-searchdrawer__body"
       label={t("البحث")}
       head={<strong className="vs-drawer__title">{t("ابحث في المتجر")}</strong>}
     >

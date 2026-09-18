@@ -17,6 +17,7 @@ from app.db.session import build_engine
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 EXPECTED_TABLES = {
+    "admin_login_throttles",
     "admin_users",
     "audit_logs",
     "categories",

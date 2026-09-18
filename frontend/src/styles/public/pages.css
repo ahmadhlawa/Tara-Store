@@ -171,11 +171,29 @@
 
 .vs-searchsheet {
   padding: 16px;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
 }
 
 /* The sheet's field is the page's only search, so it takes the full width. */
 .vs-searchsheet .vs-hsearch {
   max-width: none;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.vs-searchsheet .vs-suggest {
+  position: static;
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-block-end: calc(16px + env(safe-area-inset-bottom));
 }
 
 /* â”€â”€ cart drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */

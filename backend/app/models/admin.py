@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String
+from sqlalchemy import Boolean, DateTime, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.enums import AdminRole
@@ -23,3 +23,17 @@ class AdminUser(TimestampMixin, Base):
     @property
     def is_super_admin(self) -> bool:
         return self.role == AdminRole.SUPER_ADMIN.value
+
+
+class AdminLoginThrottle(TimestampMixin, Base):
+    """Shared failed-login state. Keys are one-way digests, never emails."""
+
+    __tablename__ = "admin_login_throttles"
+    __table_args__ = (UniqueConstraint("scope", "key_hash", name="uq_admin_login_throttle_scope_key"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    scope: Mapped[str] = mapped_column(String(16), nullable=False)
+    key_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    failures: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    cooldown_level: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    blocked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
