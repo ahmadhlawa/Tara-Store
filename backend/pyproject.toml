@@ -53,8 +53,8 @@ tara-catalog-prep = "scripts.catalog_prep_cli:main"
 tara-cutover = "scripts.client_cutover_cli:main"
 tara-storefront-media-backfill = "app.cli.backfill_storefront_derivatives:main"
 
-[tool.setuptools]
-packages = ["app", "app.cli", "scripts"]
+[tool.setuptools.packages.find]
+include = ["app*", "scripts*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

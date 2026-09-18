@@ -1,7 +1,11 @@
 """Production packaging must include R2/MySQL and exclude client runtime data."""
 
 import importlib.util
+import os
 from pathlib import Path
+import subprocess
+import sys
+import venv
 
 import pytest
 
@@ -53,7 +57,27 @@ def test_release_migration_head():
     from alembic.script import ScriptDirectory
     config = Config()
     config.set_main_option("script_location", str(ROOT / "backend/alembic"))
-    assert ScriptDirectory.from_config(config).get_current_head() == "0027_product_show_on_home"
+    assert ScriptDirectory.from_config(config).get_current_head() == "0028_admin_login_throttles"
+
+
+def test_wheel_installs_backend_packages_and_storefront_media_backfill_cli(tmp_path):
+    wheel_dir = tmp_path / "wheels"
+    subprocess.run(
+        [sys.executable, "-m", "pip", "wheel", "--no-deps", "--wheel-dir", str(wheel_dir), str(ROOT / "backend")],
+        check=True,
+    )
+    environment = tmp_path / "venv"
+    venv.EnvBuilder(with_pip=True, system_site_packages=True).create(environment)
+    scripts_dir = environment / ("Scripts" if os.name == "nt" else "bin")
+    python = scripts_dir / ("python.exe" if os.name == "nt" else "python")
+    wheel = next(wheel_dir.glob("tara_store_backend-*.whl"))
+    subprocess.run([str(python), "-m", "pip", "install", "--no-deps", str(wheel)], check=True)
+    subprocess.run(
+        [str(python), "-c", "import app.core, app.db, app.models, app.services, app.storage; import app.cli.backfill_storefront_derivatives"],
+        check=True,
+        cwd=tmp_path,
+    )
+    subprocess.run([str(scripts_dir / "tara-storefront-media-backfill"), "--help"], check=True, cwd=tmp_path)
 
 
 def test_product_home_migration_preserves_rows_and_default():
