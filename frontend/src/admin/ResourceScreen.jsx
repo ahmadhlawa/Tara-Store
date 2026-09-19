@@ -21,7 +21,14 @@ function initialValues(fields, row) {
   fields.forEach((field) => {
     const current = row ? row[field.name] : undefined;
     if (current !== undefined && current !== null) {
-      values[field.name] = field.type === "date" ? String(current).slice(0, 16) : current;
+      if (field.type === "date") {
+        const timestamp = String(current);
+        const date = new Date(/(?:Z|[+-]\d\d:\d\d)$/.test(timestamp) ? timestamp : `${timestamp}Z`);
+        const pad = (value) => String(value).padStart(2, "0");
+        values[field.name] = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+      } else {
+        values[field.name] = current;
+      }
     } else {
       values[field.name] = field.defaultValue ?? (field.type === "checkbox" ? false : "");
     }

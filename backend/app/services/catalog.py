@@ -314,7 +314,6 @@ def product_counts_by_category(db: Session, *, active_only: bool) -> dict[int, i
     if active_only:
         stmt = stmt.join(Category, Product.category_id == Category.id).where(
             Product.is_active.is_(True), Category.is_active.is_(True),
-            publicly_available_condition(),
         )
     direct = {row[0]: row[1] for row in db.execute(stmt) if row[0] is not None}
     category_stmt = select(Category.id, Category.parent_id)

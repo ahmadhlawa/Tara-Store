@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
 from app.models import DeliveryArea
 from app.services import catalog as catalog_service
-from app.services.translations import localize, localized_checkout
+from app.services.translations import localized_checkout
 
 Locale = Literal["ar", "en"]
 
@@ -39,13 +39,12 @@ def validate_coupon(payload: CouponValidateRequest, db: DbSession, locale: Local
     coupon = pricing.find_valid_coupon(db, payload.code, subtotal)
     assert coupon is not None  # find_valid_coupon raises for anything invalid
     discount = pricing.compute_discount(coupon, subtotal)
-    description = localize(db, {"id": coupon.id, "description": coupon.description}, [coupon], locale, "coupons")["description"]
-    label = description or (
+    label = (
         f"خصم {int(coupon.discount_value)}٪"
         if coupon.discount_type == DiscountType.PERCENTAGE.value
         else f"خصم {pricing.money(coupon.discount_value)}"
     )
-    if locale == "en" and not description:
+    if locale == "en":
         label = f"Discount {int(coupon.discount_value)}%" if coupon.discount_type == "percentage" else f"Discount {pricing.money(coupon.discount_value)}"
     return CouponValidateResponse(
         valid=True,

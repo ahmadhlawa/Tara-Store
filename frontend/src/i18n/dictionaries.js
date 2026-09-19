@@ -32,6 +32,7 @@ export const en = {
   "المنتجات المخفّضة فقط": "Sale products only", "المتوفر في المخزون فقط": "In stock only",
   "يحتوي على عنصر واحد": "Contains one item", "يحتوي على {0} عناصر": "Contains {0} items", "بكج": "Package",
   "غير متوفر حالياً": "Currently unavailable", "التفاصيل": "Details", "بقي {0} فقط": "Only {0} left", "متوفر": "Available",
+  "نفد المخزون": "Out of stock", "الصورة السابقة": "Previous image", "الصورة التالية": "Next image",
   "نظرة سريعة على {0}": "Quick view of {0}", "نظرة سريعة": "Quick view", "التوصيل إلى جميع المناطق": "Delivery to all areas",
   "تُحتسب رسوم التوصيل عند إتمام الطلب": "Delivery fees are calculated at checkout", "اقرأ الشروط قبل الطلب": "Read the terms before ordering",
   "تصنيفات المنتجات": "Product categories", "تصفّح كل المنتجات": "Browse all products", "لا توجد أقسام معروضة حالياً.": "No categories are available yet.",

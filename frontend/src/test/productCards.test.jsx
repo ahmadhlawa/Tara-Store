@@ -124,7 +124,8 @@ describe("product card behaviour", () => {
     renderApp("/shop");
 
     const card = within(await cardOf(soldOutProduct.name));
-    expect(card.getByText("غير متوفر حالياً", { selector: "span" })).toBeInTheDocument();
+    expect(card.getByText("نفد المخزون", { selector: ".vs-badge--out" })).toBeInTheDocument();
+    expect(card.queryByText("غير متوفر حالياً", { selector: ".vs-card__veil span" })).toBeNull();
     const button = card.getByRole("button", { name: "غير متوفر حالياً" });
     expect(button).toBeDisabled();
 

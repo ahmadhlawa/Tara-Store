@@ -42,7 +42,6 @@ export function CouponsPage() {
       ]}
       fields={[
         { name: "code", title: "الكود", required: true, placeholder: "WELCOME10" },
-        { name: "description", title: "الوصف الظاهر للعميل" },
         {
           name: "discount_type",
           title: "نوع الخصم",

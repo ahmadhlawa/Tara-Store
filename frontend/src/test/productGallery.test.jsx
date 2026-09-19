@@ -41,6 +41,16 @@ describe("product gallery", () => {
     expect(screen.getByRole("img", { name: "Tara candle" })).toHaveAttribute("src", "/portrait.jpg");
   });
 
+  it("wraps arrow navigation and omits it for a single image", () => {
+    const { rerender } = render(<Gallery images={images} alt="Tara candle" />);
+    fireEvent.click(screen.getByRole("button", { name: "الصورة السابقة" }));
+    expect(screen.getByRole("img", { name: "Tara candle" })).toHaveAttribute("src", "/square.jpg");
+    fireEvent.click(screen.getByRole("button", { name: "الصورة التالية" }));
+    expect(screen.getByRole("img", { name: "Tara candle" })).toHaveAttribute("src", "/portrait.jpg");
+    rerender(<Gallery images={images.slice(0, 1)} alt="Tara candle" />);
+    expect(screen.queryByRole("button", { name: "الصورة السابقة" })).not.toBeInTheDocument();
+  });
+
   it("uses the identical source for Quick View foreground and backdrop", () => {
     const { container } = render(
       <Media className="vs-quick__media" src="/quick-view.jpg" alt="Pink Sugar" eager backdrop />,

@@ -270,12 +270,12 @@ def test_product_filters_and_pagination(client: TestClient, db: Session, categor
 
     assert client.get("/api/v1/products", params={"is_featured": True}).json()["total"] == 1
     assert client.get("/api/v1/products", params={"in_stock": True}).json()["total"] == 4
-    assert client.get("/api/v1/products", params={"max_price": 60}).json()["total"] == 1
-    assert client.get("/api/v1/products", params={"category": "resin"}).json()["total"] == 2
+    assert client.get("/api/v1/products", params={"max_price": 60}).json()["total"] == 2
+    assert client.get("/api/v1/products", params={"category": "resin"}).json()["total"] == 3
     assert client.get("/api/v1/products/packages").json()["total"] == 1
 
     page = client.get("/api/v1/products", params={"page": 2, "page_size": 2}).json()
-    assert page["page"] == 2 and page["pages"] == 2 and len(page["items"]) == 2
+    assert page["page"] == 2 and page["pages"] == 3 and len(page["items"]) == 2
 
     cheapest = client.get("/api/v1/products", params={"sort": "price-asc"}).json()
     assert cheapest["items"][0]["price"] == 10
@@ -347,7 +347,7 @@ def test_dashboard_buckets_utc_orders_by_tara_local_calendar_day(
         assert len(period_response.json()["orders_by_day"]) == days
 
 
-def test_public_catalog_uses_variant_stock_and_hides_unavailable_detail(client: TestClient, db: Session) -> None:
+def test_public_catalog_uses_variant_stock_and_keeps_unavailable_detail(client: TestClient, db: Session) -> None:
     product = make_product(db, slug="variant-stock", stock=0)
     db.add_all([
         ProductVariant(product_id=product.id, title="نفد", stock_quantity=0),
@@ -358,8 +358,13 @@ def test_public_catalog_uses_variant_stock_and_hides_unavailable_detail(client: 
     assert client.get("/api/v1/products/variant-stock").status_code == 200
     db.query(ProductVariant).update({ProductVariant.stock_quantity: 0})
     db.commit()
-    assert client.get("/api/v1/products").json()["total"] == 0
-    assert client.get("/api/v1/products/variant-stock").status_code == 404
+    listing = client.get("/api/v1/products").json()
+    assert listing["total"] == 1
+    assert listing["items"][0]["in_stock"] is False
+    detail = client.get("/api/v1/products/variant-stock")
+    assert detail.status_code == 200
+    assert detail.json()["in_stock"] is False
+    assert client.get("/api/v1/products", params={"in_stock": True}).json()["total"] == 0
 
 
 def test_variants_belong_to_their_product_and_carry_their_own_stock(
@@ -981,7 +986,8 @@ def test_homepage_product_selection(client, db, admin_token):
     make_product(db, slug="unavailable-home", category_id=child.id, show_on_home=True, stock=0)
     assert client.get("/api/v1/categories").json()[0]["children"][0]["show_on_home"] is True
     selected = client.get("/api/v1/products", params={"category_id": child.id, "show_on_home": True}).json()["items"]
-    assert [row["id"] for row in selected] == [product["id"]]
-    assert selected[0]["show_on_home"] is True
+    assert len(selected) == 2 and product["id"] in {row["id"] for row in selected}
+    assert all(row["show_on_home"] for row in selected)
+    assert sum(not row["in_stock"] for row in selected) == 1
     assert client.get("/api/v1/products", params={"category_id": root.id, "show_on_home": True}).json()["total"] == 0
-    assert client.get("/api/v1/products", params={"category": root.slug}).json()["total"] == 2
+    assert client.get("/api/v1/products", params={"category": root.slug}).json()["total"] == 3

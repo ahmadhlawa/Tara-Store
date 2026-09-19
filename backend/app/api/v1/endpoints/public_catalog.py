@@ -61,7 +61,7 @@ def home_showcases(db: DbSession, locale: Locale = "ar"):
     ordering = (Product.is_featured.desc(), Product.sort_order.asc(), Product.id.desc())
     ranked = select(Product.id, func.row_number().over(partition_by=Product.category_id, order_by=ordering).label("rank")).where(
         Product.is_active.is_(True), Product.show_on_home.is_(True),
-        Product.category_id.in_(category_ids), catalog_service.publicly_available_condition(),
+        Product.category_id.in_(category_ids),
     ).subquery()
     stmt = catalog_service.apply_product_sort(catalog_service.product_list_query(active_only=True), "featured").where(
         Product.id.in_(select(ranked.c.id).where(ranked.c.rank <= 4))
@@ -119,7 +119,6 @@ def _product_page(
     locale: Locale = "ar",
     **filters,
 ) -> Page[ProductPublicOut]:
-    filters["in_stock"] = True
     stmt = catalog_service.apply_product_filters(
         catalog_service.product_list_query(active_only=True), locale=locale, **filters
     )
@@ -193,7 +192,7 @@ def list_products(
 @router.get("/products/{slug}", response_model=ProductPublicDetail)
 def get_product(slug: str, db: DbSession, locale: Locale = "ar") -> dict:
     stmt = catalog_service.product_detail_query(active_only=True).where(
-        Product.slug == slug, catalog_service.publicly_available_condition()
+        Product.slug == slug
     )
     product = db.execute(stmt).scalars().unique().one_or_none()
     if product is None:
@@ -212,8 +211,7 @@ def related_products(
         raise _NOT_FOUND
     stmt = (
         catalog_service.product_list_query(active_only=True)
-        .where(Product.id != product.id, Product.category_id == product.category_id,
-               catalog_service.publicly_available_condition())
+        .where(Product.id != product.id, Product.category_id == product.category_id)
         .order_by(Product.is_featured.desc(), Product.sort_order.asc(), Product.id.desc())
         .limit(limit)
     )

@@ -81,23 +81,9 @@
   z-index: 2;
 }
 
-.vs-card__veil {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--vs-page) 78%, transparent);
-  z-index: 3;
-}
-
-.vs-card__veil span {
+.vs-badge--out {
   background: var(--vs-ink);
   color: var(--vs-ink-invert);
-  font-size: 12px;
-  font-weight: 500;
-  padding: 7px 14px;
-  border-radius: var(--vs-r-sm);
 }
 
 @media (min-width: 900px) {

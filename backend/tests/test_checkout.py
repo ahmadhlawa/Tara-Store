@@ -199,12 +199,15 @@ def test_package_order_failure_after_snapshot_preparation_rolls_back_stock_and_r
 
 # ── coupons ──────────────────────────────────────────────────────────────────
 def test_percentage_coupon_is_computed_on_the_server(client: TestClient, db: Session) -> None:
-    _coupon(db, code="TEN", discount_value=Decimal("10"))
+    _coupon(db, code="TEN", discount_value=Decimal("10"), description="Legacy label")
     response = client.post(
         "/api/v1/coupons/validate", json={"code": "ten", "subtotal": 250}
     )
     assert response.status_code == 200
     assert response.json()["discount"] == 25.0
+    assert response.json()["label"] == "خصم 10٪"
+    english = client.post("/api/v1/coupons/validate?locale=en", json={"code": "TEN", "subtotal": 250})
+    assert english.json()["label"] == "Discount 10%"
 
 
 def test_percentage_coupon_respects_its_cap(client: TestClient, db: Session) -> None:

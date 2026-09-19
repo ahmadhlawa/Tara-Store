@@ -52,19 +52,14 @@ export default function ProductCard({ view, eager = false, revealDelay = 0 }) {
           />
         </Link>
 
-        {badges.length > 0 && (
+        {(badges.length > 0 || view.soldOut) && (
           <div className="vs-card__badges">
             {badges.map((badge) => (
               <span key={badge.key} className={`vs-badge vs-badge--${badge.tone}`}>
                 {t(badge.label)}
               </span>
             ))}
-          </div>
-        )}
-
-        {view.soldOut && (
-          <div className="vs-card__veil">
-            <span>{t("غير متوفر حالياً")}</span>
+            {view.soldOut && <span className="vs-badge vs-badge--out">{t("نفد المخزون")}</span>}
           </div>
         )}
       </div>

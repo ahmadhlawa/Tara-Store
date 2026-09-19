@@ -70,13 +70,8 @@ export default function PackageCard({ view, eager = false, revealDelay = 0 }) {
         <div className="vs-pkg__badges">
           <span className="vs-badge vs-badge--package">{t("بكج")}</span>
           {view.hasSale && <span className="vs-badge vs-badge--sale">{view.discountText}</span>}
+          {view.soldOut && <span className="vs-badge vs-badge--out">{t("نفد المخزون")}</span>}
         </div>
-
-        {view.soldOut && (
-          <div className="vs-card__veil">
-            <span>{t("غير متوفر حالياً")}</span>
-          </div>
-        )}
       </div>
 
       <div className="vs-pkg__panel">

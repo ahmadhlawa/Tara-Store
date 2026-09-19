@@ -31,14 +31,22 @@ export default function Gallery({ images, fallback, alt }) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <Media
-        key={active?.id ?? active?.url ?? "fallback"}
-        className="vs-gallery__main"
-        src={active?.url}
-        fallback={fallback}
-        alt={alt}
-        eager
-      />
+      <div className="vs-gallery__stage">
+        <Media
+          key={active?.id ?? active?.url ?? "fallback"}
+          className="vs-gallery__main"
+          src={active?.url}
+          fallback={fallback}
+          alt={alt}
+          eager
+        />
+        {list.length > 1 && (
+          <div className="vs-gallery__nav">
+            <button type="button" aria-label={t("الصورة السابقة")} onClick={() => setIndex((current) => (current - 1 + list.length) % list.length)}>‹</button>
+            <button type="button" aria-label={t("الصورة التالية")} onClick={() => setIndex((current) => (current + 1) % list.length)}>›</button>
+          </div>
+        )}
+      </div>
       {list.length > 1 && (
         <div className="vs-gallery__thumbs" role="group" aria-label={t("صور المنتج")}>
           {list.map((image, position) => (
