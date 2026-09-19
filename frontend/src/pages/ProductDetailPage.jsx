@@ -18,6 +18,7 @@ import Media from "../components/public/shell/Media.jsx";
 import NotFoundRoutePage from "./NotFoundRoutePage.jsx";
 import { BoxIcon } from "../components/public/shell/icons.jsx";
 import useSeo, { absoluteUrl } from "../hooks/useSeo.js";
+import { trackProductView } from "../services/analytics.js";
 
 function paragraphsOf(text) {
   return String(text || "")
@@ -92,6 +93,7 @@ export default function ProductDetailPage() {
     if (status !== "ready" || !product) return undefined;
     let cancelled = false;
     store.rememberViewed(product.slug);
+    trackProductView(product);
     catalogService
       .related(product.slug, 4)
       .then((rows) => !cancelled && setRelated(rows))

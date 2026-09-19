@@ -58,7 +58,7 @@ def test_release_migration_head():
     from alembic.script import ScriptDirectory
     config = Config()
     config.set_main_option("script_location", str(ROOT / "backend/alembic"))
-    assert ScriptDirectory.from_config(config).get_current_head() == "0028_admin_login_throttles"
+    assert ScriptDirectory.from_config(config).get_current_head() == "0029_storefront_analytics"
 
 
 def test_wheel_installs_backend_packages_and_storefront_media_backfill_cli(tmp_path):
@@ -74,11 +74,12 @@ def test_wheel_installs_backend_packages_and_storefront_media_backfill_cli(tmp_p
     wheel = next(wheel_dir.glob("tara_store_backend-*.whl"))
     subprocess.run([str(python), "-m", "pip", "install", "--no-deps", str(wheel)], check=True)
     subprocess.run(
-        [str(python), "-c", "import app.core, app.db, app.models, app.services, app.storage; import app.cli.backfill_storefront_derivatives"],
+        [str(python), "-c", "import app.core, app.db, app.models, app.services, app.storage; import app.cli.backfill_storefront_derivatives; import app.cli.prune_analytics"],
         check=True,
         cwd=tmp_path,
     )
     subprocess.run([str(scripts_dir / "tara-storefront-media-backfill"), "--help"], check=True, cwd=tmp_path)
+    subprocess.run([str(scripts_dir / "tara-analytics-prune"), "--help"], check=True, cwd=tmp_path)
 
 
 def test_installed_wheel_uses_deployment_working_directory_for_runtime_configuration(tmp_path):

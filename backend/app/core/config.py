@@ -69,6 +69,12 @@ class Settings(BaseSettings):
     LOGIN_RATE_LIMIT: int = Field(default=0, ge=0)
     ORDER_CREATE_RATE_LIMIT: int = Field(default=0, ge=0)
     ORDER_LOOKUP_RATE_LIMIT: int = Field(default=0, ge=0)
+    ANALYTICS_RATE_LIMIT: int = Field(default=0, ge=0)
+    ANALYTICS_SESSION_TIMEOUT_MINUTES: int = Field(default=30, ge=5, le=240)
+    ANALYTICS_PRODUCT_VIEW_DEDUPE_SECONDS: int = Field(default=30, ge=1, le=600)
+    ANALYTICS_RETENTION_DAYS: int = Field(default=365, ge=30, le=3650)
+    ANALYTICS_TRUST_CLOUDFLARE_HEADERS: bool = False
+    ANALYTICS_PROXY_TOKEN: str = ""
     RATE_LIMIT_WINDOW_SECONDS: int = Field(default=60, ge=1)
     TRUSTED_PROXY_IPS: Annotated[list[str], NoDecode] = ["127.0.0.1", "::1"]
 
@@ -161,6 +167,9 @@ class Settings(BaseSettings):
         self.LOGIN_RATE_LIMIT = self.LOGIN_RATE_LIMIT or 5
         self.ORDER_CREATE_RATE_LIMIT = self.ORDER_CREATE_RATE_LIMIT or 10
         self.ORDER_LOOKUP_RATE_LIMIT = self.ORDER_LOOKUP_RATE_LIMIT or 60
+        self.ANALYTICS_RATE_LIMIT = self.ANALYTICS_RATE_LIMIT or 1200
+        if self.ANALYTICS_TRUST_CLOUDFLARE_HEADERS and len(self.ANALYTICS_PROXY_TOKEN.strip()) < 32:
+            raise ValueError("production analytics Cloudflare trust requires a long ANALYTICS_PROXY_TOKEN")
         return self
 
     @property

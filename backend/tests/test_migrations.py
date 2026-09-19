@@ -18,6 +18,8 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 EXPECTED_TABLES = {
     "admin_login_throttles",
+    "analytics_product_views",
+    "analytics_sessions",
     "admin_users",
     "audit_logs",
     "categories",

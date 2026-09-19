@@ -11,6 +11,7 @@ export const adminApi = {
   dashboard: (days = 30) => days === 30
     ? api.get("/admin/dashboard", authed)
     : api.get("/admin/dashboard", withParams({ days })),
+  analytics: (period = "today") => api.get("/admin/analytics/summary", withParams({ period })),
 
   listProducts: (params) => api.get("/admin/products", withParams(params)),
   getProduct: (id) => api.get(`/admin/products/${id}`, authed),

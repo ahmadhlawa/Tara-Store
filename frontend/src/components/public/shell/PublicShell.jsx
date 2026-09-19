@@ -11,6 +11,7 @@ import CategoryRail from "../navigation/CategoryRail.jsx";
 import { CategoryHoverProvider } from "../navigation/CategoryHover.jsx";
 import ShellOverlays from "../overlays/ShellOverlays.jsx";
 import { buildStorefrontThemeVariables } from "../../../theme/storefrontTheme.js";
+import { trackVisit } from "../../../services/analytics.js";
 
 /**
  * The public chrome. Everything storefront lives under `.vs-public`, which is
@@ -21,6 +22,10 @@ export default function PublicShell() {
   const { t } = useLocale();
   const location = useLocation();
   const store = useStore();
+
+  useEffect(() => {
+    if (store.ready && !store.settings.maintenanceMode) trackVisit(location.pathname);
+  }, [location.pathname, store.ready, store.settings.maintenanceMode]);
 
   useEffect(() => {
     // scrollTo flushes layout; the initial page is already at the requested position.

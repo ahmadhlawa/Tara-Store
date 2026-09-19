@@ -3,6 +3,7 @@ import { AdminAuthProvider, useAdminAuth } from "./AdminAuth.jsx";
 import AdminLayout from "./AdminLayout.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
+import AnalyticsPage from "./pages/AnalyticsPage.jsx";
 import ProductsPage from "./pages/ProductsPage.jsx";
 import ProductEditorPage from "./pages/ProductEditorPage.jsx";
 import ProductDetailPage from "./pages/ProductDetailPage.jsx";
@@ -56,6 +57,7 @@ export default function AdminApp() {
           }
         >
           <Route index element={<DashboardPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/new" element={<ProductEditorPage mode="create" />} />
           <Route path="products/:productId" element={<ProductDetailPage />} />

@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Tara analytics retention cleanup (CLIENT_SLUG)
+
+[Timer]
+OnCalendar=*-*-* 03:25:00
+Persistent=true
+RandomizedDelaySec=20m
+Unit=commerce-CLIENT_SLUG-analytics-prune.service
+
+[Install]
+WantedBy=timers.target

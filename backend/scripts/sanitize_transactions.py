@@ -10,7 +10,10 @@ import hashlib
 import json
 import sys
 from contextlib import contextmanager
+from pathlib import Path
 
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import MetaData, and_, delete, func, inspect, select, text, update
 
 from app.db.base import metadata_with_models
@@ -22,7 +25,10 @@ TABLES = (
     "orders", "audit_logs",
 )
 TRIGGERS = {"trg_order_activities_no_update", "trg_order_activities_no_delete"}
-HEAD = "0026_prelaunch_sanitation"
+_BACKEND_ROOT = Path(__file__).resolve().parents[1]
+_ALEMBIC_CONFIG = Config(str(_BACKEND_ROOT / "alembic.ini"))
+_ALEMBIC_CONFIG.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
+HEAD = ScriptDirectory.from_config(_ALEMBIC_CONFIG).get_current_head()
 
 
 class SanitationError(RuntimeError):

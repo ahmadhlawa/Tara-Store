@@ -52,6 +52,7 @@ tara-preview = "scripts.preview_cli:main"
 tara-catalog-prep = "scripts.catalog_prep_cli:main"
 tara-cutover = "scripts.client_cutover_cli:main"
 tara-storefront-media-backfill = "app.cli.backfill_storefront_derivatives:main"
+tara-analytics-prune = "app.cli.prune_analytics:main"
 
 [tool.setuptools.packages.find]
 include = ["app*", "scripts*"]

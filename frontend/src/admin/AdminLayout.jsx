@@ -8,6 +8,7 @@ import { adminApi } from "../api/adminApi.js";
 
 const NAV = [
   { to: "/admin", label: "لوحة التحكم", end: true },
+  { to: "/admin/analytics", label: "الإحصائيات" },
   { to: "/admin/products", label: "المنتجات" },
   { to: "/admin/categories", label: "الأقسام" },
   { to: "/admin/category-banners", label: "بنرات الأقسام" },

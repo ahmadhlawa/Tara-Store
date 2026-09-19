@@ -29,6 +29,13 @@ map $uri $commerce_CLIENT_SLUG_cache_control {
     /index.html "no-cache, must-revalidate";
 }
 
+# Only analytics tracking endpoints receive this rate-limit key. An empty key is not counted.
+map $uri $commerce_CLIENT_SLUG_analytics_limit_key {
+    default "";
+    ~^/api/v1/analytics/(visit|product-view)$ $binary_remote_addr;
+}
+limit_req_zone $commerce_CLIENT_SLUG_analytics_limit_key zone=commerce_CLIENT_SLUG_analytics:10m rate=10r/s;
+
 server {
     listen 80;
     listen [::]:80;
@@ -66,6 +73,11 @@ server {
     ssl_prefer_server_ciphers off;
     ssl_session_cache   shared:commerce_CLIENT_SLUG_SSL:10m;
     ssl_session_timeout 1d;
+
+    # After installing Tara's custom Cloudflare Authenticated Origin Pull certificate,
+    # require it here. Do not enable ANALYTICS_TRUST_CLOUDFLARE_HEADERS before AOP is enforced.
+    # ssl_client_certificate /etc/nginx/cloudflare/tara-aop-ca.pem;
+    # ssl_verify_client on;
 
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -108,6 +120,10 @@ server {
 
     # ── 2. The API ──────────────────────────────────────────────────────────
     location /api/ {
+        # Starts in dry-run mode. Review shared-IP/CGNAT logs before enforcement.
+        limit_req zone=commerce_CLIENT_SLUG_analytics burst=120 nodelay;
+        limit_req_dry_run on;
+
         proxy_pass http://127.0.0.1:BACKEND_PORT;
         proxy_http_version 1.1;
 
@@ -117,6 +133,9 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host  $host;
         proxy_set_header X-Request-ID      $request_id;
+        # Nginx overwrites any client-supplied value. FastAPI also requires
+        # ANALYTICS_TRUST_CLOUDFLARE_HEADERS=true, which is enabled only after AOP.
+        proxy_set_header X-Tara-Analytics-Proxy "REPLACE_WITH_ANALYTICS_PROXY_TOKEN";
 
         proxy_connect_timeout 10s;
         proxy_send_timeout    60s;

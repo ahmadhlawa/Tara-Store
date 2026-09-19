@@ -111,6 +111,8 @@ export const categoryFixture = {
 
 /** Baseline routes every storefront screen needs during bootstrap. */
 export const storefrontRoutes = {
+  "POST /api/v1/analytics/visit": {},
+  "POST /api/v1/analytics/product-view": {},
   "/api/v1/store/settings": settingsFixture,
   "/api/v1/categories": [categoryFixture],
   "/api/v1/delivery-areas": [

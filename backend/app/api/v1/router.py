@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     admin_invoices,
     admin_media,
     admin_users,
+    analytics,
     auth,
     public_catalog,
     public_checkout,
@@ -25,9 +26,11 @@ _storefront = [StorefrontOpen]
 api_router.include_router(public_content.router, dependencies=_storefront)
 api_router.include_router(public_catalog.router, dependencies=_storefront)
 api_router.include_router(public_checkout.router, dependencies=_storefront)
+api_router.include_router(analytics.public_router, dependencies=_storefront)
 
 # Authenticated admin surface
 api_router.include_router(auth.router)
+api_router.include_router(analytics.admin_router)
 api_router.include_router(admin_catalog.router)
 api_router.include_router(admin_content.router)
 api_router.include_router(admin_commerce.router)
