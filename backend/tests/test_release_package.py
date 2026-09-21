@@ -3,6 +3,7 @@
 import importlib.util
 import json
 import os
+import stat
 from pathlib import Path
 import subprocess
 import sys
@@ -59,6 +60,74 @@ def test_release_migration_head():
     config = Config()
     config.set_main_option("script_location", str(ROOT / "backend/alembic"))
     assert ScriptDirectory.from_config(config).get_current_head() == "0029_storefront_analytics"
+
+
+def test_only_staged_static_content_gets_public_modes(tmp_path, monkeypatch):
+    static = tmp_path / "frontend" / "dist" / "branding"
+    static.mkdir(parents=True)
+    logo = static / "tara-logo2.png"
+    logo.write_bytes(b"image")
+    secret = tmp_path / "backend" / ".env"
+    secret.parent.mkdir()
+    secret.write_text("private")
+    os.chmod(static, 0o700)
+    os.chmod(logo, 0o600)
+    os.chmod(secret, 0o600)
+
+    original_chmod = package.os.chmod
+    changed = {}
+
+    def record_chmod(path, mode):
+        changed[Path(path)] = mode
+        original_chmod(path, mode)
+
+    monkeypatch.setattr(package.os, "chmod", record_chmod)
+    package.normalize_static_permissions(tmp_path / "frontend" / "dist")
+
+    assert changed[static] == 0o755
+    assert changed[logo] == 0o644
+    assert secret not in changed
+    if os.name != "nt":
+        assert stat.S_IMODE(static.stat().st_mode) == 0o755
+        assert stat.S_IMODE(logo.stat().st_mode) == 0o644
+        assert stat.S_IMODE(secret.stat().st_mode) == 0o600
+
+
+def test_release_rejects_symlinked_frontend_dist_root(tmp_path, monkeypatch):
+    source = tmp_path / "frontend" / "dist"
+    source.mkdir(parents=True)
+    (source / "index.html").write_text("static")
+    original_is_symlink = Path.is_symlink
+
+    def report_static_root_as_symlink(path):
+        return path == source or original_is_symlink(path)
+
+    monkeypatch.setattr(package, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(package, "DIRECTORIES", [("frontend/dist", "frontend/dist")])
+    monkeypatch.setattr(package, "FILES", [])
+    monkeypatch.setattr(Path, "is_symlink", report_static_root_as_symlink)
+
+    with pytest.raises(SystemExit, match="Symlinks are not allowed in frontend/dist"):
+        package.stage(tmp_path / "release")
+
+
+def test_release_rejects_symlink_nested_in_frontend_dist(tmp_path, monkeypatch):
+    source = tmp_path / "frontend" / "dist"
+    nested = source / "branding" / "logo.png"
+    nested.parent.mkdir(parents=True)
+    nested.write_bytes(b"image")
+    original_is_symlink = Path.is_symlink
+
+    def report_nested_path_as_symlink(path):
+        return path == nested or original_is_symlink(path)
+
+    monkeypatch.setattr(package, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(package, "DIRECTORIES", [("frontend/dist", "frontend/dist")])
+    monkeypatch.setattr(package, "FILES", [])
+    monkeypatch.setattr(Path, "is_symlink", report_nested_path_as_symlink)
+
+    with pytest.raises(SystemExit, match="Symlinks are not allowed in frontend/dist"):
+        package.stage(tmp_path / "release")
 
 
 def test_wheel_installs_backend_packages_and_storefront_media_backfill_cli(tmp_path):

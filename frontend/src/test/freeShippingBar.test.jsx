@@ -4,19 +4,16 @@ import { renderApp, storefrontRoutes, stubApi } from "./utils.jsx";
 import { buildStorefrontThemeVariables, contrastRatio } from "../theme/storefrontTheme.js";
 
 describe("free shipping bar", () => {
-  it.each([300, 375])("uses current public delivery thresholds (%s)", async (threshold) => {
+  it.each([300, 375])("does not render the removed bar for delivery threshold %s", async (threshold) => {
     stubApi({ ...storefrontRoutes, "/api/v1/delivery-areas": [
       { id: 1, name: "منطقة الاختبار", delivery_fee: 25, free_delivery_threshold: threshold },
       { id: 2, name: "منطقة بلا حد", delivery_fee: 35, free_delivery_threshold: null },
       { id: 3, name: "مجاني دائماً", delivery_fee: 0, free_delivery_threshold: 0 },
     ] });
     renderApp("/");
-    const bar = await screen.findByLabelText("توصيل مجاني");
-    expect(bar).toHaveTextContent(`منطقة الاختبار فوق ${threshold} ₪`);
-    expect(bar).toHaveTextContent("مجاني دائماً فوق 0 ₪");
-    expect(bar).not.toHaveTextContent("منطقة بلا حد");
-    expect(bar).toHaveAttribute("dir", "rtl");
-    expect(bar.compareDocumentPosition(document.querySelector("header")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(await screen.findByRole("banner")).toBeInTheDocument();
+    expect(screen.queryByLabelText("توصيل مجاني")).not.toBeInTheDocument();
+    expect(document.querySelector(".vs-free-shipping-bar")).toBeNull();
   });
 
   it("renders nothing when no zone has a threshold", async () => {

@@ -28,6 +28,7 @@ The shared private LibreTranslate service is external infrastructure, not packag
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -135,7 +136,12 @@ def stage(destination: Path) -> None:
                 f"Missing {source_name}. "
                 + ("Run without --skip-build." if "dist" in source_name else "")
             )
-        shutil.copytree(source, destination / target_name, ignore=_ignore)
+        is_static = source_name == "frontend/dist"
+        if is_static and (source.is_symlink() or any(path.is_symlink() for path in source.rglob("*"))):
+            sys.exit("Symlinks are not allowed in frontend/dist.")
+        shutil.copytree(source, destination / target_name, ignore=_ignore, symlinks=is_static)
+        if is_static:
+            normalize_static_permissions(destination / target_name)
 
     for source_name, target_name in FILES:
         source = REPO_ROOT / source_name
@@ -150,6 +156,15 @@ def stage(destination: Path) -> None:
     (destination / "backend" / "requirements.txt").write_text(requirements, encoding="utf-8")
 
     (destination / "READ-ME-FIRST.md").write_text(_instructions(), encoding="utf-8")
+
+
+def normalize_static_permissions(root: Path) -> None:
+    """Give only packaged SPA content Nginx-readable modes."""
+    for path in root.rglob("*"):
+        if path.is_symlink():
+            raise ValueError(f"Symlink in static build: {path}")
+        os.chmod(path, 0o755 if path.is_dir() else 0o644)
+    os.chmod(root, 0o755)
 
 
 def _requirements_from_pyproject() -> str:

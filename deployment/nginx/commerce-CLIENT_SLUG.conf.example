@@ -52,9 +52,9 @@ server {
 }
 
 server {
-    listen 443 ssl;
-    listen [::]:443 ssl;
-    http2 on;
+    # nginx 1.24 uses the listen parameter; `http2 on` needs nginx 1.25.1+.
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
     server_name CLIENT_DOMAIN;
 
     # Production behind Cloudflare: install a separately maintained include with

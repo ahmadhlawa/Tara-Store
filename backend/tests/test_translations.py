@@ -192,7 +192,7 @@ def test_editorial_settings_coupon_and_package_copy(client, db):
     assert identity["manual_payment_instructions"] == "Account 123456"
     config = client.get("/api/v1/home-sections?locale=en").json()[0]["config"]
     assert config == {"text": "Text", "url": "/shop"}
-    assert client.post("/api/v1/coupons/validate?locale=en", json={"code": "SAVE", "subtotal": 100}).json()["label"] == "Special offer"
+    assert client.post("/api/v1/coupons/validate?locale=en", json={"code": "SAVE", "subtotal": 100}).json()["label"] == "Discount 10%"
     linked = client.get("/api/v1/products/package?locale=en").json()["package_items"][0]
     assert linked["included_product_name"] == "Candle" and linked["display_note"] == "Gift"
     assert not db.scalar(select(Translation).where(Translation.field.in_(("phone", "config.url", "slug", "code"))))

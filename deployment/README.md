@@ -32,8 +32,7 @@ Tara-only bucket. Never replace shared server configuration or another project's
    `pip install -c constraints.txt ".[mysql,r2]"`. Both runtime extras are required.
    From `frontend/`, build with `npm ci` and `npm run build`.
 3. Back up existing data before `alembic upgrade head`. Verify current/head;
-   `0026_prelaunch_sanitation` is the current repository head; translations remain
-   in `0025_translations`. Do not rewrite migrations or
+   `0029_storefront_analytics` is the current repository head. Do not rewrite migrations or
    seed demo data into production.
 4. Review substituted systemd/Nginx templates and certificate paths. Check the complete
    Nginx configuration before any separately authorized reload. Arrange Tara migration
@@ -65,3 +64,51 @@ the API. Keep protected environment files and privileged database access private
 SQLite, LocalStorageProvider, `backend/data/tara-uploads/`, local MySQL Compose,
 preview/catalog tools and demo tooling remain development/test capabilities.
 They are not production storage or instructions to copy customer runtime data.
+
+## Tara analytics deployment gates
+
+`ANALYTICS_RETENTION_DAYS=365` is an independent retention policy; do not treat it
+as an AOP or proxy-trust setting. Keep `ANALYTICS_TRUST_CLOUDFLARE_HEADERS=false`
+until origin authentication is fully enforced and verified.
+Do not infer origin authenticity from CF headers alone. The Nginx template overwrites
+`X-Tara-Analytics-Proxy`; replace its placeholder with a private random token of at
+least 32 characters and put the identical value in the mode-600 backend `.env`.
+Never commit either value. Keep the Nginx analytics limit in dry-run until actual
+shared-IP traffic has been reviewed. Install the supplied prune service and timer;
+check its first run and journal.
+
+For custom-zone or per-hostname AOP, use this staged rollout only for Tara's vhost:
+
+1. Generate and manage the custom client certificate and private key securely. Upload
+   the leaf certificate and private key to Cloudflare. Install on the Nginx origin only
+   the signing CA certificate needed to verify that client certificate. Never install
+   the client private key on the origin.
+2. Configure Nginx certificate validation in observation/testing mode with
+   `ssl_verify_client optional` where appropriate. Enable or associate AOP in Cloudflare,
+   then verify that Cloudflare-proxied requests present the expected client certificate.
+3. Only after that verification, enforce `ssl_verify_client on`. Confirm normal
+   `https://the-taragallery.com` traffic succeeds and direct-origin HTTPS without the
+   client certificate fails.
+4. Only after enforcement and both checks succeed may
+   `ANALYTICS_TRUST_CLOUDFLARE_HEADERS=true` be considered.
+
+Record certificate expiry and arrange reminders at 60, 30, 14 and 7 days before it.
+A failed certificate rollout can make the storefront unavailable. Do not modify other
+virtual hosts or global real-IP rules.
+
+Monitor `https://the-taragallery.com/health` externally and
+`http://127.0.0.1:8001/health` on the origin. External failure with internal success
+points to Cloudflare/AOP/origin TLS; both failing points to backend/origin. A basic
+scheduled curl with alerts is sufficient; no paid monitor is required.
+
+## Frontend static deployment
+
+The current production process builds `frontend/dist` and copies that build to
+`/var/www/tara-store`; it does not yet have an established atomic stage/swap procedure.
+The release package normalizes only `frontend/dist` to directories 0755 and files 0644
+and rejects symlinks in that tree.
+
+Before relying on staged/atomic replacement, operators must separately design, review,
+test and introduce that procedure, including symlink rejection, static-file permissions,
+rollback and post-swap verification. This document does not prescribe production
+commands for that future procedure.
