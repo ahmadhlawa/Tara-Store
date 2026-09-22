@@ -55,14 +55,28 @@ describe("storefront analytics tracking", () => {
 });
 
 describe("Admin analytics page", () => {
-  it("shows the approved two metrics and ranked lists", async () => {
+  it("shows merchant-facing analytics copy without technical implementation details", async () => {
+    adminApi.analytics.mockResolvedValueOnce({ ...summary, location_tracking_configured: false });
     render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
     expect(await screen.findByText("الزيارات")).toBeInTheDocument();
     expect(screen.getByText("الزوار الفريدون")).toBeInTheDocument();
     expect(screen.getByText("أماكن الزوار")).toBeInTheDocument();
     expect(screen.getByText("المنتجات الأكثر مشاهدة")).toBeInTheDocument();
+    expect(screen.getByText("ملخص لحركة الزوار والمنتجات الأكثر مشاهدة خلال الفترة المحددة.")).toBeInTheDocument();
+    expect(screen.getByText("قد لا تتوفر بيانات الموقع الجغرافي لبعض الزيارات.")).toBeInTheDocument();
+    expect(screen.getByText("إجمالي الزيارات خلال الفترة المحددة.")).toBeInTheDocument();
+    expect(screen.getByText("عدد الزوار المختلفين خلال الفترة المحددة.")).toBeInTheDocument();
+    expect(screen.getByText("أكثر الأماكن التي جاءت منها الزيارات.")).toBeInTheDocument();
+    expect(screen.getByText("المنتجات التي حازت على أكبر عدد من المشاهدات.")).toBeInTheDocument();
     expect(screen.getByText("القدس")).toBeInTheDocument();
     expect(screen.getByText("ريزن شفاف")).toBeInTheDocument();
+    expect(screen.getAllByText("زيارة")).not.toHaveLength(0);
+    expect(screen.getAllByText("مشاهدة")).not.toHaveLength(0);
+
+    const pageText = document.body.textContent;
+    for (const technicalCopy of ["Cloudflare", "AOP", "fingerprinting", "first-party", "30 دقيقة"]) {
+      expect(pageText).not.toContain(technicalCopy);
+    }
   });
 
   it("reloads the common report when the period changes", async () => {

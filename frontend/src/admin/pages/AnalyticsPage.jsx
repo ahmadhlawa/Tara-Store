@@ -67,7 +67,7 @@ export default function AnalyticsPage() {
     <div style={sx`min-width:0`}>
       <PageHeader
         title="الإحصائيات"
-        description="الزيارات والزوار الفريدون وأماكن الزيارة والمنتجات الأكثر مشاهدة. الموقع الجغرافي تقريبي حسب شبكة الزائر."
+        description="ملخص لحركة الزوار والمنتجات الأكثر مشاهدة خلال الفترة المحددة."
         actions={(
           <div role="group" aria-label="الفترة الزمنية" style={sx`display:flex;gap:8px;flex-wrap:wrap;max-width:100%`}>
             {PERIODS.map(([value, label]) => (
@@ -79,27 +79,27 @@ export default function AnalyticsPage() {
 
       {error && <Notice kind="error">{error}</Notice>}
       {data && !data.location_tracking_configured && (
-        <Notice>الزيارات تعمل، لكن بيانات المدن ستبقى «غير محدد» حتى يكتمل إعداد Cloudflare/AOP على الخادم.</Notice>
+        <Notice>قد لا تتوفر بيانات الموقع الجغرافي لبعض الزيارات.</Notice>
       )}
       {loading && !data ? <Spinner label="جارٍ تحميل الإحصائيات…" /> : data && (
         <>
           <div data-testid="analytics-summary" style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;margin-bottom:16px;min-width:0`}>
-            <Metric label="الزيارات" value={data.sessions} note="جلسة جديدة بعد 30 دقيقة من عدم النشاط." />
-            <Metric label="الزوار الفريدون" value={data.unique_visitors} note="معرّف عشوائي first-party بدون fingerprinting أو IP كهوية." />
+            <Metric label="الزيارات" value={data.sessions} note="إجمالي الزيارات خلال الفترة المحددة." />
+            <Metric label="الزوار الفريدون" value={data.unique_visitors} note="عدد الزوار المختلفين خلال الفترة المحددة." />
           </div>
 
           <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:16px;align-items:start;min-width:0`}>
             <Ranking
               title="أماكن الزوار"
-              note="أعلى 10 أماكن حسب الجلسات، ثم «أخرى»."
+              note="أكثر الأماكن التي جاءت منها الزيارات."
               rows={data.top_locations || []}
               empty="لا توجد زيارات ضمن هذه الفترة بعد."
               valueKey="sessions"
-              valueLabel="جلسة"
+              valueLabel="زيارة"
             />
             <Ranking
               title="المنتجات الأكثر مشاهدة"
-              note="إعادة التحميل السريعة خلال 30 ثانية لا تضخّم المشاهدات، والجلسة الجديدة تُحسب بشكل مستقل."
+              note="المنتجات التي حازت على أكبر عدد من المشاهدات."
               rows={data.top_products || []}
               empty="لا توجد مشاهدات منتجات ضمن هذه الفترة بعد."
               valueKey="views"
