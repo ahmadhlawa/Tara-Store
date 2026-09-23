@@ -360,7 +360,7 @@ img.vs-logo__img {
 .vs-hactions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-inline-start: auto;
   flex: 0 0 auto;
 }
@@ -369,36 +369,34 @@ img.vs-logo__img {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  justify-content: center;
+  width: 38px;
   height: 38px;
-  padding-inline: 15px;
-  border: 1px solid var(--vs-primary);
-  border-radius: var(--vs-r-button);
-  background: var(--vs-primary);
-  color: var(--vs-on-primary-action);
-  font-family: inherit;
-  font-size: var(--vs-fs-sm);
-  font-weight: 500;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vs-ink);
   cursor: pointer;
-  transition: background var(--vs-t) var(--vs-ease);
+  transition: color var(--vs-t) var(--vs-ease);
 }
 
 .vs-cartbtn:hover {
-  background: var(--vs-primary-dark);
+  color: var(--vs-primary);
 }
 
 .vs-cartbtn__badge {
   position: absolute;
-  inset-block-start: -7px;
-  inset-inline-start: -7px;
-  min-width: 21px;
-  height: 21px;
-  padding-inline: 5px;
+  inset-block-start: -3px;
+  right: -3px;
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 3px;
   border-radius: var(--vs-r-pill);
   background: var(--vs-accent);
   color: var(--vs-ink);
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -881,6 +879,7 @@ img.vs-logo__img {
     height: 44px;
   }
   .vs-cartbtn {
+    width: 44px;
     height: 44px;
   }
   /* `justify-content`, not `align-items`: the row runs horizontally now, and it

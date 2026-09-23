@@ -80,8 +80,8 @@ test.describe("public storefront layout", () => {
 
   test("the header stays reachable and the cart control is labelled", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("link", { name: "عربة التسوّق" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "تسجيل دخول الإدارة" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "عربة التسوّق" })).toBeVisible();
+    await expect(page.locator('header a[href^="/admin"]')).toHaveCount(0);
   });
 });
 

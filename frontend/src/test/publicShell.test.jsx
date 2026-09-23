@@ -56,17 +56,15 @@ describe("public shell", () => {
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
-  it("sends the header icon beside the cart to the isolated admin login", async () => {
+  it("shows an icon cart with a quantity badge and no admin navigation", async () => {
     stubApi(storefrontRoutes);
     renderApp("/");
 
-    const adminLogin = await screen.findByRole("link", { name: "تسجيل دخول الإدارة" });
-    expect(adminLogin).toHaveAttribute("href", "/admin/login");
-
-    await userEvent.click(adminLogin);
-    expect(await screen.findByRole("heading", { name: "تسجيل دخول الإدارة" })).toBeInTheDocument();
-    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
-    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+    const header = await screen.findByRole("banner");
+    const cart = within(header).getByRole("button", { name: "عربة التسوّق" });
+    expect(cart.querySelector(".vs-cartbtn__badge")).toHaveTextContent("0");
+    expect(cart.querySelector(".vs-cartbtn__total")).toBeNull();
+    expect(header.querySelector('a[href^="/admin"]')).toBeNull();
   });
 
   it("renders the real footer without an order-tracking entry", async () => {
@@ -97,7 +95,7 @@ describe("public shell", () => {
 
     const header = await screen.findByRole("banner");
     expect(header.querySelectorAll('a[href="/track-order"]')).toHaveLength(0);
-    expect(screen.getByRole("link", { name: "تسجيل دخول الإدارة" })).toHaveAttribute("href", "/admin/login");
+    expect(header.querySelector('a[href^="/admin"]')).toBeNull();
 
     await userEvent.click(screen.getByRole("button", { name: "فتح القائمة" }));
     const mobileNavigation = screen.getByRole("dialog", { name: "قائمة التنقّل" });

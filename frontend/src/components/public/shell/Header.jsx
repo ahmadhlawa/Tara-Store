@@ -5,10 +5,9 @@ import { Link, NavLink } from "../../../i18n/routing.jsx";
 import { OVERLAY, useStore } from "../../../app/StoreProvider.jsx";
 import { useCartCountPulse } from "../../../hooks/useCartCountPulse.js";
 import { useLogoFit } from "../../../hooks/useLogoFit.js";
-import { useMoney } from "../../../hooks/useStorefront.js";
 import { navLinks } from "../../../store.js";
 import SearchBox from "../search/SearchBox.jsx";
-import { CartIcon, GlobeIcon, MenuIcon, SearchIcon, UserIcon } from "./icons.jsx";
+import { CartIcon, GlobeIcon, MenuIcon, SearchIcon } from "./icons.jsx";
 
 function StoreMark({ settings }) {
   const { t } = useLocale();
@@ -50,11 +49,9 @@ export default function Header() {
   const targetLocale = locale === "ar" ? "en" : "ar";
   const languageLabel = locale === "ar" ? "Switch to English" : "التبديل إلى العربية";
   const store = useStore();
-  const money = useMoney();
   const { settings, cart, scrolled, overlay, openOverlay, closeAll } = store;
 
   const count = cart.reduce((sum, line) => sum + line.qty, 0);
-  const subtotal = cart.reduce((sum, line) => sum + line.unit * line.qty, 0);
   const pulse = useCartCountPulse(count);
   const catsOpen = overlay === OVERLAY.CATEGORIES;
   const toggleCats = () => (catsOpen ? closeAll() : openOverlay(OVERLAY.CATEGORIES));
@@ -114,10 +111,6 @@ export default function Header() {
                 <SearchIcon size={19} />
               </button>
 
-              <Link to="/admin/login" className="vs-iconbtn" aria-label={t("تسجيل دخول الإدارة")} title={t("تسجيل دخول الإدارة")}>
-                <UserIcon size={18} />
-              </Link>
-
               <button
                 type="button"
                 className="vs-cartbtn"
@@ -125,8 +118,7 @@ export default function Header() {
                 aria-label={t("عربة التسوّق")}
                 aria-expanded={overlay === OVERLAY.CART}
               >
-                <CartIcon size={19} />
-                <span className="vs-desk vs-cartbtn__total">{money(subtotal)}</span>
+                <CartIcon size={21} />
                 <span
                   key={pulse}
                   className="vs-cartbtn__badge"

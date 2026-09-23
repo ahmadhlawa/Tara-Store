@@ -54,7 +54,7 @@ test.describe("public routes", () => {
 
       // Something rendered, and it is the storefront rather than the workspace.
       await expect(page.locator("body")).not.toBeEmpty();
-      await expect(page.getByRole("link", { name: "تسجيل دخول الإدارة" })).toBeVisible();
+      await expect(page.locator('a[href^="/admin"]')).toHaveCount(0);
       // A 404 page for an unknown *slug* is legitimate on the detail routes; a
       // failing request for anything else is not.
       expectClean(watcher, { allowStatus: route.path.includes("does-not-exist") ? [404] : [] });

@@ -62,7 +62,7 @@ test.describe("global technical smoke", () => {
   test("public order tracking is gone from the storefront", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("link", { name: /تتبع|تتبّع/ })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "تسجيل دخول الإدارة" })).toBeVisible();
+    await expect(page.locator('a[href^="/admin"]')).toHaveCount(0);
   });
 
   test("the API rejects an anonymous admin call", async ({ request }) => {
