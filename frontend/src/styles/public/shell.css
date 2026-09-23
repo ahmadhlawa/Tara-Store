@@ -184,7 +184,7 @@ img.vs-logo__img {
   width: 100%;
   height: 42px;
   border: 1px solid var(--vs-border-strong);
-  border-radius: var(--vs-r-pill);
+  border-radius: var(--vs-r-button);
   /* Inverted against the template: the header is ivory now, so the field has to
      be the lighter surface to read as a field at all. */
   background: var(--vs-surface);
@@ -216,7 +216,7 @@ img.vs-logo__img {
   height: 34px;
   padding-inline: 19px;
   border: 0;
-  border-radius: var(--vs-r-pill);
+  border-radius: var(--vs-r-button);
   background: var(--vs-primary);
   color: var(--vs-on-primary-action);
   font-family: inherit;
@@ -373,7 +373,7 @@ img.vs-logo__img {
   height: 38px;
   padding-inline: 15px;
   border: 1px solid var(--vs-primary);
-  border-radius: var(--vs-r-md);
+  border-radius: var(--vs-r-button);
   background: var(--vs-primary);
   color: var(--vs-on-primary-action);
   font-family: inherit;
@@ -443,7 +443,7 @@ img.vs-logo__img {
   padding-inline: 17px;
   margin-inline-end: 8px;
   border: 0;
-  border-radius: var(--vs-r-pill);
+  border-radius: var(--vs-r-button);
   background: rgba(255, 255, 255, 0.42);
   color: var(--nav-strip-text);
   font-family: inherit;
@@ -1069,6 +1069,7 @@ img.vs-logo__img {
 
 .vs-footer__col a,
 .vs-footer__col span {
+  overflow-wrap: anywhere;
   font-size: var(--vs-fs-sm);
   color: var(--footer-text);
   transition: color var(--vs-t) var(--vs-ease);
@@ -1309,6 +1310,7 @@ img.vs-logo__img {
 
 .vs-footer__col {
   gap: 9px;
+  min-width: 0;
 }
 
 .vs-footer__bottom {
@@ -1416,7 +1418,7 @@ img.vs-logo__img {
   }
 }
 
-@media (max-width: 419px) {
+@media (max-width: 339px) {
   .vs-footer__essentials {
     grid-template-columns: minmax(0, 1fr);
     text-align: center;

@@ -3,7 +3,6 @@ import { Link } from "../../../i18n/routing.jsx";
 import { useStore } from "../../../app/StoreProvider.jsx";
 import { useLogoFit } from "../../../hooks/useLogoFit.js";
 import { footerLinks } from "../../../store.js";
-import { whatsappHref } from "../../../utils/format.js";
 
 function SocialIcon({ name }) {
 
@@ -102,13 +101,10 @@ export default function Footer() {
           </nav>
 
           <div className="vs-footer__col">
-            <h2 className="vs-footer__title">{t("الدفع والتوصيل")}</h2>
+            <h2 className="vs-footer__title">{t("تواصل معنا")}</h2>
             {contact.map((item) => (
               <span key={item.key}>{item.node}</span>
             ))}
-            <div className="vs-footer__pay">
-              <span>{t("الدفع عند الاستلام")}</span>
-            </div>
           </div>
         </div>
       </div>

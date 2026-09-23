@@ -16,6 +16,23 @@ const cartButton = () => screen.getByRole("button", { name: "عربة التسو
 const dialogs = () => screen.queryAllByRole("dialog");
 
 describe("public shell", () => {
+  it.each(["click", "touch", "keyboard"])("opens checkout with one %s and closes the cart", async (input) => {
+    cartStorage.save([{ key: "1|", productId: 1, slug: "clear-resin", name: "Resin", unit: 100, qty: 1 }]);
+    stubApi({ ...storefrontRoutes, "POST /api/v1/cart/price": { lines: [], subtotal: 100, discount: 0, delivery_fee: 0, total: 100 } });
+    renderApp("/ar/shop");
+    await screen.findByRole("heading", { name: "كل المنتجات", level: 1 });
+    const user = userEvent.setup();
+    await user.click(cartButton());
+    const checkout = within(screen.getByRole("dialog", { name: "عربة التسوّق" })).getByRole("link", { name: "إتمام الطلب" });
+    expect(checkout).toHaveAttribute("href", "/ar/checkout");
+    if (input === "touch") await user.pointer([{ keys: "[TouchA>]", target: checkout }, { keys: "[/TouchA]", target: checkout }]);
+    else if (input === "keyboard") { checkout.focus(); await user.keyboard("{Enter}"); }
+    else await user.click(checkout);
+    await waitFor(() => expect(document.querySelector(".vs-checkout")).toBeInTheDocument());
+    expect(dialogs()).toHaveLength(0);
+    expect(document.body.style.overflow).not.toBe("hidden");
+  });
+
   it("gives the storefront its landmarks and a skip link", async () => {
     stubApi(storefrontRoutes);
     renderApp("/");
@@ -53,12 +70,15 @@ describe("public shell", () => {
   });
 
   it("renders the real footer without an order-tracking entry", async () => {
-    stubApi(storefrontRoutes);
+    stubApi({ ...storefrontRoutes, "/api/v1/store/settings": { ...storefrontRoutes["/api/v1/store/settings"], email: "hello@example.com", address: "عنوان المتجر", location_url: "https://maps.example.com/store" } });
     renderApp("/");
 
     const footer = await screen.findByRole("contentinfo");
     expect(within(footer).queryByText("تتبّع الطلب")).not.toBeInTheDocument();
     expect(footer.querySelectorAll('a[href="/track-order"]')).toHaveLength(0);
+    await waitFor(() => expect(within(footer).getByRole("link", { name: "hello@example.com" })).toHaveAttribute("href", "mailto:hello@example.com"));
+    expect(within(footer).getByRole("link", { name: "0590000000" })).toHaveAttribute("href", "tel:0590000000");
+    expect(within(footer).getByRole("link", { name: "عنوان المتجر" })).toHaveAttribute("href", "https://maps.example.com/store");
   });
 
   it("keeps duplicate contact details out of the header and payment note out of the footer", async () => {
@@ -72,7 +92,7 @@ describe("public shell", () => {
   });
 
   it("shows category links alongside normal links in the mobile navigation", async () => {
-    stubApi(storefrontRoutes);
+    stubApi({ ...storefrontRoutes, "/api/v1/categories": [{ ...categoryFixture, children: [{ ...categoryFixture, id: 2, slug: "child", name: "قسم فرعي", children: [] }] }] });
     renderApp("/");
 
     const header = await screen.findByRole("banner");
@@ -83,9 +103,18 @@ describe("public shell", () => {
     const mobileNavigation = screen.getByRole("dialog", { name: "قائمة التنقّل" });
     expect(within(mobileNavigation).getByRole("link", { name: "كل المنتجات" })).toBeInTheDocument();
     expect(within(mobileNavigation).getByRole("link", { name: categoryFixture.name })).toHaveAttribute("href", "/ar/category/resin");
-    expect(within(mobileNavigation).getByText("الأقسام")).toBeInTheDocument();
+    expect(within(mobileNavigation).getByText("أقسام")).toBeInTheDocument();
+    expect(Array.from(mobileNavigation.querySelector(".vs-menu").children).filter((node) => node.matches("a, button")).map((node) => node.textContent.trim())).toEqual(["الرئيسية", "أقسام", "العروض", "البكجات", "كل المنتجات", "تواصل معنا"]);
     expect(mobileNavigation.querySelectorAll('a[href="/track-order"]')).toHaveLength(0);
     expect(within(mobileNavigation).queryByText("تتبّع الطلب")).not.toBeInTheDocument();
+    expect(within(mobileNavigation).getByRole("link", { name: "الرئيسية" })).toHaveAttribute("aria-current", "page");
+    await userEvent.click(within(mobileNavigation).getByRole("button", { name: `الأقسام الفرعية لـ ${categoryFixture.name}` }));
+    expect(within(mobileNavigation).getByRole("link", { name: "قسم فرعي" })).toHaveAttribute("href", "/ar/category/child");
+    await userEvent.click(within(mobileNavigation).getByRole("button", { name: "أقسام", exact: true }));
+    expect(within(mobileNavigation).queryByRole("link", { name: "قسم فرعي" })).not.toBeInTheDocument();
+    await userEvent.click(within(mobileNavigation).getByRole("button", { name: "أقسام", exact: true }));
+    await userEvent.click(within(mobileNavigation).getByRole("link", { name: "قسم فرعي" }));
+    await waitFor(() => expect(dialogs()).toHaveLength(0));
   });
 
   it.each(["/track-order", "/track", "/order-tracking"])("treats %s as a public not-found route", async (path) => {

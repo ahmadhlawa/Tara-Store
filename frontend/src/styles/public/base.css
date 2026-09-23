@@ -167,7 +167,7 @@
   height: 38px;
   padding-inline: 16px;
   border: 1px solid var(--vs-border-strong);
-  border-radius: var(--vs-r-pill);
+  border-radius: var(--vs-r-button);
   background: var(--vs-surface);
   font-size: var(--vs-fs-sm);
   font-weight: 500;
@@ -250,7 +250,7 @@
   height: 44px;
   padding-inline: 20px;
   border: 1px solid transparent;
-  border-radius: var(--vs-r-md);
+  border-radius: var(--vs-r-button);
   background: transparent;
   font-family: inherit;
   font-size: var(--vs-fs-sm);
@@ -299,7 +299,7 @@
 .vs-btn--lg {
   height: 52px;
   font-size: 15px;
-  border-radius: var(--vs-r-md);
+  border-radius: var(--vs-r-button);
 }
 
 .vs-btn--block {

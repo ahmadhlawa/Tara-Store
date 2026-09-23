@@ -1,5 +1,5 @@
-import { useLocale } from "../i18n/locale.jsx";
 import { useEffect, useState } from "react";
+import { useLocale } from "../i18n/locale.jsx";
 import { useStore } from "../app/StoreProvider.jsx";
 import useSeo from "../hooks/useSeo.js";
 import { storefrontService } from "../services/storefront.js";
@@ -31,11 +31,23 @@ export default function ContactRoutePage() {
   ].filter(Boolean);
 
   return <section className="vs-container vs-section vs-contact-page">
-    <header className="vs-contact-page__header"><span className="vs-contact-page__eyebrow">{t("نحن بالقرب منك")}</span><h1 className="vs-page__title">{t("تواصل معنا")}</h1><p className="vs-page__lead">{lead || t("يسعدنا تواصلكم عبر قنواتنا التالية")}</p></header>
+    <header className="vs-contact-page__header">
+      <h1 className="vs-page__title">{t("تواصل معنا")}</h1>
+      <p className="vs-page__lead">{lead || t("يسعدنا تواصلكم مع TARA لأي استفسار حول المنتجات، الطلبات أو خدماتنا.")}</p>
+    </header>
     <div className="vs-contact-page__layout">
       <section className="vs-contact-methods" aria-labelledby="contact-methods-title">
-        <h2 id="contact-methods-title">{t("كيف يمكننا مساعدتك؟")}</h2><p>{t("اختاري القناة الأنسب لك، وسنكون سعداء بالرد على استفسارك.")}</p>
-        <div className="vs-contact-methods__list">{methods.map((method) => <a key={method.type} className={`vs-contact-method vs-contact-method--${method.type}`} href={method.href} target="_blank" rel="noopener noreferrer" aria-label={t("تواصل عبر {0}", [method.label])}><span className="vs-contact-method__icon"><ContactIcon type={method.type} /></span><span><strong>{t(method.label)}</strong><small>{method.value}</small></span><span className="vs-contact-method__arrow" aria-hidden="true">←</span></a>)}{!methods.length && <p className="vs-prose vs-prose--muted">{t("ستظهر روابط التواصل هنا فور إضافتها من إعدادات المتجر.")}</p>}</div>
+        <p id="contact-methods-title">{t("يمكنكم التواصل معنا من خلال:")}</p>
+        <div className="vs-contact-methods__list">
+          {methods.map((method) => (
+            <a key={method.type} className={`vs-contact-method vs-contact-method--${method.type}`} href={method.href} target="_blank" rel="noopener noreferrer" aria-label={t("تواصل عبر {0}", [method.label])}>
+              <span className="vs-contact-method__icon"><ContactIcon type={method.type} /></span>
+              <span><strong>{method.label}</strong><small>{method.value}</small></span>
+            </a>
+          ))}
+          {!methods.length && <p className="vs-prose vs-prose--muted">{t("ستظهر روابط التواصل هنا فور إضافتها من إعدادات المتجر.")}</p>}
+        </div>
+        <p className="vs-contact-methods__response">{t("نسعى للرد على جميع الاستفسارات في أقرب وقت ممكن.")}</p>
       </section>
     </div>
   </section>;

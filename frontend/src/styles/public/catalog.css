@@ -198,6 +198,7 @@
 
   .vs-card__cta,
   .vs-pkg__cta {
+    border-radius: var(--vs-r-button);
     flex: 0 0 44px;
     width: 44px;
     min-width: 44px;

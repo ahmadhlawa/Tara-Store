@@ -62,7 +62,8 @@ describe("storefront localization", () => {
     expect(await screen.findByText("Clear resin")).toBeInTheDocument();
     expect(cartStorage.load()[0]).toMatchObject({ productId: 1, qty: 2, unit: 100 });
     expect(screen.getByRole("heading", { name: "Checkout" })).toBeInTheDocument();
-    expect(screen.getByText(/Because Tara products are delicate/)).toBeInTheDocument();
+    expect(screen.getByText(/Due to the delicate nature of TARA products/)).toBeInTheDocument();
+    expect(screen.getByText(/Please contact TARA within 24 hours/)).toBeInTheDocument();
     expect(calls.some((call) => call.path.includes("clear-resin") && call.path.includes("locale=en"))).toBe(true);
   });
 

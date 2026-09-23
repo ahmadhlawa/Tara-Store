@@ -291,12 +291,12 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: var(--vs-success);
+  background: var(--vs-whatsapp);
   color: var(--vs-ink-invert);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 26px rgba(76, 124, 99, 0.34);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--vs-whatsapp) 34%, transparent);
   transition: transform var(--vs-t) var(--vs-ease);
 }
 

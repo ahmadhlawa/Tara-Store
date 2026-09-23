@@ -36,7 +36,7 @@ export const footerLinks = {
     items: [
       ["من نحن", "/page/about"],
       ["سياسة الشحن", "/page/shipping-policy"],
-      ["سياسة التبديل والإرجاع", "/page/return-policy"],
+      ["سياسة الاستبدال والاسترجاع", "/page/return-policy"],
       ["سياسة الخصوصية", "/page/privacy-policy"],
       ["الشروط والأحكام", "/page/terms"],
     ],

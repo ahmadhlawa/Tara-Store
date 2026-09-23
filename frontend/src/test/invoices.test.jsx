@@ -459,14 +459,14 @@ describe("storefront payment surface", () => {
     expect(document.querySelector('input[autocomplete="cc-number"]')).toBeNull();
   });
 
-  it("never claims a payment was taken", async () => {
+  it("keeps cash on delivery without the removed explanatory sentence", async () => {
     withCart();
     stubApi(cartRoutes);
     renderApp("/checkout");
 
-    expect(
-      await screen.findByText(/لا يتم تحصيل أي مبلغ الآن؛ يُدفع نقداً للمندوب عند التسليم/),
-    ).toBeInTheDocument();
+    await screen.findByText("طريقة الدفع");
+    expect(screen.getByRole("radio", { name: /الدفع عند الاستلام/ })).toBeChecked();
+    expect(screen.queryByText(/لا يتم تحصيل أي مبلغ الآن؛ يُدفع نقداً للمندوب عند التسليم/)).not.toBeInTheDocument();
   });
 
   it("never promises transfer details the owner has not published", async () => {

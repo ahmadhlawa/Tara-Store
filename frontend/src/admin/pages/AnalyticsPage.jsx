@@ -20,7 +20,27 @@ function Metric({ label, value, note }) {
   );
 }
 
-function Ranking({ title, note, rows, empty, renderName, valueKey, valueLabel }) {
+function ProductViewsChart({ rows }) {
+  const views = rows.map((row) => Math.max(0, Number(row.views) || 0));
+  const maxViews = Math.max(1, ...views);
+  return (
+    <figure aria-label="مقارنة مشاهدات المنتجات" style={sx`margin:0 0 20px;display:grid;gap:14px;min-width:0`}>
+      {rows.map((row, index) => (
+        <div key={row.product_id || index} style={sx`min-width:0`}>
+          <div style={sx`display:flex;justify-content:space-between;gap:12px;margin-bottom:6px;font-size:12px`}>
+            <span title={row.name} style={sx`min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`}>{row.name}</span>
+            <strong style={sx`flex-shrink:0;font-variant-numeric:tabular-nums`}>{views[index].toLocaleString("en-US")} مشاهدة</strong>
+          </div>
+          <div aria-hidden="true" style={sx`height:10px;background:var(--admin-soft);border-radius:4px;overflow:hidden`}>
+            <div data-view-bar style={{ width: `${views[index] / maxViews * 100}%`, height: "100%", background: "var(--admin-primary)", borderRadius: 4 }} />
+          </div>
+        </div>
+      ))}
+    </figure>
+  );
+}
+
+function Ranking({ title, note, rows, empty, renderName, valueKey, valueLabel, chart }) {
   return (
     <section style={card}>
       <div style={sx`margin-bottom:12px`}>
@@ -30,6 +50,8 @@ function Ranking({ title, note, rows, empty, renderName, valueKey, valueLabel })
       {rows.length === 0 ? (
         <p style={sx`margin:0;padding:24px 0;text-align:center;color:#8A7F95;font-size:13.5px`}>{empty}</p>
       ) : (
+        <>
+        {chart}
         <ol style={sx`list-style:none;margin:0;padding:0;display:grid;gap:8px`}>
           {rows.map((row, index) => (
             <li key={`${row.name}-${row.product_id || index}`} style={sx`display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 0;border-top:${index ? "1px solid #F3EBE0" : "0"}`}>
@@ -41,6 +63,7 @@ function Ranking({ title, note, rows, empty, renderName, valueKey, valueLabel })
             </li>
           ))}
         </ol>
+        </>
       )}
     </section>
   );
@@ -103,6 +126,7 @@ export default function AnalyticsPage() {
               rows={data.top_products || []}
               empty="لا توجد مشاهدات منتجات ضمن هذه الفترة بعد."
               valueKey="views"
+              chart={<ProductViewsChart rows={data.top_products || []} />}
               valueLabel="مشاهدة"
               renderName={(row) => row.product_exists ? (
                 <Link to={`/admin/products/${row.product_id}`} style={sx`color:var(--admin-primary);font-weight:700;text-decoration:none;overflow-wrap:anywhere`}>{row.name}</Link>

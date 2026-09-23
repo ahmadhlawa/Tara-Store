@@ -12,8 +12,9 @@ import { useMoney } from "../hooks/useStorefront.js";
 import { whatsappHref } from "../utils/format.js";
 
 const RETURN_POLICY_NOTICE = [
-  "نظراً لطبيعة منتجات تارا وحساسية القطع، وكونها مصنوعة ومجهزة يدوياً بعناية، لا يمكن استبدال أو إرجاع المنتجات بعد تأكيد الطلب أو استلامه.",
-  "ولا تعد الاختلافات البسيطة والطبيعية في اللون أو الشكل أو القياس أو التفاصيل الناتجة عن طبيعة التصنيع اليدوي عيباً أو تلفاً في المنتج.",
+  "نظرًا لطبيعة منتجات TARA وحساسية القطع وكونها مصنوعة ومجهزة يدويًا بعناية، لا يمكن استبدال أو إرجاع المنتجات بعد تأكيد الطلب أو استلامه.",
+  "يُستثنى من ذلك وصول المنتج بحالة تالفة أو وصول منتج مختلف عن الطلب. في هذه الحالة، يرجى التواصل مع TARA خلال 24 ساعة من استلام الطلب وإرفاق صور واضحة توضح حالة المنتج، ليتم مراجعة الحالة وتقديم الحل المناسب.",
+  "ولا تُعد الاختلافات البسيطة والطبيعية في اللون أو الشكل أو القياس أو التفاصيل الناتجة عن طبيعة التصنيع اليدوي عيبًا أو تلفًا في المنتج.",
   "نرجو التأكد من تفاصيل المنتج والمواصفات المطلوبة قبل تأكيد الطلب.",
 ];
 
@@ -291,10 +292,8 @@ export default function CheckoutRoutePage() {
               </label>
             ))}
 
-            <p className="vs-form__note">{t("لا يتم تحصيل أي مبلغ الآن؛ يُدفع نقداً للمندوب عند التسليم.")}{" "}</p>
-
             <div className="vs-return-policy" aria-labelledby="vs-return-policy-title">
-              <h2 id="vs-return-policy-title">{t("سياسة الإرجاع والاستبدال")}</h2>
+              <h2 id="vs-return-policy-title">{t("سياسة الاستبدال والاسترجاع")}</h2>
               {RETURN_POLICY_NOTICE.map((paragraph) => <p key={paragraph}>{t(paragraph)}</p>)}
             </div>
 
@@ -305,7 +304,7 @@ export default function CheckoutRoutePage() {
                 onChange={() => update({ terms: !form.terms })}
                 {...field("terms")}
               />
-              <span>{t("قرأت")}{" "}<Link to="/page/return-policy">{t("سياسة الإرجاع والاستبدال")}</Link>{" "}{t("وأوافق عليها")}{" "}</span>
+              <span>{t("قرأت")}{" "}<Link to="/page/return-policy">{t("سياسة الاستبدال والاسترجاع")}</Link>{" "}{t("وأوافق عليها")}{" "}</span>
             </label>
             {errors.terms && (
               <span className="vs-field__error" id="vs-err-terms">

@@ -1,5 +1,13 @@
 // Source-text keys keep the Arabic storefront copy readable at call sites.
 export const en = {
+  "أقسام": "Categories",
+  "سياسة الاستبدال والاسترجاع": "Returns and exchanges",
+  "نظرًا لطبيعة منتجات TARA وحساسية القطع وكونها مصنوعة ومجهزة يدويًا بعناية، لا يمكن استبدال أو إرجاع المنتجات بعد تأكيد الطلب أو استلامه.": "Due to the delicate nature of TARA products and the care taken to make and prepare them by hand, products cannot be exchanged or returned after the order is confirmed or received.",
+  "يُستثنى من ذلك وصول المنتج بحالة تالفة أو وصول منتج مختلف عن الطلب. في هذه الحالة، يرجى التواصل مع TARA خلال 24 ساعة من استلام الطلب وإرفاق صور واضحة توضح حالة المنتج، ليتم مراجعة الحالة وتقديم الحل المناسب.": "An exception applies if the product arrives damaged or differs from your order. Please contact TARA within 24 hours of receiving your order and attach clear photos showing the product's condition so we can review the case and provide an appropriate solution.",
+  "ولا تُعد الاختلافات البسيطة والطبيعية في اللون أو الشكل أو القياس أو التفاصيل الناتجة عن طبيعة التصنيع اليدوي عيبًا أو تلفًا في المنتج.": "Minor, natural differences in color, shape, size or details resulting from handmade production are not considered defects or damage.",
+  "يسعدنا تواصلكم مع TARA لأي استفسار حول المنتجات، الطلبات أو خدماتنا.": "We welcome your inquiries about TARA products, orders or services.",
+  "يمكنكم التواصل معنا من خلال:": "You can contact us through:",
+  "نسعى للرد على جميع الاستفسارات في أقرب وقت ممكن.": "We aim to respond to all inquiries as soon as possible.",
   "هل لديك كوبون خصم؟": "Have a discount coupon?", "إزالة الكوبون": "Remove coupon",
   "الرئيسية": "Home", "كل المنتجات": "All products", "العروض": "Offers", "البكجات": "Packages",
   "اللغة": "Language", "سلة التسوق": "Shopping cart",

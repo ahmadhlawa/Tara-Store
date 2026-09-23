@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -55,6 +55,23 @@ describe("storefront analytics tracking", () => {
 });
 
 describe("Admin analytics page", () => {
+  it("charts views relative to the largest value and keeps linked rankings below", async () => {
+    adminApi.analytics.mockResolvedValueOnce({ ...summary, top_products: [summary.top_products[0], { product_id: 2, name: "منتج طويل ".repeat(20), views: 14, product_exists: false }, { product_id: 3, name: "بلا مشاهدات", views: 0, product_exists: false }] });
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    const chart = await screen.findByRole("figure", { name: "مقارنة مشاهدات المنتجات" });
+    expect(within(chart).getByText("7 مشاهدة")).toBeInTheDocument();
+    expect(Array.from(chart.querySelectorAll("[data-view-bar]")).map((bar) => bar.style.width)).toEqual(["50%", "100%", "0%"]);
+    expect(screen.getByRole("link", { name: "ريزن شفاف" })).toHaveAttribute("href", "/admin/products/1");
+    expect(chart.nextElementSibling.tagName).toBe("OL");
+  });
+
+  it.each([{ rows: [] }, { rows: [{ product_id: 1, name: "صفر", views: 0 }] }])("handles empty and zero views: %j", async ({ rows }) => {
+    adminApi.analytics.mockResolvedValueOnce({ ...summary, top_products: rows });
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    await screen.findByText("الزيارات");
+    if (!rows.length) expect(screen.getByText("لا توجد مشاهدات منتجات ضمن هذه الفترة بعد.")).toBeInTheDocument();
+    else expect(screen.getByRole("figure").querySelector("[data-view-bar]")).toHaveStyle({ width: "0%" });
+  });
   it("shows merchant-facing analytics copy without technical implementation details", async () => {
     adminApi.analytics.mockResolvedValueOnce({ ...summary, location_tracking_configured: false });
     render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
@@ -69,7 +86,7 @@ describe("Admin analytics page", () => {
     expect(screen.getByText("أكثر الأماكن التي جاءت منها الزيارات.")).toBeInTheDocument();
     expect(screen.getByText("المنتجات التي حازت على أكبر عدد من المشاهدات.")).toBeInTheDocument();
     expect(screen.getByText("القدس")).toBeInTheDocument();
-    expect(screen.getByText("ريزن شفاف")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "ريزن شفاف" })).toBeInTheDocument();
     expect(screen.getAllByText("زيارة")).not.toHaveLength(0);
     expect(screen.getAllByText("مشاهدة")).not.toHaveLength(0);
 
@@ -85,5 +102,9 @@ describe("Admin analytics page", () => {
     await screen.findByText("الزيارات");
     await user.click(screen.getByRole("button", { name: "آخر 7 أيام" }));
     await waitFor(() => expect(adminApi.analytics).toHaveBeenLastCalledWith("7d"));
+    await user.click(screen.getByRole("button", { name: "آخر 30 يوم" }));
+    await waitFor(() => expect(adminApi.analytics).toHaveBeenLastCalledWith("30d"));
+    await user.click(screen.getByRole("button", { name: "اليوم" }));
+    await waitFor(() => expect(adminApi.analytics).toHaveBeenLastCalledWith("today"));
   });
 });

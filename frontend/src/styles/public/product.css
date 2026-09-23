@@ -110,25 +110,24 @@
   .vs-gallery__nav button {
     display: grid;
     place-items: center;
-    width: 35px;
-    height: 35px;
+    width: 44px;
+    height: 44px;
     padding: 0;
-    border: 1px solid rgba(116, 80, 153, 0.14);
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.92);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
     color: var(--vs-accent-dark);
-    box-shadow: 0 3px 12px rgba(69, 42, 89, 0.12);
+    box-shadow: none;
+    text-shadow: 0 1px 2px white;
     font-family: Arial, sans-serif;
-    font-size: 24px;
-    font-weight: 300;
+    font-size: 36px;
+    font-weight: 700;
     line-height: 1;
     cursor: pointer;
     pointer-events: auto;
-    transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    transition: transform 160ms ease;
   }
   .vs-gallery__nav button:active {
-    background: var(--vs-accent-soft);
-    box-shadow: 0 2px 7px rgba(69, 42, 89, 0.1);
     transform: scale(0.94);
   }
   .vs-gallery__nav button:focus-visible {
@@ -137,8 +136,7 @@
   }
   @media (hover: hover) {
     .vs-gallery__nav button:hover {
-      background: var(--vs-accent-soft);
-      box-shadow: 0 4px 14px rgba(69, 42, 89, 0.16);
+      color: var(--vs-ink);
     }
   }
 }

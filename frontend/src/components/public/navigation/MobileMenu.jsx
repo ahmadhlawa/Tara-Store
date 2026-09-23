@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useActiveCategorySlug, useCategoryNav } from "../../../hooks/useStorefront.js";
 import { localePath, useLocale } from "../../../i18n/locale.jsx";
 import { Link as LanguageLink, useLocation } from "react-router-dom";
-import { Link } from "../../../i18n/routing.jsx";
+import { Link, NavLink } from "../../../i18n/routing.jsx";
 import { useStore } from "../../../app/StoreProvider.jsx";
 import { whatsappHref } from "../../../utils/format.js";
 import { Drawer } from "../overlays/Overlay.jsx";
@@ -15,6 +15,8 @@ export default function MobileMenu({ open, onClose }) {
   const { settings } = useStore();
   const categories = useCategoryNav(useActiveCategorySlug());
   const [expanded, setExpanded] = useState(() => new Set());
+  const [categoriesOpen, setCategoriesOpen] = useState(true);
+  const mobileLinks = ["/offers", "/packages", "/shop", "/contact"].map((href) => navLinks.find((link) => link.href === href));
   const toggle = (slug) => setExpanded((current) => {
     const next = new Set(current);
     next.has(slug) ? next.delete(slug) : next.add(slug);
@@ -55,13 +57,16 @@ export default function MobileMenu({ open, onClose }) {
     >
       <div className="vs-menu">
         <p className="vs-menu__label">{t("روابط")}</p>
-        {navLinks.map((link) => (
-          <Link key={link.href} to={link.href} className="vs-menu__link" onClick={onClose}>
+        <NavLink to="/" end className="vs-menu__link" onClick={onClose}>{t("الرئيسية")}</NavLink>
+        <button type="button" className="vs-menu__link vs-menu__categories" aria-expanded={categoriesOpen} aria-controls="vs-menu-categories" onClick={() => setCategoriesOpen((value) => !value)}>
+          {t("أقسام")}<ChevronDown size={16} style={{ transform: categoriesOpen ? "rotate(180deg)" : undefined }} />
+        </button>
+        <div id="vs-menu-categories" hidden={!categoriesOpen}>{categoryList(categories)}</div>
+        {mobileLinks.map((link) => (
+          <NavLink key={link.href} to={link.href} className="vs-menu__link" onClick={onClose}>
             {t(link.label)}
-          </Link>
+          </NavLink>
         ))}
-        <p className="vs-menu__label">{t("الأقسام")}</p>
-        {categoryList(categories)}
         <nav className="vs-menu__languages" aria-label={t("اللغة")}>
           <p className="vs-menu__label"><GlobeIcon size={17} />{t("اللغة")}</p>
           {[{ locale: "ar", label: "العربية" }, { locale: "en", label: "English" }].map((language) => (

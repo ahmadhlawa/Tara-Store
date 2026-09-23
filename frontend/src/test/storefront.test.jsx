@@ -21,7 +21,11 @@ describe("public storefront", () => {
     expect(await screen.findAllByText(settingsFixture.store_name)).not.toHaveLength(0);
     expect(screen.getByRole("search")).toBeInTheDocument();
     expect(document.querySelector(".vs-free-shipping-bar")).toBeNull();
-    expect(document.querySelector(".vs-footer")).toHaveTextContent("الدفع عند الاستلام");
+    const footer = within(screen.getByRole("contentinfo"));
+    expect(footer.queryByText("الدفع عند الاستلام")).not.toBeInTheDocument();
+    expect(footer.queryByText("الدفع والتوصيل")).not.toBeInTheDocument();
+    expect(footer.getByRole("heading", { name: "تواصل معنا" })).toBeInTheDocument();
+    expect(footer.getByRole("link", { name: "سياسة الاستبدال والاسترجاع" })).toHaveAttribute("href", "/ar/page/return-policy");
     expect(screen.queryByText(/تحويل بنكي|تحويل يدوي/)).not.toBeInTheDocument();
     expect(screen.queryByText("من الساعة العاشرة صباحاً حتى السابعة مساءً")).not.toBeInTheDocument();
   });
@@ -212,12 +216,14 @@ describe("public storefront", () => {
     });
     renderApp("/checkout");
 
-    expect(await screen.findByText("نظراً لطبيعة منتجات تارا وحساسية القطع، وكونها مصنوعة ومجهزة يدوياً بعناية، لا يمكن استبدال أو إرجاع المنتجات بعد تأكيد الطلب أو استلامه.")).toBeInTheDocument();
-    const acknowledgement = screen.getByRole("checkbox", { name: /قرأت سياسة الإرجاع والاستبدال وأوافق عليها/ });
+    expect(await screen.findByText("نظرًا لطبيعة منتجات TARA وحساسية القطع وكونها مصنوعة ومجهزة يدويًا بعناية، لا يمكن استبدال أو إرجاع المنتجات بعد تأكيد الطلب أو استلامه.")).toBeInTheDocument();
+    expect(screen.getByText(/يُستثنى من ذلك وصول المنتج بحالة تالفة.*24 ساعة/)).toBeInTheDocument();
+    expect(screen.queryByText("لا يتم تحصيل أي مبلغ الآن؛ يُدفع نقداً للمندوب عند التسليم.")).not.toBeInTheDocument();
+    const acknowledgement = screen.getByRole("checkbox", { name: /قرأت سياسة الاستبدال والاسترجاع وأوافق عليها/ });
     const submit = screen.getByRole("button", { name: /تأكيد وإرسال الطلب/ });
     expect(acknowledgement).not.toBeChecked();
     expect(submit).toBeDisabled();
-    expect(screen.getByRole("link", { name: "سياسة الإرجاع والاستبدال" })).toHaveAttribute("href", "/ar/page/return-policy");
+    expect(within(document.querySelector(".vs-checkout")).getByRole("link", { name: "سياسة الاستبدال والاسترجاع" })).toHaveAttribute("href", "/ar/page/return-policy");
 
     await userEvent.click(acknowledgement);
     expect(submit).toBeEnabled();
