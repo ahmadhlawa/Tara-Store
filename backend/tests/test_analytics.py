@@ -158,8 +158,31 @@ def test_locations_keep_known_jerusalem_area_places_before_collapsing_other_il_l
     assert normalize_location(None, None) == "غير محدد"
 
 
-def test_unrecognized_cloudflare_city_uses_unknown_location():
-    assert normalize_location("PS", "Unrecognized Village") == "غير محدد"
+def test_unrecognized_cloudflare_city_keeps_trusted_city_name():
+    assert normalize_location("PS", "Unrecognized Village") == "Unrecognized Village"
+
+
+def test_mojibake_cloudflare_city_is_recovered():
+    city = "Bāqah ash Sharqīyah"
+    mojibake = city.encode("utf-8").decode("latin-1")
+    assert normalize_location("PS", mojibake) == city
+
+
+def test_trusted_cloudflare_city_and_region_are_decoded_before_storage(client, db, monkeypatch):
+    monkeypatch.setattr(settings, "ANALYTICS_TRUST_CLOUDFLARE_HEADERS", True)
+    monkeypatch.setattr(settings, "ANALYTICS_PROXY_TOKEN", "x" * 40)
+    city = "Bāqah ash Sharqīyah"
+    response = post_visit(client, headers={
+        "CF-IPCountry": "PS",
+        "CF-IPCity": city.encode("utf-8"),
+        "CF-Region": "North%20District",
+        "X-Tara-Analytics-Proxy": "x" * 40,
+    })
+    assert response.status_code == 204
+    session = db.scalar(select(AnalyticsSession))
+    assert session.raw_city == city
+    assert session.raw_region == "North District"
+    assert session.location_label == city
 
 
 def test_cloudflare_location_headers_require_explicit_trust_and_nginx_secret(client, admin_token, monkeypatch):

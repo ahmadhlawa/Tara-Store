@@ -128,21 +128,33 @@ def _new_token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def _normalize_cloudflare_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = unquote(value).strip()
+    try:
+        return normalized.encode("latin-1").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return normalized
+
+
 def _city_key(value: str) -> str:
-    value = unquote(value).strip().casefold().replace("’", "'")
+    value = (_normalize_cloudflare_text(value) or "").casefold().replace("’", "'")
     value = re.sub(r"\s+", " ", value)
     return value
 
 
 def normalize_location(country_code: str | None, city_name: str | None) -> str:
     country = (country_code or "").strip().upper()
-    city = unquote(city_name or "").strip()
+    city = _normalize_cloudflare_text(city_name) or ""
     if city:
         explicit = _CITY_ALIASES.get(_city_key(city))
         if explicit:
             return explicit
     if country == "IL":
         return _INSIDE_LABEL
+    if city:
+        return city
     return _UNKNOWN_LOCATION
 
 
@@ -177,8 +189,8 @@ def _trusted_location(request: Request) -> tuple[str | None, str | None, str | N
         return None, None, None
     return (
         request.headers.get("cf-ipcountry"),
-        request.headers.get("cf-ipcity"),
-        request.headers.get("cf-region"),
+        _normalize_cloudflare_text(request.headers.get("cf-ipcity")),
+        _normalize_cloudflare_text(request.headers.get("cf-region")),
     )
 
 
@@ -237,8 +249,8 @@ def resolve_session(
             started_at=current,
             last_activity_at=current,
             country_code=(country or "").strip().upper() or None,
-            raw_city=unquote(city).strip() if city else None,
-            raw_region=unquote(region).strip() if region else None,
+            raw_city=city or None,
+            raw_region=region or None,
             location_label=location_label,
         )
         db.add(session)
@@ -247,8 +259,8 @@ def resolve_session(
         session.last_activity_at = current
         if session.location_label == _UNKNOWN_LOCATION and location_label != _UNKNOWN_LOCATION:
             session.country_code = (country or "").strip().upper() or None
-            session.raw_city = unquote(city).strip() if city else None
-            session.raw_region = unquote(region).strip() if region else None
+            session.raw_city = city or None
+            session.raw_region = region or None
             session.location_label = location_label
 
     assert session_token is not None
