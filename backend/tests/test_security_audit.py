@@ -34,10 +34,24 @@ def registered_routes(router):
 ADMIN_ROUTES = [route for route in registered_routes(app) if "/admin/" in route.path]
 
 
+def _request_path(route_path: str) -> str:
+    path = re.sub(r"\{[^}]+\}", "1", route_path)
+    prefix = settings.API_V1_PREFIX.rstrip("/")
+    if path == prefix or path.startswith(prefix + "/"):
+        return path
+    return prefix + "/" + path.lstrip("/")
+
+
+def test_request_path_accepts_prefixed_and_unprefixed_routes():
+    expected = "/api/v1/admin/analytics/summary"
+    assert _request_path("/admin/analytics/summary") == expected
+    assert _request_path(expected) == expected
+
+
 @pytest.mark.parametrize("route", ADMIN_ROUTES, ids=lambda route: f"{next(iter(route.methods))} {route.path}")
 def test_every_admin_operation_requires_authentication(client, route):
     assert get_current_admin in set(dependencies(route.dependant))
-    path = re.sub(r"\{[^}]+\}", "1", route.path)
+    path = _request_path(route.path)
     response = client.request(next(iter(route.methods)), path, json={})
     assert response.status_code == 401, (path, response.text)
 
@@ -46,7 +60,7 @@ def test_every_super_admin_operation_rejects_normal_role(client, admin_token):
     routes = [route for route in ADMIN_ROUTES if require_super_admin in set(dependencies(route.dependant))]
     assert routes
     for route in routes:
-        path = re.sub(r"\{[^}]+\}", "1", route.path)
+        path = _request_path(route.path)
         response = client.request(next(iter(route.methods)), path, json={}, headers=auth(admin_token))
         assert response.status_code == 403, (path, response.text)
 
