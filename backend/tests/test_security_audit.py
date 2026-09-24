@@ -37,7 +37,7 @@ ADMIN_ROUTES = [route for route in registered_routes(app) if "/admin/" in route.
 @pytest.mark.parametrize("route", ADMIN_ROUTES, ids=lambda route: f"{next(iter(route.methods))} {route.path}")
 def test_every_admin_operation_requires_authentication(client, route):
     assert get_current_admin in set(dependencies(route.dependant))
-    path = settings.API_V1_PREFIX + re.sub(r"\{[^}]+\}", "1", route.path)
+    path = re.sub(r"\{[^}]+\}", "1", route.path)
     response = client.request(next(iter(route.methods)), path, json={})
     assert response.status_code == 401, (path, response.text)
 
@@ -46,7 +46,7 @@ def test_every_super_admin_operation_rejects_normal_role(client, admin_token):
     routes = [route for route in ADMIN_ROUTES if require_super_admin in set(dependencies(route.dependant))]
     assert routes
     for route in routes:
-        path = settings.API_V1_PREFIX + re.sub(r"\{[^}]+\}", "1", route.path)
+        path = re.sub(r"\{[^}]+\}", "1", route.path)
         response = client.request(next(iter(route.methods)), path, json={}, headers=auth(admin_token))
         assert response.status_code == 403, (path, response.text)
 
