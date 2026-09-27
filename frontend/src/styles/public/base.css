@@ -405,7 +405,7 @@
 }
 
 .vs-badge--sale {
-  background: var(--vs-danger);
+  background: var(--vs-success);
   color: var(--vs-ink-invert);
 }
 .vs-badge--new {

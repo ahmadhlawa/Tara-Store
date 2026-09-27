@@ -116,9 +116,9 @@
     border: 0;
     border-radius: 0;
     background: transparent;
-    color: var(--vs-accent-dark);
+    color: var(--vs-gallery-arrow);
     box-shadow: none;
-    text-shadow: 0 1px 2px white;
+    text-shadow: none;
     font-family: Arial, sans-serif;
     font-size: 36px;
     font-weight: 700;
@@ -131,13 +131,8 @@
     transform: scale(0.94);
   }
   .vs-gallery__nav button:focus-visible {
-    outline: 2px solid var(--vs-accent-dark);
+    outline: 2px solid var(--vs-gallery-arrow);
     outline-offset: 2px;
-  }
-  @media (hover: hover) {
-    .vs-gallery__nav button:hover {
-      color: var(--vs-ink);
-    }
   }
 }
 
