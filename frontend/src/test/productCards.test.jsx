@@ -133,6 +133,14 @@ describe("product card behaviour", () => {
     expect(cartStorage.load()).toHaveLength(0);
   });
 
+  it("does not show the exact remaining stock on a product card", async () => {
+    stubApi({ ...storefrontRoutes, "/api/v1/products": page([{ ...productFixture, stock_quantity: 3 }]) });
+    renderApp("/shop");
+    const card = within(await cardOf(productFixture.name));
+    expect(card.queryByText("بقي 3 فقط")).toBeNull();
+    expect(card.getByRole("button", { name: /أضف إلى العربة/ })).toBeEnabled();
+  });
+
   it("gives a package its own card, its contents and its own action", async () => {
     stubApi({ ...storefrontRoutes, "/api/v1/products": page([packageProduct]) });
     renderApp("/shop");

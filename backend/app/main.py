@@ -201,7 +201,7 @@ def create_app(config=settings) -> FastAPI:
 
     @app.exception_handler(DomainError)
     def _domain_error(request: Request, exc: DomainError) -> JSONResponse:
-        return _error(exc.status_code, exc.code, exc.message)
+        return _error(exc.status_code, exc.code, exc.message, **exc.details)
 
     @app.exception_handler(StarletteHTTPException)
     def _http_error(request: Request, exc: StarletteHTTPException) -> JSONResponse:

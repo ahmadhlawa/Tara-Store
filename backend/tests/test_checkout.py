@@ -471,6 +471,66 @@ def test_out_of_stock_product_cannot_be_ordered(client: TestClient, db: Session)
     assert response.json()["error"]["code"] == "insufficient_stock"
 
 
+def test_order_reveals_remaining_stock_only_after_excess_request(client: TestClient, db: Session) -> None:
+    product = make_product(db, name="Test Product", stock=3)
+    excess = client.post(
+        "/api/v1/orders", json=_order_payload(product, items=[{"product_id": product.id, "quantity": 5}])
+    )
+    assert excess.status_code == 400
+    assert excess.json()["error"] == {
+        "code": "insufficient_stock",
+        "message": 'المنتج "Test Product" متبقي منه فقط 3 قطع.',
+        "remaining_stock": 3,
+        "product_name": "Test Product",
+        "variant_description": None,
+    }
+    preview = client.post(
+        "/api/v1/cart/price", json={"items": [{"product_id": product.id, "quantity": 5}]}
+    )
+    assert preview.status_code == 400
+    assert "remaining_stock" not in preview.json()["error"]
+    assert "3" not in preview.json()["error"]["message"]
+    allowed = client.post(
+        "/api/v1/orders", json=_order_payload(product, items=[{"product_id": product.id, "quantity": 3}])
+    )
+    assert allowed.status_code == 201
+
+
+def test_order_excess_variant_stock_names_selected_variant(client: TestClient, db: Session) -> None:
+    product = make_product(db, name="Test Product", stock=10)
+    variant = ProductVariant(product_id=product.id, title="Large", stock_quantity=3, is_active=True)
+    db.add(variant)
+    db.commit()
+    excess = client.post(
+        "/api/v1/orders",
+        json=_order_payload(product, items=[{"product_id": product.id, "variant_id": variant.id, "quantity": 5}]),
+    )
+    assert excess.status_code == 400
+    assert excess.json()["error"]["remaining_stock"] == 3
+    assert excess.json()["error"]["variant_description"] == "Large"
+    assert 'Test Product - Large' in excess.json()["error"]["message"]
+    assert db.get(ProductVariant, variant.id).stock_quantity == 3
+
+
+def test_order_aggregate_parent_stock_still_rejects(client: TestClient, db: Session) -> None:
+    product = make_product(db, name="Test Product", stock=3)
+    variants = [ProductVariant(product_id=product.id, title=title, stock_quantity=3, is_active=True)
+                for title in ("Small", "Large")]
+    db.add_all(variants)
+    db.commit()
+    response = client.post(
+        "/api/v1/orders",
+        json=_order_payload(product, items=[
+            {"product_id": product.id, "variant_id": variant.id, "quantity": 2} for variant in variants
+        ]),
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["remaining_stock"] == 3
+    assert response.json()["error"]["product_name"] == "Test Product"
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == 3
+
+
 def test_inactive_product_cannot_be_ordered(client: TestClient, db: Session) -> None:
     product = make_product(db, is_active=False, stock=10)
     response = client.post("/api/v1/orders", json=_order_payload(product))

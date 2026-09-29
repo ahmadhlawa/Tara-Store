@@ -83,7 +83,17 @@ def available_stock(product: Product, variant: ProductVariant | None) -> int | N
     return product.stock_quantity
 
 
-def price_lines(db: Session, requested: list[tuple]) -> list[PricedLine]:
+def detailed_stock_error(product: Product, variant: ProductVariant | None, stock: int) -> DomainError:
+    variant_description = variant.title if variant else None
+    name = f"{product.name} - {variant_description}" if variant_description else product.name
+    return DomainError(
+        f'المنتج "{name}" متبقي منه فقط {stock} قطع.',
+        code="insufficient_stock",
+        details={"remaining_stock": stock, "product_name": product.name, "variant_description": variant_description},
+    )
+
+
+def price_lines(db: Session, requested: list[tuple], *, reveal_stock: bool = False) -> list[PricedLine]:
     """Price `(product_id, variant_id, quantity)` triples against the database."""
     lines: list[PricedLine] = []
     for request in requested:
@@ -149,6 +159,8 @@ def price_lines(db: Session, requested: list[tuple]) -> list[PricedLine]:
 
         stock = available_stock(product, variant)
         if stock is not None and stock < quantity:
+            if reveal_stock:
+                raise detailed_stock_error(product, variant, stock)
             raise DomainError(
                 f"الكمية المطلوبة من «{product.name}» غير متوفرة.", code="insufficient_stock"
             )
@@ -230,8 +242,9 @@ def price_cart(
     *,
     coupon_code: str | None = None,
     delivery_area_id: int | None = None,
+    reveal_stock: bool = False,
 ) -> PricedCart:
-    lines = price_lines(db, requested)
+    lines = price_lines(db, requested, reveal_stock=reveal_stock)
     subtotal = money(sum((line.line_total for line in lines), ZERO))
 
     area = resolve_delivery_area(db, delivery_area_id)

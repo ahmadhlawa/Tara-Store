@@ -14,7 +14,7 @@ import { CARD_IMAGE_SIZES } from "../../../utils/responsiveImage.js";
  * reaches into the raw API shape and every surface shows the same states.
  *
  * At rest it is its picture: badges and a sold-out state over the artwork and
- * nothing else. Everything a shopper acts on — name, price, stock, the product's
+ * nothing else. Everything a shopper acts on — name, price, the product's
  * own button, quick view — lives in a panel that rises from the bottom on hover,
  * on keyboard focus, or on the first tap of a coarse pointer. The panel is
  * absolutely positioned, so revealing it never changes the card's height and
@@ -35,7 +35,7 @@ export default function ProductCard({ view, eager = false, revealDelay = 0 }) {
   const badges = productBadges(view);
   // Sold out is already stated over the artwork and on the disabled button, so
   // the panel stays quiet about it rather than saying it a third time.
-  const stockLabel = view.soldOut ? "" : view.lowStock ? t("بقي {0} فقط", [view.stock]) : t("متوفر");
+  const stockLabel = view.soldOut ? "" : t("متوفر");
 
   return (
     <article className="vs-card" {...revealProps} {...cardProps}>

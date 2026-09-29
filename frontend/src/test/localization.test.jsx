@@ -6,7 +6,8 @@ import App from "../App.jsx";
 import { cartStorage } from "../storage/cartStorage.js";
 import { en } from "../i18n/dictionaries.js";
 import { localePath, t } from "../i18n/locale.jsx";
-import { productFixture, storefrontRoutes, stubApi, page } from "./utils.jsx";
+import { request } from "../api/client.js";
+import { productFixture, storefrontRoutes, stubApi, page, respond } from "./utils.jsx";
 
 function LocationProbe() {
   const location = useLocation();
@@ -95,6 +96,20 @@ describe("storefront localization", () => {
     expect(await screen.findByText(fallbackName)).toBeInTheDocument();
     expect(screen.getAllByText("Add to cart").length).toBeGreaterThan(0);
     expect(screen.getByText("Privacy policy")).toBeInTheDocument();
+  });
+
+  it("translates order stock rejection using only the server's error details", async () => {
+    stubApi({ ...storefrontRoutes,
+      "POST /api/v1/orders": respond(400, { error: {
+        code: "insufficient_stock", message: 'المنتج "Test Product - Large" متبقي منه فقط 3 قطع.',
+        remaining_stock: 3, product_name: "Test Product", variant_description: "Large",
+      } }),
+    });
+    open("/en/shop");
+    await screen.findByRole("heading", { name: "All products" });
+    await expect(request("/orders", { method: "POST", body: {} })).rejects.toThrow(
+      'Only 3 pieces of "Test Product - Large" remain.',
+    );
   });
 
   it("uses source fallback and stable untranslated slugs", () => {

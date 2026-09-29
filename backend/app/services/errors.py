@@ -8,10 +8,11 @@ class DomainError(Exception):
 
     status_code = 400
 
-    def __init__(self, message: str, code: str = "invalid_request") -> None:
+    def __init__(self, message: str, code: str = "invalid_request", *, details: dict | None = None) -> None:
         super().__init__(message)
         self.message = message
         self.code = code
+        self.details = details or {}
 
 
 class NotFoundError(DomainError):

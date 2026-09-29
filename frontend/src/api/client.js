@@ -53,7 +53,10 @@ async function parseError(response, locale = "ar") {
     body = null;
   }
   const error = body && body.error ? body.error : {};
-  return new ApiError(locale === "en" ? (PUBLIC_ERRORS[error.code] || "Something went wrong. Please try again.") : (error.message || `HTTP ${response.status}`), {
+  const stockMessage = error.code === "insufficient_stock" && Number.isInteger(error.remaining_stock) && typeof error.product_name === "string"
+    ? `Only ${error.remaining_stock} pieces of "${error.product_name}${error.variant_description ? ` - ${error.variant_description}` : ""}" remain.`
+    : null;
+  return new ApiError(locale === "en" ? (stockMessage || PUBLIC_ERRORS[error.code] || "Something went wrong. Please try again.") : (error.message || `HTTP ${response.status}`), {
     status: response.status,
     code: error.code || "http_error",
     fields: error.fields || [],

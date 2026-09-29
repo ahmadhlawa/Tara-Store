@@ -37,7 +37,7 @@ from app.services import audit as audit_service
 from app.services import invoices as invoices_service
 from app.services import store_settings as settings_service
 from app.services.errors import DomainError, NotFoundError, PermissionDeniedError
-from app.services.pricing import PricedLine, money, price_cart, price_lines
+from app.services.pricing import PricedLine, detailed_stock_error, money, price_cart, price_lines
 
 ORDER_NUMBER_PREFIX = "ORD"
 
@@ -482,10 +482,10 @@ def _validate_and_apply_stock(lines: Sequence[PricedLine], sign: int) -> None:
     if sign < 0:
         for product, quantity in parent_totals.values():
             if product.stock_quantity < quantity:
-                raise DomainError("Insufficient product stock.", code="insufficient_stock")
+                raise detailed_stock_error(product, None, product.stock_quantity)
         for product, variant, quantity in totals.values():
             if variant is not None and variant.stock_quantity < quantity:
-                raise DomainError("Insufficient variant stock.", code="insufficient_stock")
+                raise detailed_stock_error(product, variant, variant.stock_quantity)
     for product, variant, quantity in totals.values():
         delta = sign * quantity
         if variant is not None:
@@ -507,6 +507,7 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
         draft.items,
         coupon_code=draft.coupon_code,
         delivery_area_id=draft.delivery_area_id,
+        reveal_stock=True,
     )
     package_snapshots = _package_component_snapshots(priced.lines)
     _validate_and_apply_stock(priced.lines, sign=-1)

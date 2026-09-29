@@ -294,7 +294,7 @@ describe("public storefront", () => {
 
   it("keeps the cart and does not open WhatsApp when order creation fails", async () => {
     cartStorage.save([
-      { key: "1|", productId: 1, variantId: null, slug: "clear-resin", name: "ريزن شفاف", unit: 100, bg: "", variation: "", qty: 1 },
+      { key: "1|", productId: 1, variantId: null, slug: "clear-resin", name: "ريزن شفاف", unit: 100, bg: "", variation: "", qty: 5 },
     ]);
     stubApi({
       ...storefrontRoutes,
@@ -302,7 +302,7 @@ describe("public storefront", () => {
         lines: [], subtotal: 100, discount: 0, delivery_fee: 20, total: 120,
         coupon_code: null, delivery_area_name: "رام الله",
       },
-      "POST /api/v1/orders": respond(500, { error: { code: "create_failed", message: "تعذر الحفظ" } }),
+      "POST /api/v1/orders": respond(400, { error: { code: "insufficient_stock", message: 'المنتج "ريزن شفاف" متبقي منه فقط 3 قطع.', remaining_stock: 3, product_name: "ريزن شفاف", variant_description: null } }),
     });
     const open = vi.spyOn(window, "open").mockImplementation(() => null);
     renderApp("/checkout");
@@ -314,8 +314,8 @@ describe("public storefront", () => {
     await userEvent.click(screen.getByRole("checkbox"));
     await userEvent.click(screen.getByRole("button", { name: /تأكيد وإرسال الطلب/ }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("تعذر الحفظ");
-    expect(cartStorage.load()).toHaveLength(1);
+    expect(await screen.findByRole("alert")).toHaveTextContent('المنتج "ريزن شفاف" متبقي منه فقط 3 قطع.');
+    expect(cartStorage.load()[0].qty).toBe(5);
     expect(open).not.toHaveBeenCalled();
     open.mockRestore();
   });
