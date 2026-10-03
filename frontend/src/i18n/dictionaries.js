@@ -97,6 +97,7 @@ export const en = {
   "لا يتم تحصيل أي مبلغ الآن؛ يُدفع نقداً للمندوب عند التسليم.": "No payment is collected now; pay the courier in cash on delivery.",
   "سياسة الإرجاع والاستبدال": "Returns and exchanges policy", "قرأت": "I have read", "وأوافق عليها": "and agree to it",
   "جارٍ إرسال الطلب…": "Placing order…", "تأكيد وإرسال الطلب — {0}": "Confirm and place order — {0}", "الخصم": "Discount",
+  "جارٍ حساب الإجمالي…": "Calculating total…", "تعذّر حساب الإجمالي": "Could not calculate total",
   "جميع المبالغ محسوبة من الخادم عند إتمام الطلب.": "All amounts are calculated at checkout.",
   "تواصل معنا | {0}": "Contact us | {0}", "نحن بالقرب منك": "We are here for you", "يسعدنا تواصلكم عبر قنواتنا التالية": "Reach us through the following channels",
   "كيف يمكننا مساعدتك؟": "How can we help?", "اختاري القناة الأنسب لك، وسنكون سعداء بالرد على استفسارك.": "Choose your preferred channel; we will be happy to answer your questions.",

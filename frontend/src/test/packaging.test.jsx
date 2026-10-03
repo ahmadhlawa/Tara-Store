@@ -1,4 +1,4 @@
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cartStorage } from "../storage/cartStorage.js";
@@ -16,6 +16,36 @@ const routes = {
 const priceCalls = (calls) => calls.filter((call) => call.path.startsWith("/api/v1/cart/price"));
 const packagingRow = (root) => within(root).getByText(/رسوم التغليف|Packaging fee/).parentElement;
 const totalRow = (root) => within(root).getByText(/^(الإجمالي|Total)$/).parentElement;
+const orderCalls = (calls) => calls.filter((call) => call.method === "POST" && call.path.startsWith("/api/v1/orders"));
+
+async function fillCheckout() {
+  const form = document.querySelector(".vs-checkout__form");
+  const fields = form.querySelectorAll("input[type=text], input[type=tel], textarea");
+  await userEvent.type(fields[0], "سارة أحمد");
+  await userEvent.type(fields[1], "0591234567");
+  await userEvent.type(fields[2], "رام الله، شارع الإرسال");
+  await userEvent.selectOptions(form.querySelector("select"), "1");
+  await userEvent.click(within(form).getByRole("checkbox"));
+  await waitFor(() => expect(form.querySelector("button[type=submit]")).toHaveTextContent("130 ₪"));
+  return form;
+}
+
+async function changeToUnquotedGift(mode, calls) {
+  const originalFetch = globalThis.fetch;
+  let resolveQuote;
+  globalThis.fetch = vi.fn((url, init) => String(url).includes("/cart/price")
+    ? new Promise((resolve) => { resolveQuote = resolve; })
+    : originalFetch(url, init));
+  await userEvent.click(screen.getByRole("radio", { name: /تغليف كهدية|Gift packaging/ }));
+  await waitFor(() => expect(resolveQuote).toBeTypeOf("function"));
+  if (mode === "failed") {
+    await act(async () => resolveQuote(new Response(JSON.stringify({ error: { code: "unavailable", message: "Quote unavailable" } }), { status: 400 })));
+    expect(await screen.findByRole("alert")).toHaveTextContent(document.documentElement.lang === "en"
+      ? "Something went wrong. Please try again." : "Quote unavailable");
+  }
+  expect(orderCalls(calls)).toHaveLength(0);
+  return resolveQuote;
+}
 
 describe("storefront packaging", () => {
   beforeEach(() => {
@@ -146,5 +176,45 @@ describe("storefront packaging", () => {
     await userEvent.click(screen.getByRole("radio", { name: /تغليف كهدية/ }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Quote unavailable");
     expect(totalRow(screen.getByRole("dialog"))).not.toHaveTextContent("105 ₪");
+  });
+
+  it.each([
+    ["ar", "pending", "جارٍ حساب الإجمالي…"],
+    ["en", "pending", "Calculating total…"],
+    ["ar", "failed", "تعذّر حساب الإجمالي"],
+    ["en", "failed", "Could not calculate total"],
+  ])("blocks %s confirmation when the current gift quote is %s", async (locale, mode, label) => {
+    const calls = stubApi(routes);
+    renderApp(`/${locale}/checkout`);
+    await screen.findByRole("radio", { name: /تغليف عادي|Normal packaging/ });
+    const form = await fillCheckout();
+    const resolveQuote = await changeToUnquotedGift(mode, calls);
+    const submit = form.querySelector("button[type=submit]");
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveTextContent(label);
+    expect(submit).not.toHaveTextContent("0 ₪");
+    await userEvent.click(submit);
+    expect(orderCalls(calls)).toHaveLength(0);
+    if (mode === "pending") {
+      await act(async () => resolveQuote(new Response(JSON.stringify(quote("gift")))));
+      await waitFor(() => expect(submit).toBeEnabled());
+      expect(submit).toHaveTextContent("137 ₪");
+    } else {
+      stubApi(routes);
+      await userEvent.click(screen.getByRole("radio", { name: /تغليف عادي|Normal packaging/ }));
+      await waitFor(() => expect(submit).toBeEnabled());
+      expect(submit).toHaveTextContent("130 ₪");
+    }
+  });
+
+  it.each(["pending", "failed"])("guards direct form submission when the gift quote is %s", async (mode) => {
+    const calls = stubApi(routes);
+    renderApp("/ar/checkout");
+    await screen.findByRole("radio", { name: /تغليف عادي/ });
+    const form = await fillCheckout();
+    await changeToUnquotedGift(mode, calls);
+    fireEvent.submit(form);
+    await act(async () => {});
+    expect(orderCalls(calls)).toHaveLength(0);
   });
 });

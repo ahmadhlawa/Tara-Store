@@ -1,5 +1,5 @@
 import { useLocale } from "../i18n/locale.jsx";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "../i18n/routing.jsx";
 import { useStore } from "../app/StoreProvider.jsx";
 import { useCartLines } from "../components/public/cart/useCartLines.js";
@@ -76,7 +76,13 @@ export default function CheckoutRoutePage() {
   const [errors, setErrors] = useState({});
   const [placing, setPlacing] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const [priced, setPriced] = useState(null);
+  const quoteInputs = useMemo(() => ({
+    cart, couponCode: coupon.applied || null, deliveryAreaId: form.areaId, packagingType, locale,
+  }), [cart, coupon.applied, form.areaId, packagingType, locale]);
+  const [quote, setQuote] = useState(null);
+  // A previous success cannot authorize submission after any pricing input changes.
+  const priced = quote?.inputs === quoteInputs ? quote.result : null;
+  const quoteError = quote?.inputs === quoteInputs ? quote.error : null;
   const clientReference = useRef(null);
   const submitting = useRef(false);
   const formRef = useRef(null);
@@ -92,27 +98,25 @@ export default function CheckoutRoutePage() {
   // tampered price can never become an order total.
   useEffect(() => {
     let cancelled = false;
-    setPriced(null);
-    if (!cart.length) {
-      setPriced(null);
+    setQuote(null);
+    if (!quoteInputs.cart.length) {
       return undefined;
     }
     checkoutService
-      .price(cart, { couponCode: coupon.applied || null, deliveryAreaId: form.areaId, packagingType })
+      .price(quoteInputs.cart, quoteInputs)
       .then((result) => {
         if (cancelled) return;
-        setPriced(result);
+        setQuote({ inputs: quoteInputs, result });
         setSubmitError(null);
       })
       .catch((error) => {
         if (cancelled) return;
-        setPriced(null);
-        setSubmitError(error.message);
+        setQuote({ inputs: quoteInputs, error: error.message || t("تعذّر حساب الإجمالي") });
       });
     return () => {
       cancelled = true;
     };
-  }, [cart, coupon.applied, form.areaId, packagingType, locale]);
+  }, [quoteInputs, t]);
 
   const update = (patch) => {
     const next = { ...form, ...patch };
@@ -124,7 +128,7 @@ export default function CheckoutRoutePage() {
 
   const placeOrder = async (event) => {
     event.preventDefault();
-    if (placing || submitting.current) return;
+    if (placing || submitting.current || !priced) return;
     const found = validate(form);
     setErrors(found);
     if (Object.keys(found).length) {
@@ -326,19 +330,21 @@ export default function CheckoutRoutePage() {
             ))}
           </fieldset>
 
-          {(submitError || Object.keys(errors).length > 0) && (
+          {(quoteError || submitError || Object.keys(errors).length > 0) && (
             <div className="vs-state vs-state--error vs-checkout__error" role="alert">
-              {submitError || Object.values(errors)[0]}
+              {quoteError || submitError || Object.values(errors)[0]}
             </div>
           )}
 
           <button
             type="submit"
             className="vs-btn vs-btn--primary vs-btn--lg vs-btn--block"
-            disabled={placing || !form.terms}
+            disabled={placing || !form.terms || !priced}
           >
             {placing && <span className="vs-spinner" aria-hidden="true" />}
-            {placing ? t("جارٍ إرسال الطلب…") : t("تأكيد وإرسال الطلب — {0}", [money(totals.total)])}
+            {placing ? t("جارٍ إرسال الطلب…")
+              : priced ? t("تأكيد وإرسال الطلب — {0}", [money(priced.total)])
+                : quoteError ? t("تعذّر حساب الإجمالي") : t("جارٍ حساب الإجمالي…")}
           </button>
         </form>
 
