@@ -498,6 +498,6 @@ describe("storefront payment surface", () => {
     });
     renderApp("/");
 
-    expect((await screen.findAllByText("متجر فيستا")).length).toBeGreaterThan(0);
+    expect(await screen.findByRole("link", { name: "متجر فيستا — الصفحة الرئيسية" })).toHaveTextContent("TARA");
   });
 });

@@ -21,7 +21,7 @@ it("uses one showcase request for multiple categories", async () => {
     "/api/v1/home-showcases": { 1: [productFixture], 2: [{ ...productFixture, id: 2, slug: "other-product" }] },
   });
   renderApp("/ar/");
-  await screen.findAllByText(settingsFixture.store_name);
+  await screen.findAllByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` });
   await waitFor(() => expect(calls.filter(c => c.path.includes("home-showcases"))).toHaveLength(1));
   expect(calls.filter(c => c.path.includes("category_id="))).toHaveLength(0);
 });
@@ -30,6 +30,6 @@ it("does not force a scroll/layout on a homepage already at the top", async () =
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   stubApi(storefrontRoutes);
   renderApp("/ar/");
-  await screen.findAllByText(settingsFixture.store_name);
+  await screen.findAllByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` });
   expect(window.scrollTo).not.toHaveBeenCalled();
 });

@@ -4,41 +4,15 @@ import { localePath } from "../../../i18n/locale.jsx";
 import { Link, NavLink } from "../../../i18n/routing.jsx";
 import { OVERLAY, useStore } from "../../../app/StoreProvider.jsx";
 import { useCartCountPulse } from "../../../hooks/useCartCountPulse.js";
-import { useLogoFit } from "../../../hooks/useLogoFit.js";
 import { navLinks } from "../../../store.js";
 import SearchBox from "../search/SearchBox.jsx";
 import { CartIcon, GlobeIcon, MenuIcon, SearchIcon } from "./icons.jsx";
 
 function StoreMark({ settings }) {
   const { t } = useLocale();
-  // The file is left exactly as the owner supplied it; only how much of the box
-  // its artwork is allowed to fill is decided here. See useLogoFit.
-  const { boxRef, style } = useLogoFit(settings.logoUrl);
   return (
     <Link to="/" className="vs-logo" aria-label={t("{0} — الصفحة الرئيسية", [settings.storeName])}>
-      {settings.logoUrl && (
-        <span className="vs-logo__box" ref={boxRef}>
-          <img
-            className="vs-logo__img"
-            src={settings.logoUrl}
-            // Decorative here now that the name is written beside it: without
-            // this the mark and the wordmark announce the store twice.
-            alt=""
-            aria-hidden="true"
-            style={style}
-          />
-        </span>
-      )}
-      {/* The name is set beside the mark rather than replaced by it. Tara's
-          supplied logo is a square lockup, and at the ~46px a navigation bar can
-          give it the wordmark inside the file is about eight pixels tall — so
-          the header would carry a brand mark and no legible store name at all.
-          A store that later supplies a wide wordmark logo can drop the text; the
-          markup is one span. */}
-      <span className="vs-logo__text">
-        <span className="vs-logo__name">{settings.storeName}</span>
-        {settings.tagline && <span className="vs-logo__tag">{settings.tagline}</span>}
-      </span>
+      <span className="vs-logo__name">TARA</span>
     </Link>
   );
 }

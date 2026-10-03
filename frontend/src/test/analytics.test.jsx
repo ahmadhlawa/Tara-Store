@@ -30,7 +30,7 @@ describe("storefront analytics tracking", () => {
   it("tracks a public route but never requires a client visitor identifier", async () => {
     const calls = stubApi({ ...storefrontRoutes, "POST /api/v1/analytics/visit": {} });
     renderApp("/ar/");
-    await screen.findAllByText(settingsFixture.store_name);
+    await screen.findAllByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` });
     await waitFor(() => expect(calls.some((call) => call.path.startsWith("/api/v1/analytics/visit"))).toBe(true));
     const call = calls.find((item) => item.path.startsWith("/api/v1/analytics/visit"));
     const body = JSON.parse(call.body);

@@ -14,11 +14,11 @@ import {
 import { cartStorage } from "../storage/cartStorage.js";
 
 describe("public storefront", () => {
-  it("renders the shell with store identity from the API", async () => {
+  it("renders the fixed brand with accessible store identity from the API", async () => {
     stubApi(storefrontRoutes);
     renderApp("/");
 
-    expect(await screen.findAllByText(settingsFixture.store_name)).not.toHaveLength(0);
+    expect(await screen.findByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` })).toHaveTextContent("TARA");
     expect(screen.getByRole("search")).toBeInTheDocument();
     expect(document.querySelector(".vs-free-shipping-bar")).toBeNull();
     const footer = within(screen.getByRole("contentinfo"));
