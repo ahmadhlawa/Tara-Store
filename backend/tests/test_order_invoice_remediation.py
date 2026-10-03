@@ -291,9 +291,9 @@ def test_stale_reopen_is_rejected_without_replacing_more_invoice_state(
 @pytest.mark.parametrize(
     "status",
     (
-        OrderStatus.CONFIRMED.value,
+        OrderStatus.NEW.value,
         OrderStatus.READY.value,
-        OrderStatus.DELIVERED.value,
+        OrderStatus.COMPLETED.value,
     ),
 )
 def test_cancelling_any_active_status_restores_stock(
@@ -303,10 +303,19 @@ def test_cancelling_any_active_status_restores_stock(
     admin = make_admin(db, email=f"cancel-{status}@example.com")
     order = _create_order(db, product)
 
-    orders_service.change_status(db, order, status, admin=admin)
+    if status == OrderStatus.COMPLETED.value:
+        _complete_order(db, order, admin)
+    else:
+        orders_service.change_status(db, order, status, admin=admin)
     db.commit()
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == 9
     orders_service.change_status(db, order, OrderStatus.CANCELLED.value, admin=admin)
     db.commit()
 
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == 10
+    orders_service.change_status(db, order, OrderStatus.CANCELLED.value, admin=admin)
+    db.commit()
     db.expire_all()
     assert db.get(Product, product.id).stock_quantity == 10

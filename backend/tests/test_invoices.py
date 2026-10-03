@@ -1,4 +1,4 @@
-"""Invoicing: issuance, idempotency, immutability, numbering, cancellation, tax, access."""
+"""Invoicing: issuance, synchronization, history, numbering, cancellation, tax, access."""
 
 from __future__ import annotations
 
@@ -58,6 +58,101 @@ def _complete_order(client: TestClient, token: str, order_id: int):
         json={"payment_method": "cash_on_delivery"},
         headers=auth(token),
     )
+
+
+@pytest.mark.parametrize("target", ["ready", "new"])
+def test_completed_departure_archives_and_recompletion_preserves_stock_and_history(
+    client, db, product, admin_token, target,
+):
+    created = _place_order(client, product)
+    order_id = created["id"]
+    ready = _set_status(client, admin_token, order_id, "ready")
+    assert ready.status_code == 200, ready.text
+    assert ready.json()["invoice"] is None
+    first = _complete_order(client, admin_token, order_id).json()["invoice"]
+    departed = _set_status(client, admin_token, order_id, target, note="Recheck")
+    assert departed.status_code == 200, departed.text
+    assert departed.json()["invoice"] is None
+    db.expire_all()
+    old = db.get(Invoice, first["id"])
+    assert old.status == "replaced"
+    assert old.active_invoice_marker is None
+    assert old.invoice_number == first["invoice_number"]
+    assert old.grand_total == Decimal("200.00")
+    assert db.get(Product, product.id).stock_quantity == 48
+    second_response = _complete_order(client, admin_token, order_id)
+    assert second_response.status_code == 200, second_response.text
+    second = second_response.json()["invoice"]
+    assert second["id"] != first["id"]
+    assert second["invoice_number"] != first["invoice_number"]
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == 48
+    assert db.get(Invoice, second["id"]).replacement_invoice_id == first["id"]
+    assert db.query(Invoice).filter_by(order_id=order_id).count() == 2
+    assert _complete_order(client, admin_token, order_id).json()["invoice"]["id"] == second["id"]
+
+
+def test_completed_cancellation_archives_and_restocks_once(client, db, product, admin_token):
+    order_id = _place_order(client, product)["id"]
+    first = _complete_order(client, admin_token, order_id).json()["invoice"]
+    for _ in range(2):
+        response = _set_status(client, admin_token, order_id, "cancelled", note="Customer cancelled")
+        assert response.status_code == 200, response.text
+    db.expire_all()
+    invoice = db.get(Invoice, first["id"])
+    assert invoice.status == "cancelled"
+    assert invoice.active_invoice_marker is None
+    assert invoice.invoice_number == first["invoice_number"]
+    assert invoice.grand_total == Decimal("200.00")
+    assert db.get(Product, product.id).stock_quantity == 50
+    from app.models import OrderActivity
+    events = db.query(OrderActivity).filter_by(order_id=order_id).all()
+    assert sum(event.event_type == "invoice_cancelled" for event in events) == 1
+    assert sum(event.event_type == "order_status_changed" for event in events) == 1
+
+
+@pytest.mark.parametrize("target", ["ready", "new"])
+def test_cancelling_archived_invoice_cannot_cancel_its_active_successor(
+    client, db, product, admin_token, target,
+):
+    """An old invoice URL must never cancel a newly completed order or return its stock."""
+    from app.models import OrderActivity
+    order_id = _place_order(client, product)["id"]
+    first = _complete_order(client, admin_token, order_id).json()["invoice"]
+    departed = _set_status(client, admin_token, order_id, target)
+    assert departed.status_code == 200, departed.text
+    completed = _complete_order(client, admin_token, order_id)
+    assert completed.status_code == 200, completed.text
+    second = completed.json()["invoice"]
+    db.expire_all()
+    activity_count = db.query(OrderActivity).filter_by(order_id=order_id).count()
+    response = client.post(
+        f"/api/v1/admin/invoices/{first['invoice_number']}/cancel",
+        headers=auth(admin_token), json={"reason": "Stale invoice screen"},
+    )
+    assert response.status_code == 409, response.text
+    assert response.json()["error"]["code"] == "invoice_not_active"
+    db.expire_all()
+    assert db.get(Order, order_id).status == "completed"
+    assert db.get(Invoice, first["id"]).status == "replaced"
+    assert db.get(Invoice, second["id"]).status == "active"
+    assert invoices_service.get_for_order(db, order_id).id == second["id"]
+    assert db.get(Product, product.id).stock_quantity == 48
+    assert db.query(OrderActivity).filter_by(order_id=order_id).count() == activity_count
+
+
+@pytest.mark.parametrize("status", ["new", "ready", "cancelled"])
+def test_invoice_service_cannot_issue_outside_completed(db, product, status):
+    from app.services.errors import DomainError
+    order = orders_service.create_order(db, orders_service.OrderDraft(
+        customer_name="Customer", customer_phone="0591234567", address="Main street",
+        items=[(product.id, None, 1)],
+    ))
+    order.status = status
+    with pytest.raises(DomainError) as exc:
+        invoices_service.issue_for_order(db, order)
+    assert exc.value.code == "order_not_completed"
+    assert db.query(Invoice).count() == 0
 
 
 @pytest.fixture()
@@ -156,6 +251,7 @@ def test_a_replaced_invoice_and_its_active_replacement_can_share_an_order(
     )
     db.commit()
 
+    order.status = OrderStatus.COMPLETED.value
     first = invoices_service.issue_for_order(db, order)
     db.commit()
 
@@ -356,7 +452,7 @@ def test_an_issued_invoice_cannot_be_edited_or_deleted(
 
 
 # ── cancellation ─────────────────────────────────────────────────────────────
-def test_cancelling_a_completed_order_is_rejected_and_keeps_its_active_invoice(
+def test_cancelling_a_completed_order_retains_its_historical_invoice(
     client: TestClient, db: Session, product: Product, admin_token: str
 ) -> None:
     created = _place_order(client, product, quantity=2)
@@ -371,19 +467,18 @@ def test_cancelling_a_completed_order_is_rejected_and_keeps_its_active_invoice(
     invoice = client.get(
         f"/api/v1/admin/invoices/{number}", headers=auth(admin_token)
     ).json()
-    assert rejected.status_code == 400
-    assert rejected.json()["error"]["code"] == "order_locked"
-    assert invoice["status"] == InvoiceStatus.ACTIVE.value
+    assert rejected.status_code == 200, rejected.text
+    assert invoice["status"] == InvoiceStatus.CANCELLED.value
     assert invoice["invoice_number"] == number
-    assert invoice["cancelled_at"] is None
-    assert invoice["cancellation_reason"] is None
-    assert invoice["cancelled_by_admin_id"] is None
+    assert invoice["cancelled_at"] is not None
+    assert invoice["cancellation_reason"] is not None
+    assert invoice["cancelled_by_admin_id"] is not None
     # The completed snapshot remains untouched.
     assert invoice["grand_total"] == 200.0
     assert len(invoice["items"]) == 1
 
 
-def test_cancelling_from_the_invoice_screen_rejects_a_completed_order(
+def test_cancelling_from_the_invoice_screen_archives_a_completed_order(
     client: TestClient, db: Session, product: Product, admin_token: str
 ) -> None:
     created = _place_order(client, product, quantity=2)
@@ -396,20 +491,20 @@ def test_cancelling_from_the_invoice_screen_rejects_a_completed_order(
         json={"reason": "نفدت الكمية"},
         headers=auth(admin_token),
     )
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == "order_locked"
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == InvoiceStatus.CANCELLED.value
 
     order_detail = client.get(
         f"/api/v1/admin/orders/{order.id}", headers=auth(admin_token)
     ).json()
-    assert order_detail["status"] == OrderStatus.COMPLETED.value
+    assert order_detail["status"] == OrderStatus.CANCELLED.value
 
-    # Rejection does not restore reserved stock.
+    # Cancellation restores the committed stock.
     db.expire_all()
-    assert db.get(Product, product.id).stock_quantity == 48
+    assert db.get(Product, product.id).stock_quantity == 50
 
 
-def test_repeated_invoice_cancellation_cannot_modify_a_completed_order(
+def test_repeated_invoice_cancellation_cannot_restock_twice(
     client: TestClient, db: Session, product: Product, admin_token: str
 ) -> None:
     created = _place_order(client, product, quantity=2)
@@ -420,18 +515,17 @@ def test_repeated_invoice_cancellation_cannot_modify_a_completed_order(
     first = client.post(
         f"/api/v1/admin/invoices/{number}/cancel", json={}, headers=auth(admin_token)
     )
-    assert first.status_code == 400
-    assert first.json()["error"]["code"] == "order_locked"
+    assert first.status_code == 200, first.text
 
     second = client.post(
         f"/api/v1/admin/invoices/{number}/cancel", json={}, headers=auth(admin_token)
     )
-    assert second.status_code == 400
-    assert second.json()["error"]["code"] == "order_locked"
+    assert second.status_code == 409
+    assert second.json()["error"]["code"] == "order_already_cancelled"
 
-    # Repeated rejection leaves stock unchanged.
+    # Repeated cancellation leaves the restored stock unchanged.
     db.expire_all()
-    assert db.get(Product, product.id).stock_quantity == 48
+    assert db.get(Product, product.id).stock_quantity == 50
 
 
 def test_a_cancelled_order_never_gets_a_second_invoice(

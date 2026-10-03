@@ -280,6 +280,7 @@ class OrderAdminUpdate(APIModel):
     admin_notes: str | None = Field(default=None, max_length=2000)
     discount: Money = Field(ge=0)
     delivery_fee: Money = Field(ge=0)
+    packaging_type: PackagingType | None = None
     status: Literal["new", "ready", "completed", "cancelled"]
     reason: str | None = Field(default=None, max_length=500)
     items: list[AdminOrderItemInput] = Field(min_length=1, max_length=100)

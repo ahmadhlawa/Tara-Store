@@ -404,6 +404,7 @@ def edit_order(
         admin_notes=payload.admin_notes,
         discount=payload.discount,
         delivery_fee=payload.delivery_fee,
+        packaging_type=payload.packaging_type,
         status=payload.status,
         reason=payload.reason,
         items=tuple(

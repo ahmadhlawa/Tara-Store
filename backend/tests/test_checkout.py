@@ -596,10 +596,12 @@ def test_cancelling_restores_stock_exactly_once(
     reopened = client.post(
         f"/api/v1/admin/orders/{order.id}/status",
         headers=auth(admin_token),
-        json={"status": "processing"},
+        json={"status": "ready"},
     )
-    assert reopened.status_code == 422
+    assert reopened.status_code == 400
+    assert reopened.json()["error"]["code"] == "order_cancelled"
     db.expire_all()
+    assert db.get(Order, order.id).status == "cancelled"
     assert db.get(Product, product.id).stock_quantity == 10
 
 
@@ -610,15 +612,16 @@ def test_order_status_history_is_recorded(
     created = client.post("/api/v1/orders", json=_order_payload(product))
     order = db.query(Order).filter(Order.order_number == created.json()["order_number"]).one()
 
-    client.post(
+    changed = client.post(
         f"/api/v1/admin/orders/{order.id}/status",
         headers=auth(admin_token),
-        json={"status": "confirmed", "note": "تم التأكيد هاتفياً"},
+        json={"status": "ready", "note": "تم التأكيد هاتفياً"},
     )
+    assert changed.status_code == 200, changed.text
     detail = client.get(f"/api/v1/admin/orders/{order.id}", headers=auth(admin_token)).json()
 
     history = detail["status_history"]
-    assert [h["new_status"] for h in history] == ["new", "confirmed"]
+    assert [h["new_status"] for h in history] == ["new", "ready"]
     assert history[0]["old_status"] is None
     assert history[1]["old_status"] == "new"
     assert history[1]["note"] == "تم التأكيد هاتفياً"

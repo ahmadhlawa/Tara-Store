@@ -1,17 +1,9 @@
-"""Invoice issuance, numbering and cancellation.
+"""Invoice issuance, synchronization, numbering and archival.
 
-Every write happens inside the caller's transaction, exactly like `services.orders`: the
-endpoint commits once, so an order reaching `confirmed` and its invoice either both land
-or neither does. There is no path that confirms an order and then fails to invoice it.
-
-Three rules the rest of the codebase depends on:
-
-1. **One invoice per order, forever.** Enforced by a unique constraint on
-   `invoices.order_id`, not just by the check in `issue_for_order`.
-2. **Issued invoices are immutable.** Nothing here updates a snapshot column after
-   creation, and there is no API that can.
-3. **Numbers are sequential and never reused.** The counter only ever increments;
-   cancelling an invoice does not give its number back.
+Writes share the caller's transaction with the order. Completion issues one active
+invoice, enforced by the unique active marker. Completed edits synchronize that row;
+leaving completion archives it. Historical rows, issuer/settings snapshots and numbers
+are retained, and the numbering counter never decrements.
 """
 
 from __future__ import annotations
@@ -113,7 +105,7 @@ def next_invoice_number(db: Session, prefix: str) -> str:
     """Reserve the next number in `prefix`'s series.
 
     The row is locked for update where the database supports it, so two concurrent
-    confirmations queue rather than race. SQLite has no row locks, but it serialises
+    completions queue rather than race. SQLite has no row locks, but it serialises
     write transactions anyway, which gives the same outcome. The unique constraint on
     `invoice_number` is the backstop under either engine.
     """
@@ -133,7 +125,7 @@ def next_invoice_number(db: Session, prefix: str) -> str:
 
 
 def _tax_for(total: Decimal, *, enabled: bool, rate: Decimal, inclusive: bool) -> Decimal:
-    """Tax on the order total (goods after discount, plus delivery).
+    """Tax on the order total (goods after discount, delivery and packaging).
 
     Disabled, or a zero rate, means exactly zero — never a rounding artefact — so a
     non-tax instance's invoice totals match its order totals to the cent.
@@ -171,11 +163,12 @@ def issue_for_order(
     payment_details: str | None = None,
     invoice_notes: str | None = None,
 ) -> Invoice:
-    """Issue the invoice for `order`, or return the one it already has.
-
-    Idempotent by design: confirming an already-invoiced order is a no-op that returns
-    the existing invoice rather than raising or creating a second one.
-    """
+    """Issue for a completed order, idempotently returning its active invoice."""
+    order = db.execute(
+        select(Order).where(Order.id == order.id).with_for_update()
+    ).scalar_one()
+    if order.status != OrderStatus.COMPLETED.value:
+        raise DomainError("Only completed orders can receive an invoice.", code="order_not_completed")
     existing = get_for_order(db, order.id)
     if existing is not None:
         return existing
@@ -295,10 +288,10 @@ def issue_for_order(
     return invoice
 
 
-def replace_for_reopen(
-    db: Session, order: Order, *, admin: AdminUser, reason: str
+def archive_active_for_order(
+    db: Session, order: Order, *, admin: AdminUser | None = None, reason: str | None = None
 ) -> Invoice | None:
-    """Archive the current invoice while retaining its immutable snapshot for correction."""
+    """Retire the current snapshot without deleting its row or releasing stock."""
     invoice = get_for_order(db, order.id)
     if invoice is None:
         return None
@@ -312,12 +305,85 @@ def replace_for_reopen(
         db,
         order_id=order.id,
         invoice_id=invoice.id,
-        actor_admin_id=admin.id,
+        actor_admin_id=admin.id if admin else None,
         event_type="invoice_replaced",
         before_data={"status": InvoiceStatus.ACTIVE.value, "invoice_number": invoice.invoice_number},
         after_data={"status": InvoiceStatus.REPLACED.value, "invoice_number": invoice.invoice_number},
         reason=reason,
     )
+    return invoice
+
+
+def replace_for_reopen(
+    db: Session, order: Order, *, admin: AdminUser, reason: str
+) -> Invoice | None:
+    """Compatibility entry point for archiving on reopen."""
+    return archive_active_for_order(db, order, admin=admin, reason=reason)
+
+
+_ORDER_SNAPSHOT_FIELDS = {
+    "customer_name": "customer_name", "customer_phone": "customer_phone",
+    "customer_email": "customer_email", "delivery_address": "address",
+    "delivery_area_name": "delivery_area_name", "customer_notes": "customer_notes",
+    "payment_method": "payment_method", "subtotal": "subtotal", "discount": "discount",
+    "coupon_code": "coupon_code", "delivery_fee": "delivery_fee",
+    "packaging_type": "packaging_type", "packaging_fee": "packaging_fee",
+}
+_ITEM_SNAPSHOT_FIELDS = (
+    "product_name", "sku", "variant_description", "item_kind", "manual_description",
+    "unit_price", "quantity", "line_total",
+)
+
+
+def _current_snapshot(invoice: Invoice) -> dict:
+    fields = (*_ORDER_SNAPSHOT_FIELDS, "tax_amount", "grand_total", "payment_status",
+              "paid_amount", "refunded_amount", "remaining_amount")
+    return {
+        **{field: getattr(invoice, field) for field in fields},
+        "items": [{field: getattr(item, field) for field in _ITEM_SNAPSHOT_FIELDS}
+                  for item in invoice.items],
+    }
+
+
+def sync_active_from_order(
+    db: Session, order: Order, *, admin: AdminUser, reason: str | None = None
+) -> Invoice:
+    """Synchronize business values using historical tax settings and invoice identity."""
+    if order.status != OrderStatus.COMPLETED.value:
+        raise DomainError("Only completed orders can synchronize an invoice.", code="order_not_completed")
+    invoice = db.execute(
+        select(Invoice).options(selectinload(Invoice.items)).where(
+            Invoice.order_id == order.id, Invoice.status == InvoiceStatus.ACTIVE.value,
+            Invoice.active_invoice_marker == InvoiceStatus.ACTIVE.value,
+        ).with_for_update().execution_options(populate_existing=True)
+    ).scalar_one_or_none()
+    if invoice is None:
+        raise DomainError("Completed orders require an active invoice.", code="active_invoice_required")
+    before = _current_snapshot(invoice)
+    for field, order_field in _ORDER_SNAPSHOT_FIELDS.items():
+        setattr(invoice, field, getattr(order, order_field))
+    order_total = money(order.total)
+    invoice.tax_amount = _tax_for(order_total, enabled=invoice.tax_enabled,
+                                  rate=invoice.tax_rate, inclusive=invoice.prices_include_tax)
+    invoice.grand_total = (order_total if invoice.prices_include_tax or not invoice.tax_enabled
+                           else money(order_total + invoice.tax_amount))
+    if invoice.grand_total != before["grand_total"]:
+        invoice.paid_amount = (invoice.grand_total if invoice.payment_status in {
+            PaymentStatus.PAID.value, PaymentStatus.REFUNDED.value} else ZERO)
+        invoice.refunded_amount = (invoice.grand_total
+                                   if invoice.payment_status == PaymentStatus.REFUNDED.value else ZERO)
+        invoice.remaining_amount = (invoice.grand_total
+                                    if invoice.payment_status == PaymentStatus.UNPAID.value else ZERO)
+    invoice.items[:] = [InvoiceItem(**{field: getattr(item, field) for field in _ITEM_SNAPSHOT_FIELDS})
+                        for item in order.items]
+    after = _current_snapshot(invoice)
+    if before != after:
+        from app.services.orders import record_order_activity
+        record_order_activity(
+            db, order_id=order.id, invoice_id=invoice.id, actor_admin_id=admin.id,
+            event_type="invoice_synchronized", before_data=before, after_data=after, reason=reason,
+        )
+    db.flush()
     return invoice
 
 
@@ -424,7 +490,7 @@ def search(
 
 
 def history_for_invoice(db: Session, invoice: Invoice) -> list[Invoice]:
-    """Return only immutable invoice rows for the same order; never hydrate live order data."""
+    """Return persisted snapshots for the same order; never hydrate live order data."""
     return list(
         db.execute(
             select(Invoice)

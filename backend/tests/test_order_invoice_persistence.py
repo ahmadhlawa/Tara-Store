@@ -54,6 +54,159 @@ def _invoice(order: Order, **changes: object) -> Invoice:
     return Invoice(**values)
 
 
+def test_completion_invoice_and_number_rollback_with_caller_transaction(db, category, normal_admin):
+    """Releasing an issuance savepoint must not commit a SQLite transaction early."""
+    from app.models import InvoiceSequence
+    from app.services import orders as orders_service
+    from tests.conftest import make_product
+    product = make_product(db, price="10.00", category_id=category.id)
+    order = orders_service.create_order(db, orders_service.OrderDraft(
+        customer_name="Customer", customer_phone="0591234567", address="Main street",
+        items=[(product.id, None, 1)],
+    ))
+    db.commit()
+    order_id = order.id
+    orders_service.complete_order(
+        db, order_id=order_id, admin=normal_admin, payment_method="cash_on_delivery",
+        paid_amount=Decimal("0.00"), payment_details=None, invoice_notes=None,
+    )
+    db.rollback()
+    db.expire_all()
+    assert db.get(Order, order_id).status == "new"
+    assert db.query(Invoice).count() == 0
+    assert db.query(InvoiceSequence).count() == 0
+    assert db.query(OrderActivity).filter_by(event_type="invoice_issued").count() == 0
+
+
+def test_repeated_uninvoiced_cancellation_in_one_transaction_restocks_once(db, category, normal_admin):
+    """Refreshing a locked row must not discard a pending cancellation and replay stock."""
+    from app.services import orders as orders_service
+    from tests.conftest import make_product
+    product = make_product(db, price="10.00", stock=10, category_id=category.id)
+    order = orders_service.create_order(db, orders_service.OrderDraft(
+        customer_name="Customer", customer_phone="0591234567", address="Main street",
+        items=[(product.id, None, 2)],
+    ))
+    db.commit()
+    for _ in range(2):
+        orders_service.change_status(db, order, "cancelled", admin=normal_admin)
+    db.commit()
+    db.expire_all()
+    assert product.stock_quantity == 10
+    assert db.query(OrderActivity).filter_by(event_type="order_status_changed").count() == 1
+
+
+def test_customer_only_completed_edit_preserves_existing_partial_payment(client, db, category, admin_token):
+    """Synchronizing customer data must not erase money accepted by the existing payment API."""
+    from tests.conftest import auth, make_product
+    product = make_product(db, price="10.00", category_id=category.id)
+    created = client.post("/api/v1/orders", json={
+        "client_reference": "partial-customer-sync", "customer_name": "Original Customer",
+        "customer_phone": "0591234567", "address": "Original Street",
+        "items": [{"product_id": product.id, "quantity": 1}],
+    }).json()
+    path = f"/api/v1/admin/orders/{created['id']}"
+    completed = client.post(path + "/complete", headers=auth(admin_token), json={
+        "payment_method": "cash_on_delivery", "paid_amount": "5.00",
+    })
+    assert completed.status_code == 200, completed.text
+    response = client.patch(path, headers=auth(admin_token), json={
+        "customer_name": "Edited Customer", "customer_phone": "0591234567",
+        "address": "Original Street", "payment_method": "cash_on_delivery",
+        "discount": "0.00", "delivery_fee": "0.00", "status": "completed",
+        "reason": "Customer correction", "items": [{"product_id": product.id, "quantity": 1}],
+    })
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    invoice = db.get(Invoice, completed.json()["invoice"]["id"])
+    assert invoice.customer_name == "Edited Customer"
+    assert (invoice.payment_status, invoice.paid_amount, invoice.refunded_amount, invoice.remaining_amount) == (
+        "unpaid", Decimal("5.00"), Decimal("0.00"), Decimal("5.00"))
+
+
+@pytest.mark.parametrize("payment_status,paid,refunded,remaining", [
+    ("unpaid", "0.00", "0.00", "31.35"),
+    ("paid", "31.35", "0.00", "0.00"),
+    ("refunded", "31.35", "31.35", "0.00"),
+])
+def test_completed_edit_persists_same_invoice_with_historical_identity_and_audit(
+    client, db, category, admin_token, payment_status, paid, refunded, remaining,
+):
+    """Missing sync, new numbering, live tax settings or stale payment money loses the contract."""
+    from app.services import store_settings as settings_service
+    from tests.conftest import auth, make_product
+    from app.models import Product
+    product = make_product(db, price="10.00", stock=10, category_id=category.id)
+    settings_row = settings_service.get_or_create_settings(db)
+    settings_row.store_name_ar = "Historical Store"
+    settings_row.tax_enabled = True
+    settings_row.tax_rate = Decimal("10.00")
+    settings_row.prices_include_tax = False
+    db.commit()
+    created = client.post("/api/v1/orders", json={
+        "client_reference": "completed-sync", "customer_name": "Original Customer",
+        "customer_phone": "0591234567", "address": "Original Street",
+        "items": [{"product_id": product.id, "quantity": 2}],
+    }).json()
+    path = f"/api/v1/admin/orders/{created['id']}"
+    completed = client.post(path + "/complete", headers=auth(admin_token), json={
+        "payment_method": "cash_on_delivery",
+    })
+    assert completed.status_code == 200, completed.text
+    invoice = db.get(Invoice, completed.json()["invoice"]["id"])
+    identity = (invoice.id, invoice.invoice_number, invoice.issued_at,
+                invoice.issued_by_admin_id, invoice.issued_by_admin_name, invoice.issued_by_admin_email)
+    invoice.payment_status = payment_status
+    invoice.paid_amount = Decimal("0.00") if payment_status == "unpaid" else Decimal("22.00")
+    invoice.refunded_amount = Decimal("22.00") if payment_status == "refunded" else Decimal("0.00")
+    invoice.remaining_amount = Decimal("22.00") if payment_status == "unpaid" else Decimal("0.00")
+    settings_row.store_name_ar = "Changed Store"
+    settings_row.tax_rate = Decimal("99.00")
+    db.commit()
+    response = client.patch(path, headers=auth(admin_token), json={
+        "customer_name": "Edited Customer", "customer_phone": "0597654321",
+        "customer_email": "edited@example.com", "address": "Edited Street",
+        "customer_notes": "Gift note", "payment_method": "cash_on_delivery",
+        "discount": "3.00", "delivery_fee": "4.00", "packaging_type": "gift",
+        "status": "completed", "reason": "Correction",
+        "items": [{"product_id": product.id, "quantity": 3, "unit_price": "7.50"}],
+    })
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    saved = db.get(Invoice, identity[0])
+    assert (saved.id, saved.invoice_number, saved.issued_at,
+            saved.issued_by_admin_id, saved.issued_by_admin_name, saved.issued_by_admin_email) == identity
+    assert saved.store_name == "Historical Store"
+    assert saved.tax_rate == Decimal("10.00")
+    assert saved.tax_amount == Decimal("2.85")
+    assert saved.grand_total == Decimal("31.35")
+    assert saved.customer_name == "Edited Customer"
+    assert saved.customer_phone == "0597654321"
+    assert saved.customer_email == "edited@example.com"
+    assert saved.delivery_address == "Edited Street"
+    assert saved.customer_notes == "Gift note"
+    assert saved.packaging_type == "gift"
+    assert saved.packaging_fee == Decimal("5.00")
+    assert saved.subtotal == Decimal("22.50")
+    assert saved.discount == Decimal("3.00")
+    assert saved.delivery_fee == Decimal("4.00")
+    assert [(i.quantity, i.unit_price, i.line_total) for i in saved.items] == [
+        (3, Decimal("7.50"), Decimal("22.50"))]
+    assert saved.payment_status == payment_status
+    assert (saved.paid_amount, saved.refunded_amount, saved.remaining_amount) == tuple(
+        Decimal(value) for value in (paid, refunded, remaining))
+    assert db.query(Invoice).filter_by(order_id=created["id"]).count() == 1
+    assert db.get(Product, product.id).stock_quantity == 7
+    activity = db.query(OrderActivity).filter_by(invoice_id=saved.id, event_type="invoice_synchronized").one()
+    assert activity.reason == "Correction"
+    assert activity.before_data["customer_name"] == "Original Customer"
+    assert activity.after_data["customer_name"] == "Edited Customer"
+    assert activity.before_data["grand_total"] == "22.00"
+    assert activity.after_data["grand_total"] == "31.35"
+    assert activity.before_data["items"][0]["quantity"] == 2
+    assert activity.after_data["items"][0]["quantity"] == 3
+
+
 def test_order_items_preserve_original_price_and_allow_manual_lines(db: Session) -> None:
     """Dropping original snapshots or requiring a catalog product loses editable-order history."""
     columns = Base.metadata.tables["order_items"].c

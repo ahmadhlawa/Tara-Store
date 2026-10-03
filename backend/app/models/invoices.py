@@ -1,14 +1,9 @@
 """Order invoices.
 
-An invoice is an **immutable financial snapshot**. Once issued, nothing on it is
-recomputed and nothing is joined at read time: the store's name, the customer's details,
-every line and every total are copied into these tables at issue time, so editing a
-product price or renaming the store later cannot change an invoice that was already
-given to a customer.
-
-The only mutation an issued invoice ever accepts is cancellation, which sets a status and
-three audit columns and leaves every snapshot value untouched. Rows are never deleted and
-numbers are never reused.
+The active invoice is a persisted financial snapshot synchronized on completed-order
+edits. Store, issuer and tax settings remain historical; reads never join live catalog
+or settings values. Leaving completion archives the snapshot without deleting its row.
+Numbers are never reused and archived business values remain unchanged.
 """
 
 from __future__ import annotations

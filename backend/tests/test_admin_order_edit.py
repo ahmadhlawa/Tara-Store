@@ -34,7 +34,7 @@ def _edit_payload(first: Product, second: Product | None = None, **changes: obje
         "admin_notes": "Internal note",
         "discount": "5.00",
         "delivery_fee": "7.00",
-        "status": "confirmed",
+        "status": "ready",
         "reason": "Customer agreed to the correction",
         "items": [
             {
@@ -216,7 +216,7 @@ def test_edit_rejects_completed_or_cancelled_status_and_manual_items(
     assert response.json()["error"]["code"] == "order_cancelled"
 
 
-def test_status_endpoint_cannot_complete_or_move_a_completed_order(
+def test_status_endpoint_requires_explicit_completion_and_allows_completed_departure(
     client: TestClient, db: Session, admin_token: str
 ) -> None:
     product = make_product(db, slug="admin-status-completed", name="Status", price="10.00")
@@ -237,10 +237,11 @@ def test_status_endpoint_cannot_complete_or_move_a_completed_order(
     moved = client.post(
         f"/api/v1/admin/orders/{order['id']}/status",
         headers=auth(admin_token),
-        json={"status": "confirmed"},
+        json={"status": "ready"},
     )
-    assert moved.status_code == 400
-    assert moved.json()["error"]["code"] == "order_locked"
+    assert moved.status_code == 200, moved.text
+    assert moved.json()["status"] == "ready"
+    assert moved.json()["is_locked"] is False
 
 
 def test_notes_change_requires_reason_and_records_material_activity(
@@ -306,14 +307,14 @@ def test_edit_rejects_legacy_current_statuses_outside_approved_workflow(
     response = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=auth(admin_token),
-        json=_edit_payload(product, status="confirmed"),
+        json=_edit_payload(product, status="ready"),
     )
 
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "order_status_not_editable"
 
 
-def test_both_roles_complete_an_order_once_with_an_immutable_final_invoice(
+def test_both_roles_complete_an_order_once_with_a_persisted_invoice(
     client: TestClient, db: Session, admin_token: str, super_token: str, normal_admin, super_admin
 ) -> None:
     product = make_product(db, slug="completion-snapshot", name="Final price", price="10.00")
@@ -381,7 +382,7 @@ def test_super_admin_reopens_completed_order_replaces_invoice_and_recompletion_l
     super_token: str,
     super_admin,
 ) -> None:
-    """Removing the reopen transition must leave the completed financial snapshot locked."""
+    """Reopen retains the prior snapshot and permits authorized website corrections."""
     product = make_product(db, slug="reopen-history", name="Reopen history", price="10.00")
     order = _create_order(client, product, suffix="reopen-history")
     completed = client.post(
@@ -404,12 +405,12 @@ def test_super_admin_reopens_completed_order_replaces_invoice_and_recompletion_l
     assert reopened.json()["active_invoice"] is None
     assert reopened.json()["invoices"][0]["status"] == "replaced"
 
-    blocked_edit = client.patch(
+    admin_edit = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=auth(admin_token),
         json=_edit_payload(product, status="ready"),
     )
-    assert blocked_edit.status_code == 403
+    assert admin_edit.status_code == 200, admin_edit.text
 
     corrected = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
@@ -419,7 +420,7 @@ def test_super_admin_reopens_completed_order_replaces_invoice_and_recompletion_l
     assert corrected.status_code == 200, corrected.text
     recompleted = client.post(
         f"/api/v1/admin/orders/{order['id']}/complete",
-        headers=auth(super_token),
+        headers=auth(admin_token),
         json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
     )
     assert recompleted.status_code == 200, recompleted.text
@@ -673,7 +674,7 @@ def _manual_edit_payload(order: dict, items: list[dict]) -> dict:
         "admin_notes": "Corrected by manager",
         "discount": str(order["discount"]),
         "delivery_fee": str(order["delivery_fee"]),
-        "status": "confirmed",
+        "status": "ready",
         "reason": "Correct the saved manual order",
         "items": items,
     }

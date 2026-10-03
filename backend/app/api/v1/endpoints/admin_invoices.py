@@ -1,9 +1,8 @@
 """Admin invoice access.
 
-Read, search and cancel. There is no create endpoint — invoices are issued by the domain
-when an order is confirmed, never by hand. There is no update endpoint and no delete
-endpoint: an issued invoice is immutable, and cancelling one keeps the row and its
-number permanently.
+Read, search, update payment and cancel the current invoice. The domain issues invoices
+at completion and synchronizes them on completed edits. Archived snapshots and numbers
+are retained; there is no direct create, snapshot edit or delete endpoint.
 """
 
 from __future__ import annotations
@@ -12,9 +11,11 @@ from datetime import date, datetime, time
 from typing import Annotated
 
 from fastapi import APIRouter, Query
+from sqlalchemy import select
 
 from app.api.deps import CurrentAdmin, DbSession, PageParams
 from app.core.enums import InvoiceStatus, OrderSource, OrderStatus, PaymentStatus
+from app.models import Invoice, Order
 from app.schemas.common import Page
 from app.schemas.invoices import (
     InvoiceCancelRequest,
@@ -26,6 +27,7 @@ from app.schemas.invoices import (
 from app.services import catalog as catalog_service
 from app.services import invoices as invoices_service
 from app.services import orders as orders_service
+from app.services.errors import ConflictError
 
 router = APIRouter(prefix="/admin", tags=["admin-invoices"])
 
@@ -133,8 +135,20 @@ def cancel_invoice(
     order and its invoice can never disagree about whether it is live.
     """
     invoice = invoices_service.get_by_number(db, invoice_number)
-    order = invoices_service.order_for_invoice(db, invoice)
+    # Match lifecycle writes' lock order: order first, then invoice. Locking reads
+    # refresh the identity map and see current state even under MySQL repeatable read.
+    order = db.execute(
+        select(Order).where(Order.id == invoice.order_id).with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalar_one()
     invoices_service.assert_cancellable(order)
+    invoice = db.execute(
+        select(Invoice).where(Invoice.id == invoice.id).with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalar_one()
+    if (invoice.status != InvoiceStatus.ACTIVE.value
+            or invoice.active_invoice_marker != InvoiceStatus.ACTIVE.value):
+        raise ConflictError("Only the current active invoice can cancel its order.", code="invoice_not_active")
 
     orders_service.change_status(
         db,
