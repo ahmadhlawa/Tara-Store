@@ -56,6 +56,37 @@ def test_new_and_ready_orders_have_no_invoice(db, category, normal_admin) -> Non
     assert invoices_service.get_for_order(db, order.id) is None
 
 
+def test_reopen_persists_ready_status_and_canonical_snapshots(db, category, super_admin) -> None:
+    product = make_product(db, category_id=category.id, price="10.00")
+    order = orders_service.create_order(db, orders_service.OrderDraft(
+        customer_name="Customer", customer_phone="0590000000", address="Address",
+        items=[(product.id, None, 1)],
+    ))
+    orders_service.complete_order(
+        db, order_id=order.id, admin=super_admin,
+        payment_method="cash_on_delivery", paid_amount=Decimal("0.00"),
+        payment_details=None, invoice_notes=None,
+    )
+    orders_service.reopen_completed_order(
+        db, order_id=order.id, reason="Correct address", admin=super_admin,
+    )
+    db.commit()
+    db.expire_all()
+
+    saved = db.get(Order, order.id)
+    assert saved.status == "ready"
+    assert saved.is_locked is False
+    assert saved.locked_at is None
+    assert orders_service.can_structurally_edit_order(order=saved, actor=super_admin)
+    reopened_history = next(row for row in saved.status_history if row.note == "Correct address")
+    assert reopened_history.old_status == "completed"
+    assert reopened_history.new_status == "ready"
+    activity = next(row for row in saved.activities if row.event_type == "order_reopened")
+    assert activity.before_data == {"status": "completed", "is_locked": True}
+    assert activity.after_data["status"] == "ready"
+    assert activity.after_data["is_locked"] is False
+
+
 def test_completed_edit_eligibility_preserves_admin_role_and_source_boundaries() -> None:
     from types import SimpleNamespace
 

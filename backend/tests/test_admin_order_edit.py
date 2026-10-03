@@ -399,6 +399,7 @@ def test_super_admin_reopens_completed_order_replaces_invoice_and_recompletion_l
     )
 
     assert reopened.status_code == 200, reopened.text
+    assert reopened.json()["status"] == "ready"
     assert reopened.json()["is_locked"] is False
     assert reopened.json()["active_invoice"] is None
     assert reopened.json()["invoices"][0]["status"] == "replaced"
@@ -406,14 +407,14 @@ def test_super_admin_reopens_completed_order_replaces_invoice_and_recompletion_l
     blocked_edit = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=auth(admin_token),
-        json=_edit_payload(product),
+        json=_edit_payload(product, status="ready"),
     )
     assert blocked_edit.status_code == 403
 
     corrected = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=auth(super_token),
-        json=_edit_payload(product, address="Ramallah, Corrected Street 30"),
+        json=_edit_payload(product, status="ready", address="Ramallah, Corrected Street 30"),
     )
     assert corrected.status_code == 200, corrected.text
     recompleted = client.post(

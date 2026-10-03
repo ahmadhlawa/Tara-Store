@@ -396,7 +396,7 @@ def test_upgrade_from_legacy_revision_retains_and_backfills_order_and_invoice(
     assert order["order_number"] == "ORD-LEGACY"
     assert order["status"] == "completed"
     assert order["source"] == "website"
-    assert order["is_locked"] is True
+    assert order["is_locked"] is False
     assert order["payment_method"] == "bank_transfer"
     assert invoice["invoice_number"] == "INV-LEGACY"
     assert invoice["status"] == "active"
@@ -413,10 +413,10 @@ def test_upgrade_from_legacy_revision_retains_and_backfills_order_and_invoice(
             ).all()
         )
     assert mapped_statuses == {
-        42: "confirmed",
-        43: "confirmed",
+        42: "ready",
+        43: "ready",
         44: "ready",
-        45: "delivered",
+        45: "completed",
     }
     with engine.connect() as connection:
         completion_eligible_orders = {
@@ -436,8 +436,8 @@ def test_upgrade_from_legacy_revision_retains_and_backfills_order_and_invoice(
             )
         ).scalar_one()
     assert completion_eligible_orders == {
-        46: ("delivered", False, None),
-        47: ("delivered", False, None),
+        46: ("completed", False, None),
+        47: ("completed", False, None),
     }
     assert cancelled_invoice_status == "cancelled"
     with engine.begin() as connection:

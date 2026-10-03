@@ -828,7 +828,7 @@ def reopen_completed_order(
     if invoice is None:
         raise DomainError("Completed orders require an active invoice.", code="active_invoice_required")
 
-    order.status = OrderStatus.CONFIRMED.value
+    order.status = OrderStatus.READY.value
     order.is_locked = False
     order.locked_at = None
     order.updated_at = utcnow()
