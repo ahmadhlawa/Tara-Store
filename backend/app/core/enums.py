@@ -66,6 +66,11 @@ class PaymentMethod(StrEnum):
     BANK_TRANSFER = "bank_transfer"
 
 
+class PackagingType(StrEnum):
+    NORMAL = "normal"
+    GIFT = "gift"
+
+
 class InvoiceStatus(StrEnum):
     """Internal invoice lifecycle; rows are never deleted."""
 

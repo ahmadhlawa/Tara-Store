@@ -242,6 +242,8 @@ def issue_for_order(
         discount=money(order.discount),
         coupon_code=order.coupon_code,
         delivery_fee=money(order.delivery_fee),
+        packaging_type=order.packaging_type,
+        packaging_fee=money(order.packaging_fee),
         tax_enabled=tax_enabled,
         tax_rate=tax_rate,
         prices_include_tax=inclusive,

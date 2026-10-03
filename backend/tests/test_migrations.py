@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from decimal import Decimal
 
 import pytest
 from alembic import command
@@ -96,6 +97,49 @@ def test_models_and_expected_tables_agree() -> None:
     assert set(metadata_with_models().tables) == EXPECTED_TABLES
 
 
+def test_packaging_migration_defaults_historical_orders_and_invoices(tmp_path, monkeypatch) -> None:
+    url = _disposable_url(tmp_path, monkeypatch)
+    config = _alembic_config(url)
+    command.upgrade(config, "0029_storefront_analytics")
+    engine = build_engine(url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(
+                "INSERT INTO orders (id,order_number,public_token,status,customer_name,customer_phone,"
+                "address,delivery_fee,subtotal,discount,total,payment_method,created_at,updated_at) VALUES "
+                "(1,'LEGACY-1','legacy-token','completed','Legacy Customer','0591234567',"
+                "'Legacy Address',20,200,10,210,'cash_on_delivery','2026-01-01','2026-01-01')"
+            ))
+            connection.execute(text(
+                "INSERT INTO invoices (id,invoice_number,order_id,status,issued_at,order_number,source,"
+                "payment_method,store_name,customer_name,customer_phone,delivery_address,currency_code,"
+                "currency_symbol,subtotal,discount,delivery_fee,tax_enabled,tax_rate,prices_include_tax,"
+                "tax_amount,grand_total,created_at,updated_at) VALUES "
+                "(1,'INV-LEGACY-1',1,'active','2026-01-01','LEGACY-1','website','cash_on_delivery',"
+                "'Legacy Store','Legacy Customer','0591234567','Legacy Address','ILS','ILS',"
+                "200,10,20,0,0,0,0,210,'2026-01-01','2026-01-01')"
+            ))
+        command.upgrade(config, "head")
+        inspector = inspect(engine)
+        for table, total_column in (("orders", "total"), ("invoices", "grand_total")):
+            columns = {column["name"]: column for column in inspector.get_columns(table)}
+            assert "packaging_type" in columns, f"{table} must persist packaging"
+            assert "packaging_fee" in columns, f"{table} must persist packaging fee"
+            assert columns["packaging_type"]["nullable"] is False
+            assert columns["packaging_fee"]["nullable"] is False
+            assert columns["packaging_type"]["default"] is not None
+            assert columns["packaging_fee"]["default"] is not None
+            with engine.connect() as connection:
+                row = connection.execute(text(
+                    f"SELECT packaging_type,packaging_fee,{total_column} FROM {table} WHERE id=1"
+                )).one()
+            assert row[0] == "normal"
+            assert Decimal(str(row[1])) == Decimal("0.00")
+            assert Decimal(str(row[2])) == Decimal("210.00")
+    finally:
+        engine.dispose()
+
+
 # Alembic creates alembic_version.version_num as VARCHAR(32). SQLite ignores that
 # length and stores whatever it is given, so an over-long revision id is invisible
 # there and only fails on MySQL, at the moment Alembic records the revision:
@@ -133,6 +177,29 @@ def test_translation_migration_compiles_for_mysql_without_backfill():
     assert "CREATE TABLE translations" in sql and "AUTO_INCREMENT" in sql
     assert "UNIQUE" in sql and "CREATE INDEX ix_translations_status" in sql
     assert "INSERT INTO" not in sql
+
+
+def test_packaging_migration_compiles_for_mysql():
+    import io
+    import runpy
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+
+    script = ScriptDirectory.from_config(_alembic_config("sqlite://"))
+    revisions = [revision for revision in script.walk_revisions()
+                 if revision.down_revision == "0029_storefront_analytics"]
+    assert len(revisions) == 1, "packaging needs a migration after the current schema"
+    migration = runpy.run_path(revisions[0].path)
+    buffer = io.StringIO()
+    context = MigrationContext.configure(dialect_name="mysql", opts={"as_sql": True, "output_buffer": buffer})
+    with Operations.context(context):
+        migration["upgrade"]()
+    sql = buffer.getvalue()
+    for table in ("orders", "invoices"):
+        assert f"ALTER TABLE {table} ADD COLUMN packaging_type" in sql
+        assert f"ALTER TABLE {table} ADD COLUMN packaging_fee" in sql
+    assert "NOT NULL DEFAULT 'normal'" in sql
+    assert "NUMERIC(12, 2)" in sql
 
 
 def test_the_revision_chain_is_linear_and_reaches_one_head() -> None:

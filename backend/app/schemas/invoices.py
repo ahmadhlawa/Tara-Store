@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pydantic import EmailStr, Field
 
-from app.core.enums import InvoiceStatus, OrderSource, PaymentMethod, PaymentStatus
+from app.core.enums import InvoiceStatus, OrderSource, PackagingType, PaymentMethod, PaymentStatus
 from app.schemas.common import APIModel, Money, UTCDateTime
 
 
@@ -94,6 +94,8 @@ class InvoiceOut(APIModel):
     discount: Money
     coupon_code: str | None = None
     delivery_fee: Money
+    packaging_type: PackagingType
+    packaging_fee: Money
     tax_enabled: bool
     tax_rate: Money
     prices_include_tax: bool

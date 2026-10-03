@@ -29,7 +29,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.enums import InvoiceStatus, PaymentStatus
+from app.core.enums import InvoiceStatus, PackagingType, PaymentStatus
 from app.db.base import Base, TimestampMixin, utcnow
 
 DEFAULT_INVOICE_PREFIX = "INV"
@@ -119,6 +119,13 @@ class Invoice(TimestampMixin, Base):
     coupon_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     delivery_fee: Mapped[Decimal] = mapped_column(
         Numeric(12, 2), default=Decimal("0.00"), nullable=False
+    )
+    packaging_type: Mapped[str] = mapped_column(
+        String(16), default=PackagingType.NORMAL.value,
+        server_default=PackagingType.NORMAL.value, nullable=False,
+    )
+    packaging_fee: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), default=Decimal("0.00"), server_default="0.00", nullable=False
     )
     # Tax is off by default. When it is off, tax_amount is 0.00 and grand_total equals
     # the order total exactly.

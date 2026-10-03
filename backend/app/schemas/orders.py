@@ -7,7 +7,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, EmailStr, Field, field_validator, model_validator
 
-from app.core.enums import OrderSource, OrderStatus, PaymentMethod, PaymentStatus
+from app.core.enums import OrderSource, OrderStatus, PackagingType, PaymentMethod, PaymentStatus
 from app.schemas.common import APIModel, Money, UTCDateTime
 from app.schemas.invoices import InvoiceSummary
 
@@ -31,6 +31,7 @@ class OrderCreate(APIModel):
     address: str = Field(min_length=6, max_length=1000)
     delivery_area_id: int | None = None
     coupon_code: str | None = Field(default=None, max_length=64)
+    packaging_type: PackagingType = PackagingType.NORMAL
     payment_method: PaymentMethod = PaymentMethod.CASH_ON_DELIVERY
     customer_notes: str | None = Field(default=None, max_length=1000)
     items: list[OrderItemIn] = Field(min_length=1, max_length=100)
@@ -50,6 +51,7 @@ class CartPricingRequest(APIModel):
     items: list[OrderItemIn] = Field(min_length=1, max_length=100)
     coupon_code: str | None = Field(default=None, max_length=64)
     delivery_area_id: int | None = None
+    packaging_type: PackagingType = PackagingType.NORMAL
 
 
 class CartPricingLine(APIModel):
@@ -69,6 +71,8 @@ class CartPricingResponse(APIModel):
     subtotal: Money
     discount: Money
     delivery_fee: Money
+    packaging_type: PackagingType
+    packaging_fee: Money
     total: Money
     coupon_code: str | None = None
     delivery_area_name: str | None = None
@@ -126,6 +130,8 @@ class OrderPublicOut(APIModel):
     customer_name: str
     delivery_area_name: str | None = None
     delivery_fee: Money
+    packaging_type: PackagingType
+    packaging_fee: Money
     subtotal: Money
     discount: Money
     total: Money
@@ -169,6 +175,8 @@ class OrderFinalReviewOut(APIModel):
     subtotal: Money
     discount: Money
     delivery_fee: Money
+    packaging_type: PackagingType
+    packaging_fee: Money
     total: Money
 
 
@@ -185,6 +193,8 @@ class OrderAdminOut(APIModel):
     delivery_area_id: int | None = None
     delivery_area_name: str | None = None
     delivery_fee: Money
+    packaging_type: PackagingType
+    packaging_fee: Money
     subtotal: Money
     discount: Money
     total: Money

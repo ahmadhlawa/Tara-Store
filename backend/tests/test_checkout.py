@@ -695,6 +695,106 @@ def test_cart_pricing_endpoint_matches_the_order(
     assert priced.json()["delivery_area_name"] == delivery_area.name
 
 
+@pytest.mark.parametrize("packaging_type,fee", [(None, "0.00"), ("normal", "0.00"), ("gift", "5.00")])
+def test_cart_packaging_fee_is_added_once_after_discount_and_delivery(
+    client: TestClient, db: Session, delivery_area: DeliveryArea, packaging_type, fee
+) -> None:
+    product = make_product(db, price="100.00", stock=10)
+    _coupon(db, code="TEN")
+    payload = {
+        "items": [{"product_id": product.id, "quantity": 2}],
+        "coupon_code": "TEN",
+        "delivery_area_id": delivery_area.id,
+    }
+    if packaging_type is not None:
+        payload["packaging_type"] = packaging_type
+    response = client.post("/api/v1/cart/price", json=payload)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["packaging_type"] == (packaging_type or "normal")
+    assert Decimal(str(body["packaging_fee"])) == Decimal(fee)
+    assert body["subtotal"] == 200.0
+    assert body["discount"] == 20.0
+    assert body["delivery_fee"] == 20.0
+    assert Decimal(str(body["total"])) == Decimal("200.00") + Decimal(fee)
+    assert body["total"] == body["subtotal"] - body["discount"] + body["delivery_fee"] + body["packaging_fee"]
+
+
+@pytest.mark.parametrize("packaging_type,fee", [(None, "0.00"), ("normal", "0.00"), ("gift", "5.00")])
+def test_order_packaging_is_persisted_and_exposed_in_public_and_admin_detail(
+    client: TestClient, db: Session, admin_token: str, packaging_type, fee
+) -> None:
+    product = make_product(db, price="100.00", stock=10)
+    payload = _order_payload(product)
+    if packaging_type is not None:
+        payload["packaging_type"] = packaging_type
+    response = client.post("/api/v1/orders", json=payload)
+    assert response.status_code == 201, response.text
+    body = response.json()
+    db.expire_all()
+    order = db.get(Order, body["id"])
+    assert order.packaging_type == (packaging_type or "normal")
+    assert order.packaging_fee == Decimal(fee)
+    assert order.total == Decimal("200.00") + Decimal(fee)
+    public = client.get(f"/api/v1/orders/{order.order_number}", headers={"X-Order-Token": body["public_token"]})
+    admin = client.get(f"/api/v1/admin/orders/{order.id}", headers=auth(admin_token))
+    for view in (response, public, admin):
+        assert view.status_code in (200, 201), view.text
+        assert view.json()["packaging_type"] == (packaging_type or "normal")
+        assert Decimal(str(view.json()["packaging_fee"])) == Decimal(fee)
+
+
+@pytest.mark.parametrize("endpoint", ["/api/v1/cart/price", "/api/v1/orders"])
+@pytest.mark.parametrize("packaging_type,fee", [("normal", 0.0), ("gift", 5.0)])
+def test_client_packaging_fee_is_ignored_like_other_client_prices(
+    client: TestClient, db: Session, endpoint: str, packaging_type: str, fee: float
+) -> None:
+    product = make_product(db, price="100.00", stock=10)
+    response = client.post(endpoint, json=_order_payload(
+        product, packaging_type=packaging_type, packaging_fee=-999, total=1
+    ))
+    assert response.status_code in (200, 201), response.text
+    assert response.json()["packaging_fee"] == fee
+    assert response.json()["total"] == 200.0 + fee
+
+
+@pytest.mark.parametrize("endpoint", ["/api/v1/cart/price", "/api/v1/orders"])
+def test_unknown_packaging_type_is_rejected(client: TestClient, db: Session, endpoint: str) -> None:
+    product = make_product(db)
+    response = client.post(endpoint, json=_order_payload(product, packaging_type="free-gift"))
+    assert response.status_code == 422, response.text
+    assert db.query(Order).count() == 0
+
+
+def test_admin_edit_preserves_selected_packaging_and_includes_its_fee_in_totals(
+    client: TestClient, db: Session, admin_token: str
+) -> None:
+    product = make_product(db, price="100.00", stock=10)
+    created = client.post("/api/v1/orders", json=_order_payload(product, packaging_type="gift"))
+    assert created.status_code == 201, created.text
+    response = client.patch(
+        f"/api/v1/admin/orders/{created.json()['id']}",
+        headers=auth(admin_token),
+        json={
+            "customer_name": "Edited Customer",
+            "customer_phone": "0591234567",
+            "address": "Ramallah, Main Street 10",
+            "payment_method": "cash_on_delivery",
+            "items": [{"product_id": product.id, "quantity": 3}],
+            "discount": "10.00",
+            "delivery_fee": "20.00",
+            "status": "new",
+            "reason": "Customer changed the quantity",
+        },
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["packaging_type"] == "gift"
+    assert response.json()["packaging_fee"] == 5.0
+    assert response.json()["total"] == 315.0
+    assert response.json()["final_review"]["packaging_type"] == "gift"
+    assert response.json()["final_review"]["packaging_fee"] == 5.0
+
+
 def test_order_lookup_requires_the_public_token(client: TestClient, db: Session) -> None:
     product = make_product(db, stock=5)
     created = client.post("/api/v1/orders", json=_order_payload(product)).json()

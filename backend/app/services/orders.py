@@ -21,7 +21,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
-from app.core.enums import AdminRole, OrderSource, OrderStatus, PaymentMethod, ProductType
+from app.core.enums import AdminRole, OrderSource, OrderStatus, PackagingType, PaymentMethod, ProductType
 from app.db.base import utcnow
 from app.models import (
     AdminUser,
@@ -67,6 +67,7 @@ def calculate_order_totals(
     items: Sequence[OrderItemLike],
     discount_amount: Decimal,
     delivery_fee: Decimal,
+    packaging_fee: Decimal = Decimal("0.00"),
 ) -> OrderTotals:
     """Calculate persisted order money values from quantized line totals."""
     line_totals: list[Decimal] = []
@@ -79,7 +80,8 @@ def calculate_order_totals(
     subtotal = money(sum(line_totals, Decimal("0.00")))
     discount = _nonnegative_money(discount_amount, field="discount_amount")
     delivery = _nonnegative_money(delivery_fee, field="delivery_fee")
-    total = money(max(Decimal("0.00"), subtotal - discount + delivery))
+    packaging = _nonnegative_money(packaging_fee, field="packaging_fee")
+    total = money(max(Decimal("0.00"), subtotal - discount + delivery + packaging))
     return OrderTotals(tuple(line_totals), subtotal, discount, delivery, total)
 
 
@@ -213,6 +215,7 @@ class OrderDraft:
     coupon_code: str | None = None
     payment_method: str = PaymentMethod.CASH_ON_DELIVERY.value
     customer_notes: str | None = None
+    packaging_type: PackagingType = PackagingType.NORMAL
 
 
 @dataclass(frozen=True, slots=True)
@@ -507,6 +510,7 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
         draft.items,
         coupon_code=draft.coupon_code,
         delivery_area_id=draft.delivery_area_id,
+        packaging_type=draft.packaging_type,
         reveal_stock=True,
     )
     package_snapshots = _package_component_snapshots(priced.lines)
@@ -516,6 +520,7 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
         priced.lines,
         discount_amount=priced.discount,
         delivery_fee=priced.delivery_fee,
+        packaging_fee=priced.packaging_fee,
     )
     order = Order(
         order_number=generate_order_number(db),
@@ -534,6 +539,8 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
         discount=totals.discount_amount,
         total=totals.total_amount,
         coupon_code=priced.coupon.code if priced.coupon else None,
+        packaging_type=priced.packaging_type.value,
+        packaging_fee=priced.packaging_fee,
         payment_method=draft.payment_method,
         customer_notes=(draft.customer_notes or "").strip() or None,
     )
@@ -730,7 +737,7 @@ def complete_order(
     if existing_invoice is not None:
         raise DomainError("An active invoice already exists for this order.", code="active_invoice_exists")
 
-    totals = calculate_order_totals(order.items, order.discount, order.delivery_fee)
+    totals = calculate_order_totals(order.items, order.discount, order.delivery_fee, order.packaging_fee)
     if (
         totals.subtotal != money(order.subtotal)
         or totals.total_amount != money(order.total)
@@ -1196,7 +1203,7 @@ def edit_incomplete_order(
             if item.kind == "catalog" and item.product_id is not None
         ],
     )
-    totals = calculate_order_totals(new_items, draft.discount, draft.delivery_fee)
+    totals = calculate_order_totals(new_items, draft.discount, draft.delivery_fee, order.packaging_fee)
     for item, line_total in zip(new_items, totals.line_totals, strict=True):
         item.line_total = line_total
 

@@ -103,6 +103,26 @@ def test_completing_an_order_issues_exactly_one_invoice(
     assert db.query(Invoice).filter(Invoice.order_id == order.id).count() == 1
 
 
+@pytest.mark.parametrize("packaging_type,fee,total", [("normal", "0.00", "200.00"), ("gift", "5.00", "205.00")])
+def test_invoice_snapshots_the_persisted_order_packaging(
+    client: TestClient, db: Session, product: Product, admin_token: str,
+    packaging_type: str, fee: str, total: str,
+) -> None:
+    created = _place_order(client, product, packaging_type=packaging_type)
+    order = _order_row(db, created["order_number"])
+    completed = _complete_order(client, admin_token, order.id)
+    assert completed.status_code == 200, completed.text
+    db.expire_all()
+    invoice = invoices_service.get_for_order(db, order.id)
+    assert invoice.packaging_type == packaging_type
+    assert invoice.packaging_fee == Decimal(fee)
+    assert invoice.grand_total == Decimal(total)
+    detail = client.get(f"/api/v1/admin/orders/{order.id}/invoice", headers=auth(admin_token))
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["packaging_type"] == packaging_type
+    assert Decimal(str(detail.json()["packaging_fee"])) == Decimal(fee)
+
+
 def test_repeating_completion_creates_no_duplicate(
     client: TestClient, db: Session, product: Product, admin_token: str
 ) -> None:

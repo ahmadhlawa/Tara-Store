@@ -62,6 +62,7 @@ def price_cart(payload: CartPricingRequest, db: DbSession, locale: Locale = "ar"
         [(item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids) for item in payload.items],
         coupon_code=payload.coupon_code,
         delivery_area_id=payload.delivery_area_id,
+        packaging_type=payload.packaging_type,
     )
     response = CartPricingResponse(
         lines=[
@@ -81,6 +82,8 @@ def price_cart(payload: CartPricingRequest, db: DbSession, locale: Locale = "ar"
         subtotal=priced.subtotal,
         discount=priced.discount,
         delivery_fee=priced.delivery_fee,
+        packaging_type=priced.packaging_type,
+        packaging_fee=priced.packaging_fee,
         total=priced.total,
         coupon_code=priced.coupon.code if priced.coupon else None,
         delivery_area_name=priced.delivery_area.name if priced.delivery_area else None,
@@ -110,6 +113,7 @@ def create_order(payload: OrderCreate, db: DbSession, response: Response, locale
         delivery_area_id=payload.delivery_area_id,
         coupon_code=payload.coupon_code,
         payment_method=payload.payment_method.value,
+        packaging_type=payload.packaging_type,
         customer_notes=payload.customer_notes,
         items=[(item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids) for item in payload.items],
     )

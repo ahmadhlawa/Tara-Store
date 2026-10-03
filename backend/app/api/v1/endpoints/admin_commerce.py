@@ -319,6 +319,8 @@ def get_order(order_id: int, db: DbSession, admin: CurrentAdmin):
             "subtotal": order.subtotal,
             "discount": order.discount,
             "delivery_fee": order.delivery_fee,
+            "packaging_type": order.packaging_type,
+            "packaging_fee": order.packaging_fee,
             "total": order.total,
         }
     return {
