@@ -31,6 +31,33 @@ from app.models import (
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TARA_PROFILE = REPO_ROOT / "instance" / "tara-store.yaml"
 
+
+def test_tara_bootstrap_does_not_recreate_default_home_sections(db: Session) -> None:
+    profile = load_profile(TARA_PROFILE)
+    apply_profile(db, profile)
+    assert db.execute(select(HomeSection)).scalars().all() == []
+    owner = HomeSection(section_key="featured", section_type="featured_products",
+                        title="Owner selection", is_visible=False, config={"limit": 3})
+    db.add(owner)
+    db.commit()
+    apply_profile(db, profile)
+    assert db.execute(select(HomeSection)).scalars().all() == [owner]
+    assert (owner.title, owner.is_visible, owner.config) == ("Owner selection", False, {"limit": 3})
+
+
+def test_demo_seed_does_not_create_or_overwrite_home_sections(db: Session) -> None:
+    from scripts.seed import ensure_home_sections
+
+    ensure_home_sections(db)
+    assert db.execute(select(HomeSection)).scalars().all() == []
+    owner = HomeSection(section_key="new-and-best", section_type="new_products",
+                        title="Owner arrivals", is_visible=False, config={"limit": 3})
+    db.add(owner)
+    db.commit()
+    ensure_home_sections(db)
+    assert db.execute(select(HomeSection)).scalars().all() == [owner]
+    assert (owner.title, owner.is_visible, owner.config) == ("Owner arrivals", False, {"limit": 3})
+
 PROFILE = {
     "profile_schema_version": 1,
     "template_version": template_version(),

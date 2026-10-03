@@ -87,41 +87,8 @@ features:
   silicone_molds: true
   coupons: true
 
-# Home page structure created on first bootstrap. Sections that already exist are left
-# alone, so owner edits survive. A section with `requires_feature` is skipped when that
-# feature is disabled.
-#
-# The titles are the headings the Arabic storefront prints above each section, so they
-# are written in Arabic here rather than left in the template's English — a section that
-# does render should not be the one English heading on the page. They match the
-# storefront's own fallback headings, and the owner can rename any of them in Admin.
-home_sections:
-  - key: "categories"
-    type: "categories"
-    title: "تسوق حسب القسم"
-    sort_order: 1
-  - key: "packages"
-    type: "packages"
-    title: "البكجات المميزة"
-    sort_order: 2
-    requires_feature: "packages"
-  - key: "molds"
-    type: "silicone_molds"
-    title: "قوالب السيليكون"
-    sort_order: 3
-    requires_feature: "silicone_molds"
-  - key: "featured"
-    type: "featured_products"
-    title: "منتجات مختارة"
-    sort_order: 4
-  - key: "new"
-    type: "new_products"
-    title: "وصل حديثاً"
-    sort_order: 5
-  - key: "bestsellers"
-    type: "bestsellers"
-    title: "الأكثر مبيعاً"
-    sort_order: 6
+# Homepage composition is managed explicitly in Admin.
+home_sections: []
 
 # The client's approved policy copy, as written by them. Spreadsheet-only formatting
 # (markdown asterisks, stray list numbering, decorative characters) has been removed so
