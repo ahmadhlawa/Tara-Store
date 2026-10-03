@@ -52,6 +52,11 @@ export const trustFeatures = [
 
 export const trustGlyphs = { truck: "⛟", wallet: "₪", refresh: "↺", headset: "☏" };
 
+export const packagingTypeLabels = {
+  normal: "تغليف عادي",
+  gift: "تغليف كهدية",
+};
+
 export const paymentMethods = [
   {
     key: "cash_on_delivery",

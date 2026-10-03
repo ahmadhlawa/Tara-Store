@@ -114,6 +114,7 @@ export function StoreProvider({ children }) {
     payment: "cash_on_delivery",
     terms: false,
   });
+  const [packagingType, setPackagingType] = useState("normal");
 
   // ── bootstrap ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -253,7 +254,10 @@ export function StoreProvider({ children }) {
     [cart, persistCart],
   );
 
-  const clearCart = useCallback(() => persistCart([]), [persistCart]);
+  const clearCart = useCallback(() => {
+    persistCart([]);
+    setPackagingType("normal");
+  }, [persistCart]);
 
   // ── search suggestions ─────────────────────────────────────────────────────
   const runSuggest = useCallback(
@@ -331,13 +335,15 @@ export function StoreProvider({ children }) {
       setCoupon,
       checkoutForm,
       setCheckoutForm,
+      packagingType,
+      setPackagingType,
     }),
     [
        ready, loadError, settings, categories, deliveryAreas, cart, localizedCart, bump,
       addToCart, setLineQty, removeLine, clearCart, toast, showToast, overlay, quickSlug,
       openOverlay, closeAll, navOpenCat, announce, scrolled, query,
       suggestions, suggestTried, runSuggest, recentSearches, rememberSearch,
-      viewed, rememberViewed, coupon, checkoutForm,
+      viewed, rememberViewed, coupon, checkoutForm, packagingType,
     ],
   );
 

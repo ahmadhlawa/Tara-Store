@@ -28,6 +28,8 @@ export const en = {
   "نجري بعض التحديثات على المتجر الآن، وسنعود للعمل في أقرب وقت. شكراً لصبركم.": "We are updating the store and will be back soon. Thank you for your patience.",
   "معلومات التواصل": "Contact information", "للتواصل معنا": "Get in touch", "تمت الإضافة": "Added",
   "عربة التسوّق ({0})": "Shopping cart ({0})", "المجموع الفرعي": "Subtotal",
+  "التغليف": "Packaging", "تغليف عادي": "Normal packaging", "تغليف كهدية": "Gift packaging",
+  "رسوم التغليف": "Packaging fee", "رسوم التغليف: {0}": "Packaging fee: {0}",
   "تُحتسب رسوم التوصيل حسب المنطقة في صفحة إتمام الطلب.": "Delivery fees depend on your area and are calculated at checkout.",
   "إتمام الطلب": "Checkout", "عرض العربة": "View cart", "لا توجد منتجات بعد": "No products yet",
   "أضف منتجات من الأقسام لتظهر هنا.": "Add products from the catalog to see them here.", "تصفّح المتجر": "Browse the store",

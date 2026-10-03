@@ -5,7 +5,7 @@ import { Link } from "../i18n/routing.jsx";
 import { useMoney } from "../hooks/useStorefront.js";
 import { checkoutService } from "../services/checkout.js";
 import { orderTokenStorage } from "../storage/authStorage.js";
-import { orderStatusLabels } from "../store.js";
+import { orderStatusLabels, packagingTypeLabels } from "../store.js";
 import { CheckIcon } from "../components/public/shell/icons.jsx";
 
 export default function OrderSuccessRoutePage() {
@@ -93,6 +93,12 @@ export default function OrderSuccessRoutePage() {
             <span>{t("طريقة الدفع")}</span>
             <strong>{t("الدفع عند الاستلام")}</strong>
           </div>
+          {order.packaging_type && (
+            <div className="vs-summary__row">
+              <span>{t("رسوم التغليف")} ({t(packagingTypeLabels[order.packaging_type] || order.packaging_type)})</span>
+              <strong>{money(order.packaging_fee)}</strong>
+            </div>
+          )}
           <div className="vs-summary__total">
             <span>{t("الإجمالي")}</span>
             <strong>{money(order.total)}</strong>
