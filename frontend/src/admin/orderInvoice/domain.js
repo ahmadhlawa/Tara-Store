@@ -1,6 +1,6 @@
 export const ORDER_STATUSES = [
-  ["new", "طلب جديد"], ["confirmed", "طلب مؤكد"], ["ready", "جاهز"],
-  ["delivered", "تم تسليمه"], ["completed", "مكتمل"], ["cancelled", "طلب ملغى"],
+  ["new", "طلب جديد"], ["ready", "جاهز"],
+  ["completed", "مكتمل"], ["cancelled", "طلب ملغى"],
 ];
 
 // The first element of every pair is the value the API validates; the second is a
@@ -18,7 +18,7 @@ export const ORDER_SOURCES = [["website", "الموقع"], ["whatsapp", "وات�
 export const PAYMENT_METHODS = [["cash_on_delivery", "الدفع عند الاستلام"], ["bank_transfer", "تحويل يدوي / بنكي"]];
 
 const labels = (entries) => Object.fromEntries(entries);
-export const orderStatusLabels = { ...labels(ORDER_STATUSES), pending: "طلب مؤكد", reviewing: "طلب مؤكد", processing: "جاهز", preparing: "جاهز", shipped: "تم تسليمه", out_for_delivery: "تم تسليمه" };
+export const orderStatusLabels = { ...labels(ORDER_STATUSES), confirmed: "طلب مؤكد", delivered: "تم تسليمه", pending: "طلب مؤكد", reviewing: "طلب مؤكد", processing: "جاهز", preparing: "جاهز", shipped: "تم تسليمه", out_for_delivery: "تم تسليمه" };
 export const paymentStatusLabels = { ...labels(PAYMENT_STATUSES), partially_paid: "غير مدفوع", partially_refunded: "مسترد" };
 export const invoiceStatusLabels = labels(INVOICE_STATUSES);
 export const orderSourceLabels = { ...labels(ORDER_SOURCES), phone: "أخرى", walk_in: "أخرى", social: "أخرى" };
@@ -83,9 +83,8 @@ export function formatMoney(value, currencySymbol = "") {
 export const isManager = (admin) => admin?.role === "super_admin";
 export const isAdmin = (admin) => admin?.role === "admin" || isManager(admin);
 export const canCreateManualOrder = (admin) => isManager(admin);
-const canManageReopenedOrder = (admin, order) => !order?.completed_at || isManager(admin);
-const editableOrderStatuses = new Set(["new", "confirmed", "ready", "delivered"]);
-export const canEditIncompleteOrder = (admin, order) => isAdmin(admin) && canManageReopenedOrder(admin, order) && !order?.is_locked && editableOrderStatuses.has(order?.status) && (isManager(admin) || (order?.source === "website" && !(order?.items || []).some((item) => item.item_kind === "manual")));
-export const canCompleteOrder = (admin, order) => isAdmin(admin) && canManageReopenedOrder(admin, order) && !order?.is_locked && order?.status !== "cancelled";
+const editableOrderStatuses = new Set(["new", "ready", "completed", "confirmed", "delivered"]);
+export const canEditIncompleteOrder = (admin, order) => isAdmin(admin) && editableOrderStatuses.has(order?.status) && (isManager(admin) || (order?.source === "website" && !(order?.items || []).some((item) => item.item_kind === "manual")));
+export const canCompleteOrder = (admin, order) => isAdmin(admin) && editableOrderStatuses.has(order?.status) && order?.status !== "completed";
 export const canReopenOrder = (admin, order) => isManager(admin) && order?.is_locked && order?.status === "completed";
 export const canUpdateInvoicePayment = (admin, invoice) => isAdmin(admin) && invoice?.status === "active";

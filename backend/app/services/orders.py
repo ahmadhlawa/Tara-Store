@@ -21,7 +21,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
-from app.core.enums import AdminRole, OrderSource, OrderStatus, PackagingType, PaymentMethod, ProductType
+from app.core.enums import AdminRole, MUTABLE_ORDER_STATUSES, OrderSource, OrderStatus, PackagingType, PaymentMethod, ProductType
 from app.db.base import utcnow
 from app.models import (
     AdminUser,
@@ -616,10 +616,7 @@ def change_status(
     admin: AdminUser | None = None,
     note: str | None = None,
 ) -> Order:
-    if new_status not in {
-        OrderStatus.NEW.value, OrderStatus.CONFIRMED.value, OrderStatus.READY.value,
-        OrderStatus.DELIVERED.value, OrderStatus.COMPLETED.value, OrderStatus.CANCELLED.value,
-    }:
+    if new_status not in MUTABLE_ORDER_STATUSES:
         raise DomainError("حالة الطلب غير معروفة.", code="invalid_status")
 
     old_status = order.status
@@ -920,9 +917,7 @@ def update_order_notes(
 _PATCHABLE_INCOMPLETE_STATUSES = frozenset(
     {
         OrderStatus.NEW.value,
-        OrderStatus.CONFIRMED.value,
         OrderStatus.READY.value,
-        OrderStatus.DELIVERED.value,
         OrderStatus.CANCELLED.value,
     }
 )
@@ -954,7 +949,7 @@ def _item_snapshot(item: OrderItem) -> dict[str, Any]:
 
 
 def can_structurally_edit_order(*, order: Order, actor: AdminUser) -> bool:
-    if order.status in {OrderStatus.COMPLETED.value, OrderStatus.CANCELLED.value}:
+    if order.status == OrderStatus.CANCELLED.value:
         return False
     if order.source != OrderSource.WEBSITE.value or any(
         item.item_kind == "manual" for item in order.items

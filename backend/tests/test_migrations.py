@@ -97,6 +97,52 @@ def test_models_and_expected_tables_agree() -> None:
     assert set(metadata_with_models().tables) == EXPECTED_TABLES
 
 
+def test_order_lifecycle_migration_changes_only_current_status_and_lock(tmp_path, monkeypatch) -> None:
+    url = _disposable_url(tmp_path, monkeypatch)
+    config = _alembic_config(url)
+    command.upgrade(config, "0030_order_packaging")
+    engine = build_engine(url)
+    try:
+        with engine.begin() as connection:
+            for index, status in enumerate(("confirmed", "delivered", "new", "ready", "completed", "cancelled", "pending"), 1):
+                connection.execute(text(
+                    "INSERT INTO orders (id,order_number,public_token,status,is_locked,customer_name,customer_phone,"
+                    "address,delivery_fee,subtotal,discount,total,payment_method,created_at,updated_at) VALUES "
+                    "(:id,:number,:token,:status,1,'Customer','0591234567','Address',0,10,0,10,"
+                    "'cash_on_delivery','2026-01-01','2026-01-01')"
+                ), {"id": index, "number": f"LEGACY-{index}", "token": f"token-{index}", "status": status})
+            connection.execute(text(
+                "INSERT INTO order_status_history (order_id,old_status,new_status,created_at) "
+                "VALUES (1,'pending','confirmed','2026-01-01'),(2,'confirmed','delivered','2026-01-01')"
+            ))
+            connection.execute(text(
+                "INSERT INTO order_activities (order_id,event_type,before_data,after_data,created_at) "
+                "VALUES (2,'order_status_changed','{\"status\":\"confirmed\"}','{\"status\":\"delivered\"}','2026-01-01')"
+            ))
+            connection.execute(text(
+                "INSERT INTO invoices (id,invoice_number,order_id,status,issued_at,order_number,source,"
+                "payment_method,store_name,customer_name,customer_phone,delivery_address,currency_code,"
+                "currency_symbol,subtotal,discount,delivery_fee,tax_enabled,tax_rate,prices_include_tax,"
+                "tax_amount,grand_total,created_at,updated_at) VALUES "
+                "(1,'INV-LEGACY-2',2,'active','2026-01-01','LEGACY-2','website','cash_on_delivery',"
+                "'Store','Customer','0591234567','Address','ILS','ILS',10,0,0,0,0,0,0,10,'2026-01-01','2026-01-01')"
+            ))
+            preserved = {table: connection.execute(text(f"SELECT * FROM {table}")).all()
+                         for table in ("order_status_history", "order_activities", "invoices", "invoice_sequences")}
+            orders_before = connection.execute(text("SELECT id,order_number,public_token,total,created_at,updated_at FROM orders ORDER BY id")).all()
+        command.upgrade(config, "head")
+        with engine.connect() as connection:
+            assert connection.execute(text("SELECT status FROM orders ORDER BY id")).scalars().all() == [
+                "ready", "completed", "new", "ready", "completed", "cancelled", "pending"
+            ]
+            assert not any(connection.execute(text("SELECT is_locked FROM orders")).scalars())
+            assert connection.execute(text("SELECT id,order_number,public_token,total,created_at,updated_at FROM orders ORDER BY id")).all() == orders_before
+            for table, rows in preserved.items():
+                assert connection.execute(text(f"SELECT * FROM {table}")).all() == rows
+    finally:
+        engine.dispose()
+
+
 def test_packaging_migration_defaults_historical_orders_and_invoices(tmp_path, monkeypatch) -> None:
     url = _disposable_url(tmp_path, monkeypatch)
     config = _alembic_config(url)

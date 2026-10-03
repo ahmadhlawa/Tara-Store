@@ -16,6 +16,57 @@ from app.services.orders import calculate_order_totals, record_order_activity
 from tests.conftest import make_product
 
 
+LEGACY_STATUSES = ["confirmed", "delivered", "pending", "reviewing", "processing", "preparing", "out_for_delivery", "shipped"]
+
+
+@pytest.mark.parametrize("status", LEGACY_STATUSES)
+def test_status_mutation_schemas_reject_legacy_targets(status) -> None:
+    from pydantic import ValidationError
+    from app.schemas.orders import OrderAdminUpdate, OrderStatusUpdate
+
+    with pytest.raises(ValidationError):
+        OrderStatusUpdate(status=status)
+    with pytest.raises(ValidationError):
+        OrderAdminUpdate(
+            customer_name="Customer", customer_phone="0590000000", address="Address",
+            payment_method="cash_on_delivery", discount="0", delivery_fee="0",
+            status=status, items=[{"kind": "manual", "name": "Item", "quantity": 1, "unit_price": "10"}],
+        )
+
+
+@pytest.mark.parametrize("status", LEGACY_STATUSES)
+def test_change_status_rejects_legacy_targets(db, status) -> None:
+    order = Order(status="new")
+    with pytest.raises(DomainError) as error:
+        orders_service.change_status(db, order, status)
+    assert error.value.code == "invalid_status"
+    assert order.status == "new"
+
+
+def test_new_and_ready_orders_have_no_invoice(db, category, normal_admin) -> None:
+    product = make_product(db, category_id=category.id, price="10.00")
+    order = orders_service.create_order(db, orders_service.OrderDraft(
+        customer_name="Customer", customer_phone="0590000000", address="Address",
+        items=[(product.id, None, 1)],
+    ))
+    assert invoices_service.get_for_order(db, order.id) is None
+    orders_service.change_status(db, order, "ready", admin=normal_admin)
+    db.flush()
+    assert order.status == "ready"
+    assert invoices_service.get_for_order(db, order.id) is None
+
+
+def test_completed_edit_eligibility_preserves_admin_role_and_source_boundaries() -> None:
+    from types import SimpleNamespace
+
+    order = SimpleNamespace(status="completed", source="website", items=[], is_locked=True)
+    assert orders_service.can_structurally_edit_order(order=order, actor=SimpleNamespace(role="admin"))
+    assert not orders_service.can_structurally_edit_order(order=order, actor=SimpleNamespace(role="viewer"))
+    order.source = "whatsapp"
+    assert not orders_service.can_structurally_edit_order(order=order, actor=SimpleNamespace(role="admin"))
+    assert orders_service.can_structurally_edit_order(order=order, actor=SimpleNamespace(role="super_admin"))
+
+
 @dataclass
 class _Line:
     quantity: int

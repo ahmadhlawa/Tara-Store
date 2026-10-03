@@ -3,6 +3,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   INVOICE_STATUSES,
+  ORDER_STATUSES,
+  orderStatusLabels,
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
   calculateOrderTotals,
@@ -28,6 +30,21 @@ import { setAuthToken } from "../api/client.js";
 import { stubApi } from "./utils.jsx";
 
 describe("order and invoice domain", () => {
+  it("offers four canonical statuses and retains legacy read labels", () => {
+    expect(ORDER_STATUSES.map(([value]) => value)).toEqual(["new", "ready", "completed", "cancelled"]);
+    ["confirmed", "delivered", "pending", "reviewing", "processing", "preparing", "shipped", "out_for_delivery"].forEach((status) => {
+      expect(orderStatusLabels[status]).toBeTruthy();
+    });
+  });
+
+  it("allows authorized completed and previously completed order eligibility despite legacy locks", () => {
+    const order = { source: "website", status: "completed", is_locked: true, completed_at: "2026-10-03T00:00:00Z" };
+    expect(canEditIncompleteOrder({ role: "admin" }, order)).toBe(true);
+    expect(canEditIncompleteOrder({ role: "viewer" }, order)).toBe(false);
+    expect(canEditIncompleteOrder({ role: "admin" }, { ...order, source: "whatsapp" })).toBe(false);
+    expect(canEditIncompleteOrder({ role: "admin" }, { ...order, items: [{ item_kind: "manual" }] })).toBe(false);
+    expect(canCompleteOrder({ role: "admin" }, { ...order, status: "ready" })).toBe(true);
+  });
   it("calculates totals from decimal strings without floating-point rounding", () => {
     const totals = calculateOrderTotals({
       items: [
@@ -48,7 +65,7 @@ describe("order and invoice domain", () => {
     expect(canCreateManualOrder({ role: "super_admin" })).toBe(true);
     expect(canCreateManualOrder({ role: "admin" })).toBe(false);
     expect(canCompleteOrder({ role: "admin" }, { is_locked: false, status: "confirmed" })).toBe(true);
-    expect(canEditIncompleteOrder({ role: "admin" }, { source: "website", is_locked: false, status: "completed" })).toBe(false);
+    expect(canEditIncompleteOrder({ role: "admin" }, { source: "website", is_locked: false, status: "completed" })).toBe(true);
     expect(canEditIncompleteOrder({ role: "admin" }, { source: "website", is_locked: false, status: "ready" })).toBe(true);
     expect(canEditIncompleteOrder({ role: "super_admin" }, { source: "whatsapp", is_locked: false, status: "ready" })).toBe(true);
     expect(canEditIncompleteOrder({ role: "admin" }, { source: "whatsapp", is_locked: false, status: "ready" })).toBe(false);
@@ -57,8 +74,8 @@ describe("order and invoice domain", () => {
     expect(canReopenOrder({ role: "super_admin" }, { status: "completed", is_locked: false })).toBe(false);
     expect(canReopenOrder({ role: "super_admin" }, { status: "completed", is_locked: true })).toBe(true);
     const reopened = { source: "website", status: "ready", is_locked: false, completed_at: "2026-08-04T00:00:00Z" };
-    expect(canEditIncompleteOrder({ role: "admin" }, reopened)).toBe(false);
-    expect(canCompleteOrder({ role: "admin" }, reopened)).toBe(false);
+    expect(canEditIncompleteOrder({ role: "admin" }, reopened)).toBe(true);
+    expect(canCompleteOrder({ role: "admin" }, reopened)).toBe(true);
     expect(canEditIncompleteOrder({ role: "super_admin" }, reopened)).toBe(true);
   });
 });

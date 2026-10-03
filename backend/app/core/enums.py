@@ -41,6 +41,12 @@ class OrderStatus(StrEnum):
     SHIPPED = "shipped"
 
 
+MUTABLE_ORDER_STATUSES = frozenset({
+    OrderStatus.NEW.value, OrderStatus.READY.value,
+    OrderStatus.COMPLETED.value, OrderStatus.CANCELLED.value,
+})
+
+
 class OrderSource(StrEnum):
     WEBSITE = "website"
     WHATSAPP = "whatsapp"
