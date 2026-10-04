@@ -3,9 +3,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 AnalyticsPeriod = Literal["today", "7d", "30d"]
+AnalyticsEventType = Literal["add_to_cart", "checkout_reached", "order_completed"]
+
+
+class AnalyticsEventIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    event_type: Literal["add_to_cart", "checkout_reached"]
 
 
 class AnalyticsVisitIn(BaseModel):

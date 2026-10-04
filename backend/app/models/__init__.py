@@ -1,5 +1,5 @@
 from app.models.admin import AdminLoginThrottle, AdminUser
-from app.models.analytics import AnalyticsProductView, AnalyticsSession
+from app.models.analytics import AnalyticsEvent, AnalyticsProductView, AnalyticsSession
 from app.models.audit import AuditLog
 from app.models.catalog import (
     Category,
@@ -27,6 +27,7 @@ __all__ = [
     "AdminUser",
     "AdminLoginThrottle",
     "AnalyticsSession",
+    "AnalyticsEvent",
     "AnalyticsProductView",
     "AuditLog",
     "Category",

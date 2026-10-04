@@ -8,6 +8,7 @@ from app.api.deps import CurrentAdmin, DbSession
 from app.core.config import settings
 from app.core.rate_limit import analytics_rate_limit
 from app.schemas.analytics import (
+    AnalyticsEventIn,
     AnalyticsPeriod,
     AnalyticsProductViewIn,
     AnalyticsSummaryOut,
@@ -19,6 +20,7 @@ from app.services.analytics import (
     VISITOR_MAX_AGE,
     TrackingContext,
     analytics_summary,
+    record_event,
     record_product_view,
     touch_visit,
 )
@@ -71,6 +73,18 @@ def visit(payload: AnalyticsVisitIn, request: Request, db: DbSession) -> Respons
 )
 def product_view(payload: AnalyticsProductViewIn, request: Request, db: DbSession) -> Response:
     context = record_product_view(db, request, payload.product_id)
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    _set_tracking_cookies(response, context)
+    return response
+
+
+@public_router.post(
+    "/analytics/event",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(analytics_rate_limit)],
+)
+def event(payload: AnalyticsEventIn, request: Request, db: DbSession) -> Response:
+    context = record_event(db, request, payload.event_type)
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
     _set_tracking_cookies(response, context)
     return response

@@ -19,6 +19,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 EXPECTED_TABLES = {
     "admin_login_throttles",
+    "analytics_events",
     "analytics_product_views",
     "analytics_sessions",
     "admin_users",
@@ -156,7 +157,7 @@ def test_stock_override_downgrade_preflights_all_tables_without_clamping(tmp_pat
     from tests.conftest import make_product
     url = _disposable_url(tmp_path, monkeypatch)
     config = _alembic_config(url)
-    command.upgrade(config, "head")
+    command.upgrade(config, "0032_admin_stock_override")
     engine = build_engine(url)
     try:
         with Session(engine) as db:
@@ -461,3 +462,104 @@ def test_upgrade_refuses_a_database_with_duplicate_media_filenames(tmp_path, mon
         assert version == BEFORE_UNIQUE_FILENAMES
     finally:
         engine.dispose()
+
+
+def test_funnel_migration_adds_only_anonymous_events_and_preserves_history(tmp_path, monkeypatch):
+    url = _disposable_url(tmp_path, monkeypatch)
+    config = _alembic_config(url)
+    command.upgrade(config, "0032_admin_stock_override")
+    engine = build_engine(url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(
+                "INSERT INTO analytics_sessions (id,session_token_hash,visitor_hash,started_at,last_activity_at,location_label) "
+                "VALUES (1,:token,:visitor,'2026-01-01','2026-01-01','Unknown')"
+            ), {"token": "a" * 64, "visitor": "b" * 64})
+            connection.execute(text(
+                "INSERT INTO analytics_product_views (session_id,product_id,product_slug_snapshot,product_name_snapshot,viewed_at) "
+                "VALUES (1,999,'deleted-product','Historical product','2026-01-01')"
+            ))
+            # Snapshot every existing table, including Batch A/B business history.
+            tables = inspect(connection).get_table_names()
+            before = {table: connection.execute(text(f"SELECT * FROM {table}")).all()
+                      for table in tables if table != "alembic_version"}
+        command.upgrade(config, "head")
+        inspector = inspect(engine)
+        assert "analytics_events" in inspector.get_table_names()
+        columns = {column["name"]: column for column in inspector.get_columns("analytics_events")}
+        assert set(columns) == {"id", "session_id", "event_type", "occurred_at", "dedupe_key"}
+        assert columns["dedupe_key"]["nullable"] is True
+        assert all(columns[name]["nullable"] is False for name in ("session_id", "event_type", "occurred_at"))
+        indexes = {tuple(index["column_names"]) for index in inspector.get_indexes("analytics_events")}
+        assert ("event_type", "occurred_at") in indexes
+        assert ("session_id", "occurred_at") in indexes
+        assert any(constraint["column_names"] == ["dedupe_key"]
+                   for constraint in inspector.get_unique_constraints("analytics_events"))
+        fks = inspector.get_foreign_keys("analytics_events")
+        assert len(fks) == 1
+        assert fks[0]["referred_table"] == "analytics_sessions"
+        assert fks[0]["options"]["ondelete"] == "CASCADE"
+        with engine.begin() as connection:
+            assert connection.execute(text("SELECT COUNT(*) FROM analytics_events")).scalar_one() == 0
+            for table, rows in before.items():
+                assert connection.execute(text(f"SELECT * FROM {table}")).all() == rows
+            for event_type in ("add_to_cart", "checkout_reached", "order_completed"):
+                connection.execute(text(
+                    "INSERT INTO analytics_events (session_id,event_type,occurred_at,dedupe_key) "
+                    "VALUES (1,:event_type,'2026-01-01',NULL)"
+                ), {"event_type": event_type})
+        with pytest.raises(IntegrityError), engine.begin() as connection:
+            connection.execute(text(
+                "INSERT INTO analytics_events (session_id,event_type,occurred_at) VALUES (1,'unsupported','2026-01-01')"
+            ))
+        with engine.begin() as connection:
+            connection.execute(text(
+                "INSERT INTO analytics_events (session_id,event_type,occurred_at,dedupe_key) "
+                "VALUES (1,'order_completed','2026-01-01',:key)"
+            ), {"key": "c" * 64})
+        with pytest.raises(IntegrityError), engine.begin() as connection:
+            connection.execute(text(
+                "INSERT INTO analytics_events (session_id,event_type,occurred_at,dedupe_key) "
+                "VALUES (1,'order_completed','2026-01-01',:key)"
+            ), {"key": "c" * 64})
+        command.downgrade(config, "0032_admin_stock_override")
+        assert "analytics_events" not in inspect(engine).get_table_names()
+        with engine.connect() as connection:
+            for table, rows in before.items():
+                assert connection.execute(text(f"SELECT * FROM {table}")).all() == rows
+            assert connection.execute(text("PRAGMA foreign_key_check")).all() == []
+        command.upgrade(config, "head")
+        with engine.begin() as connection:
+            connection.execute(text(
+                "INSERT INTO analytics_events (session_id,event_type,occurred_at) VALUES (1,'add_to_cart','2026-01-01')"
+            ))
+            connection.execute(text("DELETE FROM analytics_sessions WHERE id=1"))
+            assert connection.execute(text("SELECT COUNT(*) FROM analytics_events")).scalar_one() == 0
+            assert connection.execute(text("SELECT COUNT(*) FROM analytics_product_views")).scalar_one() == 0
+    finally:
+        engine.dispose()
+
+
+def test_funnel_migration_compiles_upgrade_and_downgrade_for_mysql():
+    import io
+    import runpy
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+    script = ScriptDirectory.from_config(_alembic_config("sqlite://"))
+    revisions = [revision for revision in script.walk_revisions()
+                 if revision.down_revision == "0032_admin_stock_override"]
+    assert len(revisions) == 1, "funnel needs the next migration after actual head 0032"
+    migration = runpy.run_path(revisions[0].path)
+    buffer = io.StringIO()
+    context = MigrationContext.configure(dialect_name="mysql", opts={"as_sql": True, "output_buffer": buffer})
+    with Operations.context(context):
+        migration["upgrade"]()
+        migration["downgrade"]()
+    sql = buffer.getvalue()
+    assert "CREATE TABLE analytics_events" in sql and "AUTO_INCREMENT" in sql
+    assert "UNIQUE (dedupe_key)" in sql
+    assert "FOREIGN KEY(session_id) REFERENCES analytics_sessions (id) ON DELETE CASCADE" in sql
+    assert "CHECK (event_type IN ('add_to_cart', 'checkout_reached', 'order_completed'))" in sql
+    assert "(event_type, occurred_at)" in sql and "(session_id, occurred_at)" in sql
+    assert "DROP TABLE analytics_events" in sql
+    assert "INSERT INTO" not in sql and "UPDATE " not in sql

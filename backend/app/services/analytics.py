@@ -7,18 +7,20 @@ from hashlib import sha256
 import hmac
 import re
 import secrets
+from typing import get_args
 from urllib.parse import unquote, urlsplit
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, Request, status
 from sqlalchemy import delete, func, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.base import utcnow
-from app.models.analytics import AnalyticsProductView, AnalyticsSession
+from app.models.analytics import AnalyticsEvent, AnalyticsProductView, AnalyticsSession
 from app.models.catalog import Product
-from app.schemas.analytics import AnalyticsPeriod
+from app.schemas.analytics import AnalyticsEventType, AnalyticsPeriod
 
 VISITOR_COOKIE = "tara_visitor"
 SESSION_COOKIE = "tara_session"
@@ -325,6 +327,64 @@ def _record_product_view_locked(db: Session, request: Request, product_id: int,
         )
     db.commit()
     return context
+
+
+def record_event(
+    db: Session,
+    request: Request,
+    event_type: AnalyticsEventType,
+    *,
+    dedupe_key: str | None = None,
+    now: datetime | None = None,
+) -> TrackingContext | None:
+    """Commit analytics only; commerce callers must commit their order first.
+
+    Checkout entry is once per active session. Each add action is independent.
+    Server completion requires a stable HMAC of order identity, supplied internally.
+    """
+    if event_type not in get_args(AnalyticsEventType):
+        raise ValueError("Unsupported analytics event type")
+    if event_type == "order_completed":
+        if not isinstance(dedupe_key, str) or not re.fullmatch(r"[0-9a-f]{64}", dedupe_key):
+            raise ValueError("Order completion requires an opaque HMAC dedupe key")
+    elif dedupe_key is not None:
+        raise ValueError("Browser event dedupe keys are server managed")
+
+    current = _utc_naive(now or utcnow())
+    visitor_token = _valid_token(request.cookies.get(VISITOR_COOKIE)) or _new_token()
+    with _tracking_lock(db, _token_hash("visitor", visitor_token)) as locked_db:
+        try:
+            context = resolve_session(locked_db, request, now=current, visitor_token=visitor_token)
+            if context is None:
+                locked_db.rollback()
+                return None
+            if event_type == "checkout_reached":
+                dedupe_key = _token_hash("checkout_reached", str(context.session.id))
+            try:
+                # Flush the session touch before the savepoint, so an expected
+                # duplicate does not discard activity or a rotated cookie token.
+                with locked_db.begin_nested():
+                    locked_db.add(AnalyticsEvent(
+                        session_id=context.session.id,
+                        event_type=event_type,
+                        occurred_at=current,
+                        dedupe_key=dedupe_key,
+                    ))
+            except IntegrityError:
+                # A current read also sees a competing visitor's committed key
+                # under MySQL REPEATABLE READ. Never swallow unrelated failures.
+                duplicate = None if dedupe_key is None else locked_db.scalar(
+                    select(AnalyticsEvent.id)
+                    .where(AnalyticsEvent.dedupe_key == dedupe_key)
+                    .with_for_update()
+                )
+                if duplicate is None:
+                    raise
+            locked_db.commit()
+            return context
+        except Exception:
+            locked_db.rollback()
+            raise
 
 
 def period_bounds(period: AnalyticsPeriod, *, now: datetime | None = None) -> tuple[datetime, datetime]:

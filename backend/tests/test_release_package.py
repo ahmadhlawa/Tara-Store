@@ -59,7 +59,7 @@ def test_release_migration_head():
     from alembic.script import ScriptDirectory
     config = Config()
     config.set_main_option("script_location", str(ROOT / "backend/alembic"))
-    assert ScriptDirectory.from_config(config).get_current_head() == "0032_admin_stock_override"
+    assert ScriptDirectory.from_config(config).get_current_head() == "0033_analytics_events"
 
 
 def test_only_staged_static_content_gets_public_modes(tmp_path, monkeypatch):
