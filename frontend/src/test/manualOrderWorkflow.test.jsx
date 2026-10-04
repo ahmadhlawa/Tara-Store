@@ -20,6 +20,18 @@ const mixedOfflineOrder = {
 };
 
 describe("manual order workspace", () => {
+  it.each(["new", "ready"])("explains invoice issuance at completion for a %s order", async (status) => {
+    authStorage.save("manager-token", manager);
+    stubApi({
+      "/api/v1/auth/me": manager,
+      "/api/v1/admin/orders/18": { ...mixedOfflineOrder, status, active_invoice: null },
+      "/api/v1/admin/products": page([product]),
+    });
+    renderApp("/admin/orders/18");
+
+    expect(await screen.findByText("تصدر الفاتورة تلقائياً عند تغيير الحالة إلى «مكتمل».")).toBeInTheDocument();
+  });
+
   it.each(["parent", "variant"])("keeps a depleted %s blocked in new manual orders", async (kind) => {
     authStorage.save("manager-token", manager);
     stubApi({ "/api/v1/auth/me": manager, "/api/v1/admin/products": page([product]),

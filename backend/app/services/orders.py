@@ -1024,6 +1024,24 @@ def rebuild_order_items(
                 if draft.unit_price is not None
                 else (old.unit_price if old is not None else priced.unit_price)
             )
+            if old is not None:
+                package_components = [
+                    OrderItemPackageComponent(
+                        source_product_id=component.source_product_id,
+                        source_variant_id=component.source_variant_id,
+                        product_name=component.product_name,
+                        variant_description=component.variant_description,
+                        sku=component.sku,
+                        quantity_per_package=component.quantity_per_package,
+                        package_quantity=(component.package_quantity if draft.quantity == old.quantity else draft.quantity),
+                        total_quantity=(component.total_quantity if draft.quantity == old.quantity
+                                        else component.quantity_per_package * draft.quantity),
+                        tracks_inventory=component.tracks_inventory,
+                    )
+                    for component in old.package_components
+                ]
+            else:
+                package_components = _package_component_snapshots([priced]).get(id(priced), [])
             items.append(
                 OrderItem(
                     product_id=priced.product.id,
@@ -1042,6 +1060,7 @@ def rebuild_order_items(
                     unit_price=unit_price,
                     quantity=draft.quantity,
                     line_total=money(unit_price * draft.quantity),
+                    package_components=package_components,
                 )
             )
             continue

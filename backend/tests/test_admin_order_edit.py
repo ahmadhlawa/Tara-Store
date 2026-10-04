@@ -60,6 +60,174 @@ def _completed_order(client, product, token, items=None, payment_status="paid"):
     return response.json()
 
 
+@pytest.mark.parametrize("quantity", [2, 3, 1])
+def test_completed_package_correction_preserves_fulfillment_snapshot(client, db, admin_token, quantity):
+    from app.models import PackageItem
+
+    component = make_product(db, slug="snapshot-component", name="Original component", stock=0)
+    component.sku = "ORIGINAL"
+    variant = ProductVariant(product_id=component.id, title="Original variant", sku="ORIGINAL-V", stock_quantity=0, is_active=True)
+    db.add(variant)
+    db.flush()
+    package = make_product(db, slug="snapshot-package", stock=10, product_type="package")
+    contents = PackageItem(package_product_id=package.id, included_product_id=component.id, included_variant_id=variant.id, quantity=2)
+    db.add(contents)
+    db.commit()
+    order = _completed_order(client, package, admin_token)
+    db.expire_all()
+    snapshot = db.get(Order, order["id"]).items[0].package_components[0]
+    # Historical references may be null after source deletion; catalog metadata may evolve.
+    snapshot.source_product_id = None
+    snapshot.source_variant_id = None
+    component.name, component.sku, component.track_inventory = "Current component", "CURRENT", False
+    variant.title, variant.sku = "Current variant", "CURRENT-V"
+    contents.quantity = 7
+    db.commit()
+
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token),
+        json=_edit_payload(package, status="completed", customer_name=order["customer_name"],
+            customer_phone=order["customer_phone"], customer_email=order["customer_email"],
+            customer_notes=order["customer_notes"], admin_notes=order["admin_notes"],
+            discount=order["discount"], delivery_fee=order["delivery_fee"],
+            items=[{"product_id": package.id, "quantity": quantity}]))
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    saved = db.get(Order, order["id"])
+    assert len(saved.items[0].package_components) == 1
+    snapshot = saved.items[0].package_components[0]
+    assert (snapshot.source_product_id, snapshot.source_variant_id, snapshot.product_name,
+            snapshot.variant_description, snapshot.sku, snapshot.quantity_per_package,
+            snapshot.tracks_inventory) == (None, None, "Original component", "Original variant", "ORIGINAL-V", 2, True)
+    assert (snapshot.package_quantity, snapshot.total_quantity) == (quantity, {2: 4, 3: 6, 1: 2}[quantity])
+    assert db.get(Product, package.id).stock_quantity == {2: 8, 3: 7, 1: 9}[quantity]
+    assert db.get(Product, component.id).stock_quantity == 0
+    assert db.get(ProductVariant, variant.id).stock_quantity == 0
+    assert response.json()["active_invoice"]["id"] == order["active_invoice"]["id"]
+    assert response.json()["active_invoice"]["invoice_number"] == order["active_invoice"]["invoice_number"]
+
+
+@pytest.mark.parametrize("action", ["add", "switch"])
+def test_completed_correction_snapshots_new_package_without_component_stock(client, db, admin_token, action):
+    from app.models import PackageItem
+
+    component = make_product(db, slug="new-component", name="Current component", stock=0)
+    old = make_product(db, slug="old-line", stock=10, product_type="package" if action == "switch" else "simple")
+    new = make_product(db, slug="new-package", stock=10, product_type="package")
+    db.add(PackageItem(package_product_id=new.id, included_product_id=component.id, quantity=3))
+    if action == "switch":
+        db.add(PackageItem(package_product_id=old.id, included_product_id=component.id, quantity=1))
+    db.commit()
+    order = _completed_order(client, old, admin_token)
+    items = [{"product_id": new.id, "quantity": 2}]
+    if action == "add":
+        items.insert(0, {"product_id": old.id, "quantity": 2})
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token),
+        json=_edit_payload(old, status="completed", items=items))
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    line = next(item for item in db.get(Order, order["id"]).items if item.product_id == new.id)
+    assert len(line.package_components) == 1
+    snapshot = line.package_components[0]
+    assert (snapshot.source_product_id, snapshot.product_name, snapshot.quantity_per_package,
+            snapshot.package_quantity, snapshot.total_quantity) == (component.id, "Current component", 3, 2, 6)
+    assert db.get(Product, component.id).stock_quantity == 0
+    assert db.get(Product, new.id).stock_quantity == 8
+    assert db.get(Product, old.id).stock_quantity == (10 if action == "switch" else 8)
+    assert response.json()["active_invoice"]["id"] == order["active_invoice"]["id"]
+
+
+@pytest.mark.parametrize("correction", ["address", "quantity", "packaging"])
+def test_invoice_payment_method_correction_survives_completed_order_edit(client, db, admin_token, correction):
+    product = make_product(db)
+    order = _completed_order(client, product, admin_token)
+    invoice = order["active_invoice"]
+    payment_path = f"/api/v1/admin/invoices/{invoice['invoice_number']}/payment"
+    response = client.patch(payment_path, headers=auth(admin_token), json={
+        "payment_status": "paid", "payment_method": "bank_transfer", "payment_details": "Bank receipt 123"})
+    assert response.status_code == 200, response.text
+    current = client.get(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token)).json()
+    payload = _edit_payload(product, status="completed", payment_method=current["payment_method"],
+        customer_name=current["customer_name"], customer_phone=current["customer_phone"],
+        address=current["address"], discount=current["discount"], delivery_fee=current["delivery_fee"],
+        items=[{"product_id": product.id, "quantity": 2}])
+    if correction == "address":
+        payload["address"] = "Corrected address"
+    elif correction == "quantity":
+        payload["items"][0]["quantity"] = 3
+    else:
+        payload["packaging_type"] = "gift"
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json=payload)
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    saved = db.get(Invoice, invoice["id"])
+    assert saved.payment_method == "bank_transfer"
+    assert db.get(Order, order["id"]).payment_method == "bank_transfer"
+    assert saved.payment_details == "Bank receipt 123"
+    assert saved.invoice_number == invoice["invoice_number"]
+    assert saved.paid_amount == saved.grand_total
+    # Omitting method in a later payment update preserves both current methods.
+    response = client.patch(payment_path, headers=auth(admin_token), json={"payment_status": "unpaid"})
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Order, order["id"]).payment_method == db.get(Invoice, invoice["id"]).payment_method == "bank_transfer"
+    # An explicit order method correction remains authoritative.
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token),
+        json={**payload, "payment_method": "cash_on_delivery"})
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Order, order["id"]).payment_method == db.get(Invoice, invoice["id"]).payment_method == "cash_on_delivery"
+
+
+def test_payment_refreshes_stale_order_and_rejects_archived_invoice(client, db, session_factory, admin_token, normal_admin):
+    from app.models import AdminUser
+    from app.services import invoices as service
+    from app.services.errors import ConflictError
+
+    product = make_product(db)
+    order = _completed_order(client, product, admin_token)
+    invoice = order["active_invoice"]
+    path = f"/api/v1/admin/invoices/{invoice['invoice_number']}/payment"
+    with session_factory() as stale:
+        stale_order = stale.get(Order, order["id"])
+        stale_invoice = stale.get(Invoice, invoice["id"])
+        admin = stale.get(AdminUser, normal_admin.id)
+        response = client.patch(path, headers=auth(admin_token), json={
+            "payment_status": "paid", "payment_method": "bank_transfer", "payment_details": "Receipt"})
+        assert response.status_code == 200, response.text
+        service.update_payment(stale, stale_invoice, payment_status="unpaid", payment_method=None,
+            payment_details=None, details_provided=False, reason=None, admin=admin)
+        assert stale_order.payment_method == "bank_transfer"
+        assert stale_invoice.payment_method == "bank_transfer"
+        stale.commit()
+        assert stale_invoice.status == "active"
+        assert stale_order.payment_method == "bank_transfer"
+
+        response = client.post(f"/api/v1/admin/orders/{order['id']}/status", headers=auth(admin_token), json={"status": "ready"})
+        assert response.status_code == 200, response.text
+        response = client.post(f"/api/v1/admin/orders/{order['id']}/complete", headers=auth(admin_token),
+            json={"payment_method": "cash_on_delivery", "payment_status": "paid"})
+        assert response.status_code == 200, response.text
+        successor = response.json()["active_invoice"]
+        # Retain deliberately stale active objects across the archive/recompletion.
+        with pytest.raises(ConflictError) as exc:
+            service.update_payment(stale, stale_invoice, payment_status="paid", payment_method="bank_transfer",
+                payment_details="Overwrite history", details_provided=True, reason=None, admin=admin)
+        assert exc.value.code == "invoice_not_active"
+        stale.rollback()
+
+    response = client.patch(path, headers=auth(admin_token), json={
+        "payment_status": "paid", "payment_method": "bank_transfer", "payment_details": "Overwrite history"})
+    assert response.status_code == 409, response.text
+    db.expire_all()
+    archived = db.get(Invoice, invoice["id"])
+    assert (archived.status, archived.active_invoice_marker, archived.payment_method,
+            archived.payment_details, archived.payment_status) == ("replaced", None, "bank_transfer", "Receipt", "unpaid")
+    assert (archived.paid_amount, archived.refunded_amount, archived.remaining_amount) == (Decimal("0.00"), Decimal("0.00"), Decimal("200.00"))
+    assert successor["id"] != invoice["id"]
+    assert db.get(Order, order["id"]).payment_method == "cash_on_delivery"
+    assert db.get(Invoice, successor["id"]).payment_method == "cash_on_delivery"
+
+
 @pytest.mark.parametrize("quantity,stock", [(3, 7), (1, 9)])
 def test_completed_edit_applies_only_delta_without_replaying_stock(client, db, admin_token, monkeypatch, quantity, stock):
     from app.services import orders as service

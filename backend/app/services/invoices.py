@@ -472,15 +472,21 @@ def update_payment(
     admin: AdminUser,
 ) -> Invoice:
     """Apply the narrowly permitted financial mutation and append its audit event."""
-    # Serialize concurrent financial writes and refresh rows that callers may have
-    # loaded before another transaction committed.
+    # Match order-edit lock ordering and refresh both sides of the current payment.
+    order = db.execute(
+        select(Order)
+        .where(Order.id == invoice.order_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalar_one()
     invoice = db.execute(
         select(Invoice)
         .where(Invoice.id == invoice.id)
         .with_for_update()
         .execution_options(populate_existing=True)
     ).scalar_one()
-    if invoice.status != InvoiceStatus.ACTIVE.value:
+    if (invoice.status != InvoiceStatus.ACTIVE.value
+            or invoice.active_invoice_marker != InvoiceStatus.ACTIVE.value):
         raise ConflictError("Only an active invoice can receive a payment update.", code="invoice_not_active")
 
     before = {
@@ -498,6 +504,7 @@ def update_payment(
     invoice.payment_status = payment.status.value
     if payment_method is not None:
         invoice.payment_method = payment_method
+        order.payment_method = payment_method
     if details_provided:
         invoice.payment_details = (payment_details or "").strip() or None
 
