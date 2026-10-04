@@ -22,9 +22,10 @@ async function fillCheckout() {
   const form = document.querySelector(".vs-checkout__form");
   const fields = form.querySelectorAll("input[type=text], input[type=tel], textarea");
   await userEvent.type(fields[0], "سارة أحمد");
+  await userEvent.selectOptions(within(form).getByRole("combobox", { name: /رمز الدولة|Country code/ }), "+970");
   await userEvent.type(fields[1], "0591234567");
   await userEvent.type(fields[2], "رام الله، شارع الإرسال");
-  await userEvent.selectOptions(form.querySelector("select"), "1");
+  await userEvent.selectOptions(within(form).getByRole("combobox", { name: /منطقة التوصيل|Delivery area/ }), "1");
   await userEvent.click(within(form).getByRole("checkbox"));
   await waitFor(() => expect(form.querySelector("button[type=submit]")).toHaveTextContent("130 ₪"));
   return form;
@@ -124,6 +125,7 @@ describe("storefront packaging", () => {
     expect(await screen.findByRole("radio", { name: /تغليف عادي/ })).toBeChecked();
     await userEvent.click(screen.getByRole("radio", { name: /تغليف كهدية/ }));
     await userEvent.type(screen.getByLabelText(/الاسم الكامل/), "سارة أحمد");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "رمز الدولة" }), "+970");
     await userEvent.type(screen.getByLabelText(/رقم الهاتف/), "0591234567");
     await userEvent.type(screen.getByLabelText(/العنوان بالتفصيل/), "رام الله، شارع الإرسال");
     await userEvent.selectOptions(screen.getByLabelText(/منطقة التوصيل/), "1");

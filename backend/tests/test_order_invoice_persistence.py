@@ -185,7 +185,7 @@ def test_completed_edit_persists_same_invoice_with_historical_identity_and_audit
     assert saved.tax_amount == Decimal("2.85")
     assert saved.grand_total == Decimal("31.35")
     assert saved.customer_name == "Edited Customer"
-    assert saved.customer_phone == "0597654321"
+    assert saved.customer_phone == "970597654321"
     assert saved.customer_email == "edited@example.com"
     assert saved.delivery_address == "Edited Street"
     assert saved.customer_notes == "Gift note"

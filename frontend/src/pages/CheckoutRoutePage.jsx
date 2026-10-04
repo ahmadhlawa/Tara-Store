@@ -11,6 +11,7 @@ import { orderTokenStorage } from "../storage/authStorage.js";
 import { packagingTypeLabels, paymentMethods } from "../store.js";
 import { useMoney } from "../hooks/useStorefront.js";
 import { whatsappHref } from "../utils/format.js";
+import { CUSTOMER_COUNTRY_CODES, normalizeCustomerPhone } from "../utils/phone.js";
 
 const RETURN_POLICY_NOTICE = [
   "نظرًا لطبيعة منتجات TARA وحساسية القطع وكونها مصنوعة ومجهزة يدويًا بعناية، لا يمكن استبدال أو إرجاع المنتجات بعد تأكيد الطلب أو استلامه.",
@@ -27,7 +28,8 @@ function newClientReference() {
 function validate(form) {
   const errors = {};
   if (!form.name || form.name.trim().length < 3) errors.name = "الرجاء إدخال الاسم الكامل";
-  if (!/^\+?\d{7,15}$/.test(String(form.phone).replace(/[\s-()]/g, ""))) {
+  if (!form.countryCode) errors.countryCode = "اختر رمز الدولة";
+  if (!normalizeCustomerPhone(form.countryCode, form.phone)) {
     errors.phone = "رقم هاتف غير صالح — مثال 0591234567";
   }
   if (!form.areaId) errors.area = "اختر منطقة التوصيل";
@@ -152,6 +154,7 @@ export default function CheckoutRoutePage() {
       clientReference.current ||= newClientReference();
       const order = await checkoutService.placeOrder(cart, {
         name: form.name.trim(),
+        countryCode: form.countryCode,
         phone: form.phone.trim(),
         address: form.address.trim(),
         deliveryAreaId: form.areaId,
@@ -221,21 +224,44 @@ export default function CheckoutRoutePage() {
                 )}
               </label>
 
-              <label className="vs-field">{t("رقم الهاتف")}{" "}<input
-                  className="vs-input"
-                  type="tel"
-                  dir="ltr"
-                  value={form.phone}
-                  onChange={(event) => update({ phone: event.target.value })}
-                  placeholder="05XXXXXXXX"
-                  {...field("phone")}
-                />
+              <div className="vs-field">{t("رقم الهاتف")}{" "}<div className="vs-phone-field" dir="ltr">
+                  <label className="vs-phone-field__code">
+                    <select
+                      className="vs-input"
+                      aria-label={t("رمز الدولة")}
+                      value={form.countryCode}
+                      onChange={(event) => update({ countryCode: event.target.value })}
+                      {...field("countryCode")}
+                    >
+                      <option value="" disabled hidden>{t("اختر رمز الدولة")}</option>
+                      {CUSTOMER_COUNTRY_CODES.map((code) => <option key={code} value={code}>{code}</option>)}
+                    </select>
+                  </label>
+                  <label className="vs-phone-field__number">
+                    <input
+                      className="vs-input"
+                      aria-label={t("رقم الهاتف")}
+                      type="tel"
+                      inputMode="numeric"
+                      dir="ltr"
+                      value={form.phone}
+                      onChange={(event) => update({ phone: event.target.value })}
+                      placeholder="05XXXXXXXX"
+                      {...field("phone")}
+                    />
+                  </label>
+                </div>
+                {errors.countryCode && (
+                  <span className="vs-field__error" id="vs-err-countryCode">
+                    {t(errors.countryCode)}
+                  </span>
+                )}
                 {errors.phone && (
                   <span className="vs-field__error" id="vs-err-phone">
                     {t(errors.phone)}
                   </span>
                 )}
-              </label>
+              </div>
 
               <label className="vs-field">{t("منطقة التوصيل")}{" "}<select
                   className="vs-input"

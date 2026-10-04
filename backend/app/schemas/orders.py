@@ -11,7 +11,18 @@ from app.core.enums import OrderSource, OrderStatus, PackagingType, PaymentMetho
 from app.schemas.common import APIModel, Money, UTCDateTime
 from app.schemas.invoices import InvoiceSummary
 
-PHONE_PATTERN = re.compile(r"^\+?\d{7,15}$")
+INTERNATIONAL_CUSTOMER_PHONE_PATTERN = re.compile(r"^(970|972)\d{9}$")
+
+
+def normalize_customer_phone(value: str) -> str:
+    digits = re.sub(r"\D", "", value)
+    if re.fullmatch(r"059\d{7}", digits):
+        digits = f"970{digits[1:]}"
+    elif re.fullmatch(r"052\d{7}", digits):
+        digits = f"972{digits[1:]}"
+    if not INTERNATIONAL_CUSTOMER_PHONE_PATTERN.fullmatch(digits):
+        raise ValueError("phone number must use country code 970 or 972 followed by 9 digits")
+    return digits
 
 
 def _reject_public_stock_override(value: Any) -> Any:
@@ -47,10 +58,7 @@ class OrderCreate(APIModel):
     @field_validator("customer_phone")
     @classmethod
     def _normalize_phone(cls, value: str) -> str:
-        cleaned = re.sub(r"[\s\-()]", "", value)
-        if not PHONE_PATTERN.match(cleaned):
-            raise ValueError("phone number must contain 7 to 15 digits")
-        return cleaned
+        return normalize_customer_phone(value)
 
 
 class CartPricingRequest(APIModel):
@@ -311,10 +319,7 @@ class OrderAdminUpdate(APIModel):
     @field_validator("customer_phone")
     @classmethod
     def _normalize_phone(cls, value: str) -> str:
-        cleaned = re.sub(r"[\s\-()]", "", value)
-        if not PHONE_PATTERN.match(cleaned):
-            raise ValueError("phone number must contain 7 to 15 digits")
-        return cleaned
+        return normalize_customer_phone(value)
 
 
 class OrderStatusUpdate(APIModel):
@@ -373,10 +378,7 @@ class ManualOrderCreate(APIModel):
     @field_validator("customer_phone")
     @classmethod
     def _normalize_phone(cls, value: str) -> str:
-        cleaned = re.sub(r"[\s\-()]", "", value)
-        if not PHONE_PATTERN.match(cleaned):
-            raise ValueError("phone number must contain 7 to 15 digits")
-        return cleaned
+        return normalize_customer_phone(value)
 
     @model_validator(mode="after")
     def _require_other_source_note(self) -> "ManualOrderCreate":

@@ -207,6 +207,26 @@ describe("public storefront", () => {
     expect(calls.some((call) => call.path.split("?")[0] === "/api/v1/orders")).toBe(false);
   });
 
+  it.each([
+    ["ar", "رمز الدولة", "رقم الهاتف"],
+    ["en", "Country code", "Phone number"],
+  ])("shows the required country code beside the local phone field in %s", async (locale, countryLabel, phoneLabel) => {
+    cartStorage.save([
+      { key: "1|", productId: 1, variantId: null, slug: "clear-resin", name: "Resin", unit: 100, qty: 1 },
+    ]);
+    stubApi({
+      ...storefrontRoutes,
+      "POST /api/v1/cart/price": { lines: [], subtotal: 100, discount: 0, delivery_fee: 0, total: 100 },
+    });
+    renderApp(`/${locale}/checkout`);
+
+    const countryCode = await screen.findByRole("combobox", { name: countryLabel });
+    expect(countryCode).toHaveValue("");
+    expect(within(countryCode).getByRole("option", { name: "+970" })).toHaveValue("+970");
+    expect(within(countryCode).getByRole("option", { name: "+972" })).toHaveValue("+972");
+    expect(screen.getByRole("textbox", { name: phoneLabel })).toHaveAttribute("dir", "ltr");
+  });
+
   it("requires return-policy acknowledgement before enabling final confirmation", async () => {
     cartStorage.save([
       { key: "1|", productId: 1, variantId: null, slug: "clear-resin", name: "ريزن شفاف", unit: 100, bg: "", variation: "", qty: 1 },
@@ -275,6 +295,7 @@ describe("public storefront", () => {
     renderApp("/checkout");
 
     await userEvent.type(await screen.findByPlaceholderText("مثال: محمد أحمد"), "سارة أحمد");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "رمز الدولة" }), "+970");
     await userEvent.type(screen.getByPlaceholderText("05XXXXXXXX"), "0591234567");
     await userEvent.type(screen.getByPlaceholderText("الشارع، رقم البناية، أقرب معلم"), "رام الله، شارع الإرسال");
     // Addressed by its own label: the header search field is also a combobox.
@@ -286,6 +307,9 @@ describe("public storefront", () => {
     expect(screen.getByText("ORD-260731-1234")).toBeInTheDocument();
     expect(cartStorage.load()).toHaveLength(0);
     const orderRequest = calls.find((call) => call.path.split("?")[0] === "/api/v1/orders");
+    expect(JSON.parse(orderRequest.body)).toMatchObject({
+      customer_phone: "970591234567",
+    });
     expect(JSON.parse(orderRequest.body).client_reference).toMatch(/^[-\w]{8,}$/);
     const lookupRequest = calls.find((call) => call.path.split("?")[0] === "/api/v1/orders/ORD-260731-1234");
     expect(lookupRequest.headers["X-Order-Token"]).toBe("token-value-123456");
@@ -312,6 +336,7 @@ describe("public storefront", () => {
     renderApp("/checkout");
 
     await userEvent.type(await screen.findByPlaceholderText("مثال: محمد أحمد"), "سارة أحمد");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "رمز الدولة" }), "+970");
     await userEvent.type(screen.getByPlaceholderText("05XXXXXXXX"), "0591234567");
     await userEvent.type(screen.getByPlaceholderText("الشارع، رقم البناية، أقرب معلم"), "رام الله، شارع الإرسال");
     await userEvent.selectOptions(screen.getByLabelText(/منطقة التوصيل/), "1");

@@ -364,7 +364,7 @@ def test_the_invoice_matches_the_order_it_was_issued_for(
     assert invoice["store_name"] == "متجر فيستا"
     assert invoice["store_phone"] == "0000000000"
     assert invoice["customer_name"] == "سارة أحمد"
-    assert invoice["customer_phone"] == "0591234567"
+    assert invoice["customer_phone"] == "970591234567"
     assert invoice["customer_email"] == "sara@example.com"
     assert invoice["delivery_address"] == order.address
     assert invoice["delivery_area_name"] == delivery_area.name

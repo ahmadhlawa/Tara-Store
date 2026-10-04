@@ -320,7 +320,14 @@ describe("admin workspace", () => {
     expect(within(screen.getByRole("table")).getByText("طلب جديد")).toBeInTheDocument();
   });
 
-  it("offers searchable order filters and a WhatsApp customer action", async () => {
+  it.each([
+    ["059-123 4567", "https://wa.me/970591234567"],
+    ["0521234567", "https://wa.me/972521234567"],
+    ["970591234567", "https://wa.me/970591234567"],
+    ["972521234567", "https://wa.me/972521234567"],
+    ["+970591234567", "https://wa.me/970591234567"],
+    ["+972521234567", "https://wa.me/972521234567"],
+  ])("opens legacy customer phone %s in WhatsApp", async (customerPhone, expectedHref) => {
     signedIn();
     stubApi({
       "/api/v1/auth/me": ADMIN,
@@ -330,7 +337,7 @@ describe("admin workspace", () => {
         status: "preparing",
         source: "website",
         customer_name: "سارة أحمد",
-        customer_phone: "059-123 4567",
+        customer_phone: customerPhone,
         delivery_area_name: "رام الله",
         total: 120,
         payment_method: "cash_on_delivery",
@@ -344,7 +351,7 @@ describe("admin workspace", () => {
     expect(await screen.findByLabelText("المصدر")).toBeInTheDocument();
     expect(screen.getByLabelText("حالة الدفع")).toBeInTheDocument();
     expect(screen.getByLabelText("من تاريخ")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "واتساب مع سارة أحمد" })).toHaveAttribute("href", "https://wa.me/0591234567");
+    expect(screen.getByRole("link", { name: "واتساب مع سارة أحمد" })).toHaveAttribute("href", expectedHref);
   });
 
   it("hides super-admin-only navigation from a normal admin", async () => {

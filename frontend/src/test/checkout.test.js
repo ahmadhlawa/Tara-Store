@@ -25,14 +25,14 @@ describe("checkout confirmation", () => {
 
     await checkoutService.placeOrder(
       [{ productId: 4, variantId: null, qty: 2, name: "Untrusted", unit: 1 }],
-      { name: "Customer", phone: "0591234567", address: "A valid address", paymentMethod: "cash_on_delivery" },
+      { name: "Customer", countryCode: "+970", phone: "0591234567", address: "A valid address", paymentMethod: "cash_on_delivery" },
       "checkout-ref-0001",
     );
 
     expect(createOrder).toHaveBeenCalledWith({
       client_reference: "checkout-ref-0001",
       customer_name: "Customer",
-      customer_phone: "0591234567",
+      customer_phone: "970591234567",
       address: "A valid address",
       delivery_area_id: null,
       coupon_code: null,
@@ -41,6 +41,32 @@ describe("checkout confirmation", () => {
       packaging_type: "normal",
       items: [{ product_id: 4, variant_id: null, selected_option_value_ids: [], quantity: 2 }],
     });
+  });
+
+  it.each([
+    ["+970", "0591234567", "970591234567"],
+    ["+970", "591234567", "970591234567"],
+    ["+972", "0521234567", "972521234567"],
+    ["+972", "521234567", "972521234567"],
+  ])("normalizes %s and %s before submitting the order", async (countryCode, phone, expected) => {
+    createOrder.mockResolvedValue({ order_number: "ORD-1" });
+
+    await checkoutService.placeOrder(
+      [{ productId: 4, variantId: null, qty: 1 }],
+      { name: "Customer", countryCode, phone, address: "A valid address", paymentMethod: "cash_on_delivery" },
+      `checkout-${expected}`,
+    );
+
+    expect(createOrder.mock.calls[0][0].customer_phone).toBe(expected);
+  });
+
+  it("refuses to submit an invalid customer phone", async () => {
+    await expect(checkoutService.placeOrder(
+      [{ productId: 4, variantId: null, qty: 1 }],
+      { name: "Customer", countryCode: "", phone: "0591234567", address: "A valid address" },
+      "checkout-invalid-phone",
+    )).rejects.toThrow("Invalid customer phone");
+    expect(createOrder).not.toHaveBeenCalled();
   });
 
   it("defaults quotes to normal packaging", async () => {
@@ -65,7 +91,8 @@ describe("checkout confirmation", () => {
     const order = { packaging_type: "gift", packaging_fee: 7, total: 137 };
     createOrder.mockResolvedValue(order);
     const result = await checkoutService.placeOrder([{ productId: 4, qty: 1 }], {
-      name: "Customer", packagingType: "gift", packagingFee: 999, packaging_fee: 999,
+      name: "Customer", countryCode: "+970", phone: "0591234567",
+      packagingType: "gift", packagingFee: 999, packaging_fee: 999,
     }, "reference");
     expect(createOrder.mock.calls[0][0]).toHaveProperty("packaging_type", "gift");
     expect(createOrder.mock.calls[0][0]).not.toHaveProperty("packaging_fee");

@@ -879,6 +879,35 @@ def test_empty_and_invalid_carts_are_rejected(client: TestClient, db: Session) -
     assert bad_phone.status_code == 422
 
 
+@pytest.mark.parametrize(
+    ("stored_phone", "expected"),
+    [
+        ("0591234567", "970591234567"),
+        ("0521234567", "972521234567"),
+        ("970591234567", "970591234567"),
+        ("972521234567", "972521234567"),
+        ("+970591234567", "970591234567"),
+        ("+972521234567", "972521234567"),
+    ],
+)
+def test_checkout_stores_customer_phone_in_international_format(
+    client: TestClient, db: Session, stored_phone: str, expected: str
+) -> None:
+    product = make_product(db, stock=20)
+    response = client.post(
+        "/api/v1/orders",
+        json=_order_payload(
+            product,
+            client_reference=f"phone-{expected}",
+            customer_phone=stored_phone,
+            items=[{"product_id": product.id, "quantity": 1}],
+        ),
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["customer_phone"] == expected
+
+
 def test_rejected_checkout_does_not_persist_a_partial_order(client: TestClient, db: Session) -> None:
     product = make_product(db, stock=5)
 
@@ -1094,7 +1123,7 @@ def test_public_checkout_returns_a_canonical_new_order_snapshot_and_is_idempoten
     assert repeated.json()["order_number"] == body["order_number"]
     assert body["status"] == "new"
     assert body["source"] == "website"
-    assert body["customer_phone"] == "0591234567"
+    assert body["customer_phone"] == "970591234567"
     assert body["address"] == payload["address"]
     assert body["customer_notes"] == "Leave at reception"
     assert body["items"] == [

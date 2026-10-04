@@ -108,6 +108,7 @@ export function StoreProvider({ children }) {
   }, [locale, coupon.applied, t]);
   const [checkoutForm, setCheckoutForm] = useState({
     name: "",
+    countryCode: "",
     phone: "",
     areaId: null,
     address: "",

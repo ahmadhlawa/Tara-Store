@@ -3,6 +3,7 @@ import { t } from "../i18n/locale.jsx";
 // convenience; the API is the source of truth for prices, discounts and totals.
 import { publicApi } from "../api/publicApi.js";
 import { packagingTypeLabels } from "../store.js";
+import { normalizeCustomerPhone } from "../utils/phone.js";
 
 const toItems = (cart) =>
   cart.map((line) => ({
@@ -71,10 +72,12 @@ export const checkoutService = {
   validateCoupon: (code, subtotal) => publicApi.validateCoupon(code, subtotal),
 
   async placeOrder(cart, customer, clientReference) {
+    const normalizedPhone = normalizeCustomerPhone(customer.countryCode, customer.phone);
+    if (!normalizedPhone) throw new Error("Invalid customer phone");
     return publicApi.createOrder({
       client_reference: clientReference,
       customer_name: customer.name,
-      customer_phone: customer.phone,
+      customer_phone: normalizedPhone,
       address: customer.address,
       delivery_area_id: customer.deliveryAreaId ?? null,
       coupon_code: customer.couponCode || null,

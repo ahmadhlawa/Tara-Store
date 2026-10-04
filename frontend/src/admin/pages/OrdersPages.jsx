@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { customerWhatsAppHref } from "../../utils/phone.js";
 import sx from "../../sx.js";
 import { adminApi } from "../../api/adminApi.js";
 import { formatDateTime } from "../../utils/format.js";
@@ -18,7 +19,6 @@ import {
 
 const filterStyle = sx`display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;min-width:130px;flex:1`;
 const asText = (value) => String(value ?? "");
-const phoneDigits = (phone) => String(phone || "").replace(/[^\d]/g, "");
 const number = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
 const completedWarning = "هذا الطلب مكتمل وتم تسجيل بياناته وفاتورته في النظام. أي تعديل من الآن قد يغيّر البيانات المالية أو المخزون. تأكد من التعديلات قبل الحفظ، وأنت مسؤول عن صحة البيانات الجديدة.";
 const negativeStockWarning = "الكمية المطلوبة أكبر من المخزون المتوفر حاليًا، واستمرار التعديل سيجعل المخزون بالسالب. هل تريد المتابعة؟";
@@ -67,7 +67,7 @@ export function OrdersPage() {
     {feedback.node}<OrderFilters values={filters} onChange={changeFilters} />
     <div style={card}>{loading ? <Spinner /> : <Table rows={rows} empty="لا توجد طلبات مطابقة." columns={[
       { key: "order_number", title: "رقم الطلب", render: (row) => <Link to={`/admin/orders/${row.id}`} style={sx`font-weight:800`}>{row.order_number}</Link> },
-      { key: "customer", title: "العميل", render: (row) => <div style={sx`display:flex;flex-direction:column;gap:4px`}><strong>{row.customer_name}</strong><a aria-label={`واتساب مع ${row.customer_name}`} href={`https://wa.me/${phoneDigits(row.customer_phone)}`} target="_blank" rel="noreferrer" style={sx`color:#3F6B54;font-size:12px;font-weight:700`}>واتساب</a></div> },
+      { key: "customer", title: "العميل", render: (row) => <div style={sx`display:flex;flex-direction:column;gap:4px`}><strong>{row.customer_name}</strong><a aria-label={`واتساب مع ${row.customer_name}`} href={customerWhatsAppHref(row.customer_phone)} target="_blank" rel="noreferrer" style={sx`color:#3F6B54;font-size:12px;font-weight:700`}>واتساب</a></div> },
       { key: "source", title: "المصدر", render: (row) => orderSourceLabels[row.source] || row.source || "—" },
       { key: "items_count", title: "الأصناف" }, { key: "total", title: "الإجمالي", render: (row) => Math.round(number(row.total)) },
       { key: "payment", title: "الدفع", render: (row) => <div style={sx`display:flex;flex-direction:column;gap:4px`}><span>{paymentMethodLabels[row.payment_method] || row.payment_method}</span><PaymentStatusBadge status={row.payment_status} /></div> },
@@ -178,7 +178,7 @@ export function OrderDetailPage() {
     <PageHeader title={`الطلب ${order.order_number}`} description={`${orderSourceLabels[order.source] || order.source} · ${formatDateTime(order.created_at)}`} actions={<Button variant="ghost" onClick={() => navigate("/admin/orders")}>رجوع</Button>} />
     {feedback.node}
     <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;margin-bottom:16px`}>
-      <section style={card}><h2 style={sx`margin:0 0 12px;font-size:16px`}>العميل</h2><p style={sx`margin:0;line-height:1.9`}>{order.customer_name}<br />{order.customer_phone}<br />{order.address}</p><a aria-label={`واتساب مع ${order.customer_name}`} href={`https://wa.me/${phoneDigits(order.customer_phone)}`} target="_blank" rel="noreferrer" style={sx`display:inline-block;margin-top:10px;color:#3F6B54;font-weight:800`}>فتح واتساب</a></section>
+      <section style={card}><h2 style={sx`margin:0 0 12px;font-size:16px`}>العميل</h2><p style={sx`margin:0;line-height:1.9`}>{order.customer_name}<br />{order.customer_phone}<br />{order.address}</p><a aria-label={`واتساب مع ${order.customer_name}`} href={customerWhatsAppHref(order.customer_phone)} target="_blank" rel="noreferrer" style={sx`display:inline-block;margin-top:10px;color:#3F6B54;font-weight:800`}>فتح واتساب</a></section>
       <section style={card}><h2 style={sx`margin:0 0 12px;font-size:16px`}>الحالة والدفع</h2><div style={sx`display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px`}><OrderStatusBadge status={order.status} /><PaymentStatusBadge status={order.payment_status} /></div><p style={sx`margin:0;font-size:13px`}>{paymentMethodLabels[order.payment_method] || order.payment_method}</p>{invoice && <p style={sx`margin:12px 0 0`}><InvoiceStatusBadge status={invoice.status} /></p>}</section>
     </div>
     <section style={{ ...card, ...sx`margin-bottom:16px` }}><h2 style={sx`margin:0 0 12px;font-size:16px`}>الفاتورة</h2>{invoice ? <div style={sx`display:flex;align-items:center;gap:10px;flex-wrap:wrap`}><InvoiceStatusBadge status={invoice.status} /><Link to={`/admin/invoices/${invoice.invoice_number}`} style={sx`font-weight:800`}>{invoice.invoice_number}</Link><span style={sx`font-size:13px;color:#766669`}>صادرة</span>{invoice.issued_at && <span style={sx`font-size:13px;color:#766669`}>{formatDateTime(invoice.issued_at)}</span>}<div style={sx`display:flex;gap:8px;margin-inline-start:auto;flex-wrap:wrap`}><Button variant="ghost" onClick={() => navigate(`/admin/invoices/${invoice.invoice_number}`)}>عرض الفاتورة</Button></div></div> : <p style={sx`margin:0;color:#766669;font-size:13px`}>تصدر الفاتورة تلقائياً عند تغيير الحالة إلى «مكتمل».</p>}{invoiceHistory.length > 0 && <div aria-label="سجل الفواتير والاستبدالات" style={sx`display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid #E7DCF2`}>{invoiceHistory.map((entry) => <Link key={entry.invoice_number} to={`/admin/invoices/${entry.invoice_number}`} style={sx`font-size:13px;font-weight:800`}>{entry.invoice_number} <InvoiceStatusBadge status={entry.status} /></Link>)}</div>}</section>

@@ -723,6 +723,17 @@
   gap: 10px 12px;
 }
 
+.vs-phone-field {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.vs-phone-field__code,
+.vs-phone-field__number {
+  min-width: 0;
+}
+
 .vs-checkout__notes {
   grid-column: 1 / -1;
 }
