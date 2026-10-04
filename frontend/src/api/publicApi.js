@@ -11,6 +11,7 @@ export const publicApi = {
   settings: () => api.get("/store/settings"),
   analyticsVisit: (payload) => api.post("/analytics/visit", payload),
   analyticsProductView: (payload) => api.post("/analytics/product-view", payload),
+  analyticsEvent: (payload) => api.post("/analytics/event", payload),
   categories: (params) => api.get("/categories", { params }),
   category: (slug) => api.get(`/categories/${encodeURIComponent(slug)}`),
 

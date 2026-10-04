@@ -512,10 +512,16 @@ def _validate_and_apply_stock(lines: Sequence[PricedLine], sign: int) -> None:
 
 
 def create_order(db: Session, draft: OrderDraft) -> Order:
+    order, _created = create_order_with_result(db, draft)
+    return order
+
+
+def create_order_with_result(db: Session, draft: OrderDraft) -> tuple[Order, bool]:
+    """Return request-local newness; an idempotent lookup never creates an order."""
     if draft.client_reference:
         existing = get_by_client_reference(db, draft.client_reference)
         if existing is not None:
-            return existing
+            return existing, False
 
     if not draft.items:
         raise DomainError("العربة فارغة.", code="empty_cart")
@@ -603,7 +609,7 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
         after_data={"status": order.status, "total_amount": order.total},
         reason=None,
     )
-    return order
+    return order, True
 
 
 def get_by_client_reference(db: Session, client_reference: str) -> Order | None:

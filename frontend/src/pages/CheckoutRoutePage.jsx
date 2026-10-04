@@ -6,6 +6,7 @@ import { useCartLines } from "../components/public/cart/useCartLines.js";
 import FreeDeliveryNotice from "../components/public/cart/FreeDeliveryNotice.jsx";
 import Media from "../components/public/shell/Media.jsx";
 import { buildOrderWhatsAppMessage, checkoutService } from "../services/checkout.js";
+import { trackCheckoutReached } from "../services/analytics.js";
 import { orderTokenStorage } from "../storage/authStorage.js";
 import { packagingTypeLabels, paymentMethods } from "../store.js";
 import { useMoney } from "../hooks/useStorefront.js";
@@ -43,6 +44,14 @@ export default function CheckoutRoutePage() {
   const navigate = useNavigate();
   const { lines, subtotal } = useCartLines();
   const { checkoutForm: form, setCheckoutForm, cart, coupon, setCoupon, deliveryAreas, packagingType, setPackagingType } = store;
+
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current) return;
+    checkoutTracked.current = true;
+    // Attempt per mount; the server dedupes per active session, including remounts.
+    trackCheckoutReached();
+  }, []);
 
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const applyCoupon = async () => {

@@ -4,10 +4,10 @@ from datetime import timedelta
 from decimal import Decimal
 
 import pytest
-from fastapi import Response
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy import event, select
 
 from app.api.v1.endpoints import public_checkout
 from app.core.enums import DiscountType, OrderStatus
@@ -22,11 +22,215 @@ from app.models import (
     ProductOptionValue,
     ProductVariant,
 )
-from app.schemas.orders import OrderCreate
 from app.services import orders as orders_service
 from app.services import pricing
 from app.services.errors import DomainError
 from tests.conftest import auth, make_product
+
+
+def test_checkout_records_anonymous_completion_once_after_commerce_commit(client, db, session_factory):
+    from app.models import AnalyticsEvent, AnalyticsSession, Invoice
+
+    product = make_product(db, stock=10)
+    visit = client.post('/api/v1/analytics/visit', json={'path': '/ar/checkout'})
+    assert visit.status_code == 204
+    visitor = client.cookies['tara_visitor']
+    session = db.scalar(select(AnalyticsSession))
+    payload = _order_payload(product)
+    first = client.post('/api/v1/orders', json=payload)
+    assert first.status_code == 201, first.text
+    assert 'HttpOnly' in first.headers.get('set-cookie', '')
+    assert client.cookies['tara_visitor'] == visitor
+    # Retrying from another anonymous visitor cannot recount the order.
+    client.cookies.clear()
+    again = client.post('/api/v1/orders', json=payload)
+    assert again.json()['id'] == first.json()['id']
+    with session_factory() as verify:
+        rows = list(verify.scalars(select(AnalyticsEvent)))
+        assert len(rows) == 1
+        row = rows[0]
+        assert row.event_type == 'order_completed'
+        assert row.session_id == session.id
+        assert len(row.dedupe_key) == 64
+        assert all(c in '0123456789abcdef' for c in row.dedupe_key)
+        assert verify.query(Order).count() == 1
+        assert verify.get(Product, product.id).stock_quantity == 8
+        assert verify.query(Invoice).count() == 0
+        assert set(AnalyticsEvent.__table__.columns.keys()) == {
+            'id', 'session_id', 'event_type', 'occurred_at', 'dedupe_key',
+        }
+    assert 'analytics' not in first.text.lower()
+
+
+def test_checkout_creates_tracking_cookie_without_a_prior_visit(client, db):
+    from app.models import AnalyticsEvent, AnalyticsSession
+
+    product = make_product(db)
+    response = client.post('/api/v1/orders', json=_order_payload(product))
+    assert response.status_code == 201
+    assert 'tara_visitor' in client.cookies
+    assert 'tara_session' in client.cookies
+    assert db.query(AnalyticsSession).count() == 1
+    assert db.query(AnalyticsEvent).one().event_type == 'order_completed'
+
+
+@pytest.mark.parametrize('failure_at', ['before_record', 'after_flush', 'after_commit'])
+def test_checkout_analytics_failure_cannot_rollback_order_or_recount_retry(
+    client, db, session_factory, monkeypatch, failure_at,
+):
+    from app.models import AnalyticsEvent, Invoice
+    from app.services import analytics
+
+    product = make_product(db, stock=10)
+    product_id = product.id
+    original = analytics.record_event
+    reached = []
+
+    def fail(analytics_db, request, event_type, **kwargs):
+        # A different connection sees the committed order before analytics starts.
+        with session_factory() as verify:
+            assert verify.query(Order).count() == 1
+            assert verify.get(Product, product_id).stock_quantity == 8
+            assert verify.query(Invoice).count() == 0
+        reached.append(event_type)
+        if failure_at == 'before_record':
+            raise RuntimeError('private analytics failure')
+        if failure_at == 'after_flush':
+            def after_flush(session, _context):
+                if any(isinstance(row, AnalyticsEvent) for row in session.new):
+                    raise RuntimeError('private analytics failure after flush')
+            event.listen(analytics_db, 'after_flush', after_flush)
+        original(analytics_db, request, event_type, **kwargs)
+        raise RuntimeError('private analytics failure after commit')
+
+    monkeypatch.setattr(analytics, 'record_event', fail)
+    payload = _order_payload(product)
+    response = client.post('/api/v1/orders', json=payload)
+    assert response.status_code == 201, response.text
+    assert reached == ['order_completed']
+    retry = client.post('/api/v1/orders', json=payload)
+    assert retry.json()['id'] == response.json()['id']
+    assert reached == ['order_completed']
+    assert 'private analytics' not in response.text
+    with session_factory() as verify:
+        assert verify.query(Order).count() == 1
+        assert verify.get(Product, product_id).stock_quantity == 8
+        assert verify.query(Invoice).count() == 0
+        assert verify.query(AnalyticsEvent).count() == (1 if failure_at == 'after_commit' else 0)
+
+
+def test_checkout_missing_analytics_table_does_not_lose_order(client, db):
+    from app.models import AnalyticsEvent, Invoice
+
+    product = make_product(db)
+    AnalyticsEvent.__table__.drop(db.get_bind())
+    response = client.post('/api/v1/orders', json=_order_payload(product))
+    assert response.status_code == 201, response.text
+    retry = client.post('/api/v1/orders', json=_order_payload(product))
+    assert retry.json()['id'] == response.json()['id']
+    db.expire_all()
+    assert db.query(Order).count() == 1
+    assert db.get(Product, product.id).stock_quantity == 8
+    assert db.query(Invoice).count() == 0
+    assert 'analytics' not in response.text.lower()
+
+
+@pytest.mark.parametrize('conflict', [False, True])
+def test_retry_of_historical_order_does_not_backfill_completion(client, db, monkeypatch, conflict):
+    from app.models import AnalyticsEvent, AnalyticsSession
+
+    product = make_product(db)
+    payload = _order_payload(product)
+    old = orders_service.create_order(db, orders_service.OrderDraft(
+        client_reference=payload['client_reference'], customer_name='Old Customer',
+        customer_phone='0591234567', address='Old Address', items=[(product.id, None, 2)],
+    ))
+    db.commit()
+    old_id = old.id
+    if conflict:
+        def concurrent_conflict(*_args, **_kwargs):
+            raise IntegrityError('INSERT INTO orders', {}, Exception('unique client reference'))
+        monkeypatch.setattr(orders_service, 'create_order_with_result', concurrent_conflict)
+    response = client.post('/api/v1/orders', json=payload)
+    assert response.status_code == 201
+    assert response.json()['id'] == old_id
+    assert db.query(AnalyticsEvent).count() == 0
+    assert db.query(AnalyticsSession).count() == 0
+    assert 'set-cookie' not in response.headers
+
+
+@pytest.mark.parametrize('headers', [
+    {'Origin': 'https://other.example'}, {'User-Agent': 'Googlebot'},
+])
+def test_checkout_tracking_security_skips_events_without_blocking_commerce(client, db, monkeypatch, headers):
+    from app.models import AnalyticsEvent, AnalyticsSession
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, 'PUBLIC_BASE_URL', 'https://store.example')
+    product = make_product(db)
+    response = client.post('/api/v1/orders', json=_order_payload(product), headers=headers)
+    assert response.status_code == 201
+    assert db.query(Order).count() == 1
+    assert db.query(AnalyticsEvent).count() == 0
+    assert db.query(AnalyticsSession).count() == 0
+    assert 'set-cookie' not in response.headers
+
+
+def test_checkout_completion_shares_analytics_budget_but_preserves_order_budget(client, db, monkeypatch):
+    from collections import defaultdict, deque
+    from app.core.config import settings
+    from app.core.rate_limit import analytics_rate_limit, order_create_rate_limit
+    from app.models import AnalyticsEvent
+
+    monkeypatch.setattr(settings, 'ANALYTICS_RATE_LIMIT', 1)
+    monkeypatch.setattr(settings, 'ORDER_CREATE_RATE_LIMIT', 2)
+    for limiter in (analytics_rate_limit, order_create_rate_limit):
+        monkeypatch.setattr(limiter, '_hits', defaultdict(deque))
+    product = make_product(db)
+    assert client.post('/api/v1/analytics/event', json={'event_type': 'checkout_reached'}).status_code == 204
+    for ref in ('rate-first', 'rate-second'):
+        response = client.post('/api/v1/orders', json=_order_payload(product, client_reference=ref))
+        assert response.status_code == 201
+    blocked = client.post('/api/v1/orders', json=_order_payload(product, client_reference='rate-third'))
+    assert blocked.status_code == 429
+    assert db.query(Order).count() == 2
+    assert [row.event_type for row in db.scalars(select(AnalyticsEvent))] == ['checkout_reached']
+
+
+def test_server_completion_consumes_shared_analytics_budget(client, db, monkeypatch):
+    from collections import defaultdict, deque
+    from app.core.config import settings
+    from app.core.rate_limit import analytics_rate_limit
+    from app.models import AnalyticsEvent
+
+    monkeypatch.setattr(settings, 'ANALYTICS_RATE_LIMIT', 1)
+    monkeypatch.setattr(analytics_rate_limit, '_hits', defaultdict(deque))
+    product = make_product(db)
+    assert client.post('/api/v1/orders', json=_order_payload(product)).status_code == 201
+    assert client.post('/api/v1/analytics/event', json={'event_type': 'add_to_cart'}).status_code == 429
+    assert db.query(AnalyticsEvent).one().event_type == 'order_completed'
+
+
+def test_admin_fulfillment_and_manual_creation_do_not_emit_checkout_completion(client, db, super_token):
+    from app.models import AnalyticsEvent
+
+    product = make_product(db)
+    payload = _order_payload(product)
+    created = client.post('/api/v1/orders', json=payload)
+    assert created.status_code == 201
+    manual = client.post('/api/v1/admin/orders/manual', headers=auth(super_token), json={
+        'source': 'whatsapp',
+        'customer_name': 'Manual Customer', 'customer_phone': '0591234567',
+        'address': 'Manual Address', 'items': [{'kind': 'catalog', 'product_id': product.id, 'quantity': 1}],
+    })
+    assert manual.status_code == 201, manual.text
+    for order_id in (created.json()['id'], manual.json()['id']):
+        completed = client.post(f'/api/v1/admin/orders/{order_id}/complete',
+                                headers=auth(super_token), json={
+                                    'payment_method': 'cash_on_delivery', 'payment_status': 'paid',
+                                })
+        assert completed.status_code == 200, completed.text
+    assert db.query(AnalyticsEvent).count() == 1
 
 
 def _coupon(db: Session, **kwargs) -> Coupon:
@@ -924,9 +1128,14 @@ def test_public_checkout_recovers_from_a_concurrent_client_reference_conflict(
     def concurrent_conflict(*_args, **_kwargs):
         raise IntegrityError("INSERT INTO orders", {}, Exception("unique client reference"))
 
-    monkeypatch.setattr(public_checkout.orders_service, "create_order", concurrent_conflict)
-    recovered = public_checkout.create_order(OrderCreate.model_validate(payload), db, Response())
+    monkeypatch.setattr(public_checkout.orders_service, "create_order_with_result", concurrent_conflict)
+    recovered = client.post('/api/v1/orders', json=payload)
 
-    assert recovered.id == created["id"]
-    assert recovered.order_number == created["order_number"]
+    assert recovered.status_code == 201
+    assert recovered.json()['id'] == created["id"]
+    assert recovered.json()['order_number'] == created["order_number"]
     assert db.query(Order).count() == 1
+    from app.models import AnalyticsEvent
+    assert db.query(AnalyticsEvent).count() == 1
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == 8
