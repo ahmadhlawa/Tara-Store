@@ -14,12 +14,12 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.enums import AdminRole, InvoiceStatus, OrderStatus, PaymentStatus
+from app.core.enums import InvoiceStatus, OrderStatus, PaymentStatus
 from app.db.base import utcnow
 from app.models import AdminUser, Invoice, InvoiceItem, InvoiceSequence, Order
 from app.models.invoices import DEFAULT_INVOICE_PREFIX
 from app.services import store_settings as settings_service
-from app.services.errors import ConflictError, DomainError, NotFoundError, PermissionDeniedError
+from app.services.errors import ConflictError, DomainError, NotFoundError
 from app.services.pricing import ZERO, money
 
 # Zero-padding for the numeric part: INV-000001. Six digits keeps a million invoices
@@ -42,54 +42,15 @@ def _nonnegative_payment_amount(value: Decimal, *, field: str) -> Decimal:
     return money(raw)
 
 
-def derive_payment_status(
-    total_amount: Decimal,
-    paid_amount: Decimal,
-    refunded_amount: Decimal,
-) -> PaymentStatus:
-    """Derive, rather than trust, the persisted payment status."""
+def validate_payment_update(*, total_amount: Decimal, payment_status: str) -> PaymentUpdate:
+    """Derive a complete payment snapshot from the requested state and server total."""
+    if payment_status not in {PaymentStatus.UNPAID.value, PaymentStatus.PAID.value, PaymentStatus.REFUNDED.value}:
+        raise DomainError("Select unpaid, paid or refunded.", code="invalid_payment_status")
     total = _nonnegative_payment_amount(total_amount, field="total_amount")
-    paid = _nonnegative_payment_amount(paid_amount, field="paid_amount")
-    refunded = _nonnegative_payment_amount(refunded_amount, field="refunded_amount")
-    if paid > total or refunded > paid:
-        raise DomainError("Payment amounts are outside the invoice bounds.", code="payment_out_of_bounds")
-    if refunded > 0:
-        return PaymentStatus.REFUNDED
-    if paid == 0:
-        return PaymentStatus.UNPAID
-    return PaymentStatus.PAID if paid == total else PaymentStatus.UNPAID
-
-
-def validate_payment_update(
-    *,
-    total_amount: Decimal,
-    current_paid_amount: Decimal,
-    current_refunded_amount: Decimal = ZERO,
-    paid_amount: Decimal,
-    refunded_amount: Decimal,
-    actor_role: str,
-    reason: str | None,
-) -> PaymentUpdate:
-    """Validate a payment snapshot before an invoice service persists it."""
-    total = _nonnegative_payment_amount(total_amount, field="total_amount")
-    current_paid = _nonnegative_payment_amount(current_paid_amount, field="current_paid_amount")
-    current_refunded = _nonnegative_payment_amount(
-        current_refunded_amount, field="current_refunded_amount"
-    )
-    paid = _nonnegative_payment_amount(paid_amount, field="paid_amount")
-    refunded = _nonnegative_payment_amount(refunded_amount, field="refunded_amount")
-    status = derive_payment_status(total, paid, refunded)
-    correction_or_refund = paid < current_paid or refunded != current_refunded
-
-    if actor_role != AdminRole.SUPER_ADMIN.value and correction_or_refund:
-        raise PermissionDeniedError(
-            "Only a super admin may correct a payment or record a refund.",
-            code="payment_correction_forbidden",
-        )
-    if actor_role == AdminRole.SUPER_ADMIN.value and correction_or_refund and not (reason or "").strip():
-        raise DomainError("A reason is required for a payment correction or refund.", code="reason_required")
-
-    remaining = money(max(Decimal("0.00"), total - (paid - refunded)))
+    status = PaymentStatus(payment_status)
+    paid = ZERO if status == PaymentStatus.UNPAID else total
+    refunded = total if status == PaymentStatus.REFUNDED else ZERO
+    remaining = total if status == PaymentStatus.UNPAID else ZERO
     return PaymentUpdate(paid, refunded, remaining, status)
 
 
@@ -159,7 +120,7 @@ def issue_for_order(
     *,
     admin: AdminUser | None = None,
     payment_method: str | None = None,
-    paid_amount: Decimal = ZERO,
+    payment_status: str = PaymentStatus.UNPAID.value,
     payment_details: str | None = None,
     invoice_notes: str | None = None,
 ) -> Invoice:
@@ -187,11 +148,7 @@ def issue_for_order(
     grand_total = order_total if (inclusive or not tax_enabled) else money(order_total + tax_amount)
     payment = validate_payment_update(
         total_amount=grand_total,
-        current_paid_amount=ZERO,
-        paid_amount=paid_amount,
-        refunded_amount=ZERO,
-        actor_role=admin.role if admin is not None else AdminRole.ADMIN.value,
-        reason=None,
+        payment_status=payment_status,
     )
 
     predecessor = db.execute(
@@ -368,12 +325,15 @@ def sync_active_from_order(
     invoice.grand_total = (order_total if invoice.prices_include_tax or not invoice.tax_enabled
                            else money(order_total + invoice.tax_amount))
     if invoice.grand_total != before["grand_total"]:
-        invoice.paid_amount = (invoice.grand_total if invoice.payment_status in {
-            PaymentStatus.PAID.value, PaymentStatus.REFUNDED.value} else ZERO)
-        invoice.refunded_amount = (invoice.grand_total
-                                   if invoice.payment_status == PaymentStatus.REFUNDED.value else ZERO)
-        invoice.remaining_amount = (invoice.grand_total
-                                    if invoice.payment_status == PaymentStatus.UNPAID.value else ZERO)
+        # Match migration 0018's aliases only when financially updating the snapshot.
+        status = {PaymentStatus.PARTIALLY_PAID.value: PaymentStatus.UNPAID.value,
+                  PaymentStatus.PARTIALLY_REFUNDED.value: PaymentStatus.REFUNDED.value}.get(
+                      invoice.payment_status, invoice.payment_status)
+        payment = validate_payment_update(total_amount=invoice.grand_total, payment_status=status)
+        invoice.payment_status = payment.status.value
+        invoice.paid_amount = payment.paid_amount
+        invoice.refunded_amount = payment.refunded_amount
+        invoice.remaining_amount = payment.remaining_amount
     invoice.items[:] = [InvoiceItem(**{field: getattr(item, field) for field in _ITEM_SNAPSHOT_FIELDS})
                         for item in order.items]
     after = _current_snapshot(invoice)
@@ -504,8 +464,7 @@ def update_payment(
     db: Session,
     invoice: Invoice,
     *,
-    paid_amount: Decimal | None,
-    refunded_amount: Decimal | None,
+    payment_status: str,
     payment_method: str | None,
     payment_details: str | None,
     details_provided: bool,
@@ -532,15 +491,7 @@ def update_payment(
         "remaining_amount": invoice.remaining_amount,
         "payment_details": invoice.payment_details,
     }
-    payment = validate_payment_update(
-        total_amount=invoice.grand_total,
-        current_paid_amount=invoice.paid_amount,
-        current_refunded_amount=invoice.refunded_amount,
-        paid_amount=invoice.paid_amount if paid_amount is None else paid_amount,
-        refunded_amount=invoice.refunded_amount if refunded_amount is None else refunded_amount,
-        actor_role=admin.role,
-        reason=reason,
-    )
+    payment = validate_payment_update(total_amount=invoice.grand_total, payment_status=payment_status)
     invoice.paid_amount = payment.paid_amount
     invoice.refunded_amount = payment.refunded_amount
     invoice.remaining_amount = payment.remaining_amount

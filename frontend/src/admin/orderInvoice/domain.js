@@ -8,7 +8,7 @@ export const ORDER_STATUSES = [
 // a 422 that reaches the manager as "البيانات المرسلة غير صالحة." with a filter that
 // looks perfectly valid on screen.
 export const PAYMENT_STATUSES = [
-  ["unpaid", "غير مدفوع"], ["paid", "مدفوع"], ["refunded", "مسترد"],
+  ["unpaid", "غير مدفوع"], ["paid", "مدفوع"], ["refunded", "مردود"],
 ];
 
 export const INVOICE_STATUSES = [["active", "نشطة"], ["cancelled", "ملغاة"], ["replaced", "مستبدلة"]];
@@ -19,7 +19,7 @@ export const PAYMENT_METHODS = [["cash_on_delivery", "الدفع عند الاس
 
 const labels = (entries) => Object.fromEntries(entries);
 export const orderStatusLabels = { ...labels(ORDER_STATUSES), confirmed: "طلب مؤكد", delivered: "تم تسليمه", pending: "طلب مؤكد", reviewing: "طلب مؤكد", processing: "جاهز", preparing: "جاهز", shipped: "تم تسليمه", out_for_delivery: "تم تسليمه" };
-export const paymentStatusLabels = { ...labels(PAYMENT_STATUSES), partially_paid: "غير مدفوع", partially_refunded: "مسترد" };
+export const paymentStatusLabels = { ...labels(PAYMENT_STATUSES), partially_paid: "غير مدفوع", partially_refunded: "مردود" };
 export const invoiceStatusLabels = labels(INVOICE_STATUSES);
 export const orderSourceLabels = { ...labels(ORDER_SOURCES), phone: "أخرى", walk_in: "أخرى", social: "أخرى" };
 export const paymentMethodLabels = { ...labels(PAYMENT_METHODS), card: "بطاقة" };

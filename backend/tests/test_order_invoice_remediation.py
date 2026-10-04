@@ -37,7 +37,7 @@ def _complete_order(db: Session, order: Order, admin: AdminUser) -> Invoice:
         db,
         order_id=order.id,
         payment_method="cash_on_delivery",
-        paid_amount=Decimal("0.00"),
+        payment_status="unpaid",
         payment_details=None,
         invoice_notes=None,
         admin=admin,
@@ -53,7 +53,7 @@ def _assert_stale_conflict(exc: pytest.ExceptionInfo[ConflictError]) -> None:
 @pytest.mark.parametrize("method", ("cash_on_delivery", "card", "bank_transfer"))
 def test_approved_payment_methods_are_accepted_for_writes(method: str) -> None:
     completion = OrderCompletionRequest.model_validate({"payment_method": method})
-    update = InvoicePaymentUpdate.model_validate({"payment_method": method})
+    update = InvoicePaymentUpdate.model_validate({"payment_status": "paid", "payment_method": method})
 
     assert completion.payment_method.value == method
     assert update.payment_method.value == method
@@ -66,7 +66,7 @@ def test_legacy_payment_methods_are_not_selectable_for_writes(
     with pytest.raises(ValidationError):
         OrderCompletionRequest.model_validate({"payment_method": legacy_method})
     with pytest.raises(ValidationError):
-        InvoicePaymentUpdate.model_validate({"payment_method": legacy_method})
+        InvoicePaymentUpdate.model_validate({"payment_status": "paid", "payment_method": legacy_method})
 
 
 def test_only_approved_statuses_are_selectable_in_admin_filters(
@@ -84,12 +84,14 @@ def test_only_approved_statuses_are_selectable_in_admin_filters(
     ).status_code == 422
 
 
-def test_partial_payment_uses_the_unpaid_status(
+def test_current_filters_and_write_schemas_keep_partial_states_read_only(
     client: TestClient, admin_token: str
 ) -> None:
-    assert invoices_service.derive_payment_status(
-        Decimal("10.00"), Decimal("4.00"), Decimal("0.00")
-    ).value == "unpaid"
+    for legacy in ("partially_paid", "partially_refunded"):
+        with pytest.raises(ValidationError):
+            InvoicePaymentUpdate.model_validate({"payment_status": legacy})
+        with pytest.raises(ValidationError):
+            OrderCompletionRequest.model_validate({"payment_method": "cash_on_delivery", "payment_status": legacy})
     assert client.get(
         "/api/v1/admin/invoices",
         params={"payment_status": "unpaid"},
@@ -138,8 +140,7 @@ def test_stale_normal_admin_payment_cannot_overwrite_a_larger_payment(
         invoices_service.update_payment(
             winner,
             winner_invoice,
-            paid_amount=Decimal("100.00"),
-            refunded_amount=None,
+            payment_status="paid",
             payment_method=None,
             payment_details=None,
             details_provided=False,
@@ -152,8 +153,7 @@ def test_stale_normal_admin_payment_cannot_overwrite_a_larger_payment(
             invoices_service.update_payment(
                 stale,
                 stale_invoice,
-                paid_amount=Decimal("50.00"),
-                refunded_amount=None,
+                payment_status="unpaid",
                 payment_method=None,
                 payment_details=None,
                 details_provided=False,
@@ -184,7 +184,7 @@ def test_stale_status_change_cannot_cancel_or_restore_stock(
         orders_service.change_status(
             winner,
             winner_order,
-            OrderStatus.PREPARING.value,
+            OrderStatus.READY.value,
             admin=winner_admin,
         )
         winner.commit()
@@ -200,7 +200,7 @@ def test_stale_status_change_cannot_cancel_or_restore_stock(
         stale.rollback()
 
     db.expire_all()
-    assert db.get(Order, order.id).status == OrderStatus.PREPARING.value
+    assert db.get(Order, order.id).status == OrderStatus.READY.value
     assert db.get(Product, product.id).stock_quantity == 10
 
 
@@ -222,7 +222,7 @@ def test_stale_completion_is_rejected_before_a_second_invoice_is_issued(
             winner,
             order_id=order.id,
             payment_method="cash_on_delivery",
-            paid_amount=Decimal("0.00"),
+            payment_status="unpaid",
             payment_details=None,
             invoice_notes=None,
             admin=winner_admin,
@@ -234,7 +234,7 @@ def test_stale_completion_is_rejected_before_a_second_invoice_is_issued(
                 stale,
                 order_id=order.id,
                 payment_method="cash_on_delivery",
-                paid_amount=Decimal("0.00"),
+                payment_status="unpaid",
                 payment_details=None,
                 invoice_notes=None,
                 admin=stale_admin,

@@ -709,7 +709,7 @@ def complete_order(
     *,
     order_id: int,
     payment_method: str,
-    paid_amount: Decimal,
+    payment_status: str,
     payment_details: str | None,
     invoice_notes: str | None,
     admin: AdminUser,
@@ -756,7 +756,7 @@ def complete_order(
     try:
         with db.begin_nested():
             invoice = invoices_service.issue_for_order(
-                db, order, admin=admin, payment_method=payment_method, paid_amount=paid_amount,
+                db, order, admin=admin, payment_method=payment_method, payment_status=payment_status,
                 payment_details=payment_details, invoice_notes=invoice_notes,
             )
     except Exception:

@@ -68,7 +68,7 @@ def test_completion_invoice_and_number_rollback_with_caller_transaction(db, cate
     order_id = order.id
     orders_service.complete_order(
         db, order_id=order_id, admin=normal_admin, payment_method="cash_on_delivery",
-        paid_amount=Decimal("0.00"), payment_details=None, invoice_notes=None,
+        payment_status="unpaid", payment_details=None, invoice_notes=None,
     )
     db.rollback()
     db.expire_all()
@@ -97,7 +97,7 @@ def test_repeated_uninvoiced_cancellation_in_one_transaction_restocks_once(db, c
 
 
 def test_customer_only_completed_edit_preserves_existing_partial_payment(client, db, category, admin_token):
-    """Synchronizing customer data must not erase money accepted by the existing payment API."""
+    """Customer-only synchronization must retain historical partial money."""
     from tests.conftest import auth, make_product
     product = make_product(db, price="10.00", category_id=category.id)
     created = client.post("/api/v1/orders", json={
@@ -107,9 +107,13 @@ def test_customer_only_completed_edit_preserves_existing_partial_payment(client,
     }).json()
     path = f"/api/v1/admin/orders/{created['id']}"
     completed = client.post(path + "/complete", headers=auth(admin_token), json={
-        "payment_method": "cash_on_delivery", "paid_amount": "5.00",
+        "payment_method": "cash_on_delivery",
     })
     assert completed.status_code == 200, completed.text
+    historical = db.get(Invoice, completed.json()["invoice"]["id"])
+    historical.paid_amount = Decimal("5.00")
+    historical.remaining_amount = Decimal("5.00")
+    db.commit()
     response = client.patch(path, headers=auth(admin_token), json={
         "customer_name": "Edited Customer", "customer_phone": "0591234567",
         "address": "Original Street", "payment_method": "cash_on_delivery",
@@ -859,3 +863,109 @@ def test_mysql_downgrade_preserves_supported_replacement_history_targets(
 
     with pytest.raises(DDLStarted):
         migration.downgrade()
+
+
+@pytest.mark.parametrize("status", ["unpaid", "paid", "refunded"])
+@pytest.mark.parametrize("new_price", ["20.00", "0.00"])
+def test_completed_total_change_retains_state_and_normalizes_money(client, db, category, admin_token, status, new_price):
+    from tests.conftest import auth, make_product
+    product = make_product(db, price="10.00", category_id=category.id)
+    created = client.post("/api/v1/orders", json={
+        "client_reference": "payment-total-change", "customer_name": "Original Customer",
+        "customer_phone": "0591234567", "address": "Original Street",
+        "items": [{"product_id": product.id, "quantity": 1}],
+    }).json()
+    path = f"/api/v1/admin/orders/{created['id']}"
+    completed = client.post(path + "/complete", headers=auth(admin_token), json={
+        "payment_method": "cash_on_delivery", "payment_status": status,
+    })
+    assert completed.status_code == 200, completed.text
+    identity = completed.json()["invoice"]
+    response = client.patch(path, headers=auth(admin_token), json={
+        "customer_name": "Original Customer", "customer_phone": "0591234567",
+        "address": "Original Street", "payment_method": "cash_on_delivery",
+        "discount": "0.00", "delivery_fee": "0.00", "status": "completed",
+        "reason": "Price correction", "items": [{"product_id": product.id, "quantity": 1, "unit_price": new_price}],
+    })
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    invoice = db.get(Invoice, identity["id"])
+    total = Decimal(new_price)
+    expected = {"unpaid": (Decimal("0.00"), Decimal("0.00"), total), "paid": (total, Decimal("0.00"), Decimal("0.00")), "refunded": (total, total, Decimal("0.00"))}[status]
+    assert invoice.invoice_number == identity["invoice_number"]
+    assert invoice.payment_status == status
+    assert invoice.grand_total == total
+    assert (invoice.paid_amount, invoice.refunded_amount, invoice.remaining_amount) == expected
+    event = db.query(OrderActivity).filter_by(invoice_id=invoice.id, event_type="invoice_synchronized").one()
+    assert event.before_data["grand_total"] == "10.00"
+    assert event.after_data["grand_total"] == new_price
+    assert event.after_data["payment_status"] == status
+    assert event.after_data["paid_amount"] == (new_price if status != "unpaid" else "0.00")
+
+
+@pytest.mark.parametrize("status,paid,refunded,remaining", [
+    ("unpaid", "5.00", "0.00", "5.00"),
+    ("refunded", "10.00", "3.00", "3.00"),
+    ("paid", "5.00", "1.00", "6.00"),
+    ("partially_paid", "5.00", "0.00", "5.00"),
+    ("partially_refunded", "10.00", "3.00", "3.00"),
+])
+@pytest.mark.parametrize("new_price", ["20.00", "0.00"])
+def test_total_change_normalizes_historical_amounts_and_0018_aliases(
+    client, db, category, admin_token, status, paid, refunded, remaining, new_price,
+):
+    """0018 retains old amounts but canonical flags follow the approved new-total rules."""
+    from tests.conftest import auth, make_product
+    product = make_product(db, price="10.00", category_id=category.id)
+    created = client.post("/api/v1/orders", json={
+        "client_reference": "historical-canonical", "customer_name": "Original Customer",
+        "customer_phone": "0591234567", "address": "Original Street",
+        "items": [{"product_id": product.id, "quantity": 1}],
+    }).json()
+    path = f"/api/v1/admin/orders/{created['id']}"
+    completed = client.post(path + "/complete", headers=auth(admin_token), json={"payment_method": "cash_on_delivery"})
+    assert completed.status_code == 200, completed.text
+    invoice = db.get(Invoice, completed.json()["invoice"]["id"])
+    invoice.payment_status = status
+    invoice.paid_amount, invoice.refunded_amount, invoice.remaining_amount = map(Decimal, (paid, refunded, remaining))
+    db.commit()
+    response = client.patch(path, headers=auth(admin_token), json={
+        "customer_name": "Changed Customer", "customer_phone": "0591234567", "address": "Original Street",
+        "payment_method": "cash_on_delivery", "discount": "0.00", "delivery_fee": "0.00", "status": "completed",
+        "reason": "Historical price correction", "items": [{"product_id": product.id, "quantity": 1, "unit_price": new_price}],
+    })
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    saved = db.get(Invoice, invoice.id)
+    assert saved.grand_total == Decimal(new_price)
+    assert saved.customer_name == "Changed Customer"
+    normalized_status = {"partially_paid": "unpaid", "partially_refunded": "refunded"}.get(status, status)
+    assert saved.payment_status == normalized_status
+    expected = {"unpaid": ("0.00", "0.00", new_price), "paid": (new_price, "0.00", "0.00"), "refunded": (new_price, new_price, "0.00")}[normalized_status]
+    assert (saved.paid_amount, saved.refunded_amount, saved.remaining_amount) == tuple(map(Decimal, expected))
+    assert db.get(Order, created["id"]).total == Decimal(new_price)
+    event = db.query(OrderActivity).filter_by(invoice_id=invoice.id, event_type="invoice_synchronized").one()
+    assert event.before_data["payment_status"] == status
+    assert event.after_data["payment_status"] == normalized_status
+    assert event.before_data["paid_amount"] == paid
+    assert event.before_data["refunded_amount"] == refunded
+    assert event.after_data["paid_amount"] == expected[0]
+    assert event.after_data["refunded_amount"] == expected[1]
+    assert event.after_data["remaining_amount"] == expected[2]
+
+
+@pytest.mark.parametrize("status,paid,refunded,remaining", [
+    ("partially_paid", "5.00", "0.00", "5.00"),
+    ("partially_refunded", "10.00", "3.00", "3.00"),
+])
+def test_raw_legacy_payment_flags_remain_readable(client, db, admin_token, status, paid, refunded, remaining):
+    from tests.conftest import auth
+    order = _order()
+    order.status = "completed"
+    invoice = _invoice(order, payment_status=status, paid_amount=Decimal(paid), refunded_amount=Decimal(refunded), remaining_amount=Decimal(remaining))
+    db.add(invoice)
+    db.commit()
+    detail = client.get(f"/api/v1/admin/invoices/{invoice.invoice_number}", headers=auth(admin_token))
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["payment_status"] == status
+    assert (detail.json()["paid_amount"], detail.json()["refunded_amount"], detail.json()["remaining_amount"]) == tuple(map(float, (paid, refunded, remaining)))

@@ -2,14 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import sx from "../../sx.js";
 import { adminApi } from "../../api/adminApi.js";
-import { useAdminAuth } from "../AdminAuth.jsx";
 import {
   INVOICE_STATUSES,
   ORDER_SOURCES,
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
   invoiceStatusLabels,
-  isMoney,
   orderSourceLabels,
   paymentMethodLabels,
   paymentStatusLabels,
@@ -83,38 +81,31 @@ function InvoiceLinks({ invoice }) {
   return <section style={{ ...card, ...sx`margin-bottom:14px` }}><h2 style={sx`margin:0 0 10px;font-size:16px`}>الفواتير المرتبطة</h2><div style={sx`display:flex;gap:10px;flex-wrap:wrap`}>{unique.map((link) => <Link key={link.invoice_number} to={`/admin/invoices/${link.invoice_number}`}>{link.invoice_number} · {invoiceStatusLabels[link.status] || link.status}</Link>)}</div></section>;
 }
 
-function PaymentEditor({ invoice, manager, onSave, busy }) {
-  const [values, setValues] = useState({ paid_amount: String(invoice.paid_amount ?? "0"), refunded_amount: String(invoice.refunded_amount ?? "0"), payment_method: invoice.payment_method || "cash_on_delivery", payment_details: invoice.payment_details || "", reason: "" });
-  const [error, setError] = useState("");
-  useEffect(() => setValues({ paid_amount: String(invoice.paid_amount ?? "0"), refunded_amount: String(invoice.refunded_amount ?? "0"), payment_method: invoice.payment_method || "cash_on_delivery", payment_details: invoice.payment_details || "", reason: "" }), [invoice]);
+const paymentEditorValues = (invoice) => ({ payment_status: PAYMENT_STATUSES.some(([status]) => status === invoice.payment_status) ? invoice.payment_status : "", payment_method: invoice.payment_method || "cash_on_delivery", payment_details: invoice.payment_details || "", reason: "" });
+
+function PaymentEditor({ invoice, onSave, busy }) {
+  const [values, setValues] = useState(() => paymentEditorValues(invoice));
+  useEffect(() => setValues(paymentEditorValues(invoice)), [invoice]);
   const change = (key) => (event) => setValues((current) => ({ ...current, [key]: event.target.value }));
+  const validStatus = PAYMENT_STATUSES.some(([status]) => status === values.payment_status);
   const submit = (event) => {
     event.preventDefault();
-    const paid = Number(values.paid_amount);
-    const refunded = Number(values.refunded_amount);
-    const correction = paid < Number(invoice.paid_amount || 0) || refunded !== Number(invoice.refunded_amount || 0);
-    if (!isMoney(values.paid_amount) || (manager && !isMoney(values.refunded_amount)) || paid > Number(invoice.grand_total) || refunded > paid) return setError("تحقق من المبالغ: لا يمكن أن يتجاوز المدفوع الإجمالي أو المسترد المدفوع.");
-    if (!manager && paid < Number(invoice.paid_amount || 0)) return setError("لا يمكن تخفيض المدفوع إلا بواسطة مدير أعلى.");
-    if (manager && correction && !values.reason.trim()) return setError("سبب التصحيح أو الاسترداد مطلوب.");
-    setError("");
-    onSave({ paid_amount: values.paid_amount, ...(manager ? { refunded_amount: values.refunded_amount, reason: correction ? values.reason.trim() : null } : {}), payment_method: values.payment_method, payment_details: values.payment_details.trim() || null });
+    if (!validStatus) return;
+    onSave({ payment_status: values.payment_status, reason: values.reason.trim() || null, payment_method: values.payment_method, payment_details: values.payment_details.trim() || null });
   };
   if (invoice.status !== "active") return null;
-  return <section style={{ ...card, ...sx`margin-bottom:14px` }}><h2 style={sx`margin:0 0 5px;font-size:16px`}>{manager ? "تصحيح أو استرداد الدفع" : "تسجيل دفعة"}</h2><p style={sx`margin:0 0 12px;font-size:13px;color:#766669`}>{manager ? "يُسجل السبب في النشاط عند تخفيض دفعة أو تسجيل استرداد." : "يمكن زيادة المبلغ المدفوع وتحديث طريقة وتفاصيل الدفع فقط."}</p><form dir="rtl" onSubmit={submit} style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px`}>
-    <Field title="المبلغ المدفوع"><input inputMode="decimal" value={values.paid_amount} onChange={change("paid_amount")} aria-label="المبلغ المدفوع" aria-invalid={!!error} style={input} /></Field>
-    <Field title="طريقة الدفع"><select value={values.payment_method} onChange={change("payment_method")} aria-label="طريقة الدفع" style={input}>{PAYMENT_METHODS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
-    {manager && <Field title="المبلغ المسترد"><input inputMode="decimal" value={values.refunded_amount} onChange={change("refunded_amount")} aria-label="المبلغ المسترد" aria-invalid={!!error} style={input} /></Field>}
+  return <section style={{ ...card, ...sx`margin-bottom:14px` }}><h2 style={sx`margin:0 0 5px;font-size:16px`}>تحديث حالة الدفع</h2><p style={sx`margin:0 0 12px;font-size:13px;color:#766669`}>سبب التصحيح اختياري ويُحفظ في سجل النشاط.</p><form dir="rtl" onSubmit={submit} style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px`}>
+    <Field title="حالة الدفع"><select value={values.payment_status} onChange={change("payment_status")} aria-label="حالة الدفع" required style={input}>{!validStatus && <option value="" disabled>اختر حالة الدفع</option>}{PAYMENT_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
+    <Field title="طريقة الدفع"><select value={values.payment_method} onChange={change("payment_method")} aria-label="طريقة الدفع" style={input}>{!PAYMENT_METHODS.some(([method]) => method === values.payment_method) && <option value={values.payment_method}>{paymentMethodLabels[values.payment_method] || values.payment_method}</option>}{PAYMENT_METHODS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
     <div style={sx`grid-column:1 / -1`}><Field title="تفاصيل الدفع"><textarea rows="3" value={values.payment_details} onChange={change("payment_details")} aria-label="تفاصيل الدفع" style={textarea} /></Field></div>
-    {manager && <div style={sx`grid-column:1 / -1`}><Field title="سبب التصحيح أو الاسترداد"><textarea rows="2" value={values.reason} onChange={change("reason")} aria-label="سبب التصحيح أو الاسترداد" style={textarea} /></Field></div>}
-    {error && <p role="alert" style={sx`grid-column:1 / -1;margin:0;color:#8E3B34;font-size:13px`}>{error}</p>}
-    <div style={sx`grid-column:1 / -1`}><Button type="submit" disabled={busy}>{busy ? "جارٍ الحفظ…" : "حفظ تحديث الدفع"}</Button></div>
+    <div style={sx`grid-column:1 / -1`}><Field title="سبب التصحيح أو الاسترداد (اختياري)"><textarea rows="2" value={values.reason} onChange={change("reason")} aria-label="سبب التصحيح أو الاسترداد" style={textarea} /></Field></div>
+    <div style={sx`grid-column:1 / -1`}><Button type="submit" disabled={busy || !validStatus}>{busy ? "جارٍ الحفظ…" : "حفظ تحديث الدفع"}</Button></div>
   </form></section>;
 }
 
 export function InvoiceDetailPage() {
   const { invoiceNumber } = useParams();
   const navigate = useNavigate();
-  const { isSuperAdmin } = useAdminAuth();
   const feedback = useFeedback();
   const [invoice, setInvoice] = useState(null);
   const [missing, setMissing] = useState(false);
@@ -142,7 +133,7 @@ export function InvoiceDetailPage() {
       <div style={sx`overflow-x:auto`}><table style={sx`width:max-content;min-width:100%;border-collapse:collapse`}><thead><tr>{["الصنف", "الخيار", "سعر البيع النهائي", "الكمية", "الإجمالي النهائي"].map((title) => <th key={title} style={sx`text-align:start;padding:9px;border-bottom:1px solid #E7DCF2;font-size:13px`}>{title}</th>)}</tr></thead><tbody>{(invoice.items || []).map((item) => <tr key={item.id}><td style={sx`padding:9px;border-bottom:1px solid #F5EDE3`}>{item.product_name}</td><td style={sx`padding:9px;border-bottom:1px solid #F5EDE3`}>{item.variant_description || "—"}</td><td style={sx`padding:9px;border-bottom:1px solid #F5EDE3`}>{amount(item.unit_price, symbol)}</td><td style={sx`padding:9px;border-bottom:1px solid #F5EDE3`}>{item.quantity}</td><td style={sx`padding:9px;border-bottom:1px solid #F5EDE3`}>{amount(item.line_total, symbol)}</td></tr>)}</tbody></table></div>
       <dl aria-label="ملخص الأسعار النهائية" style={sx`margin:16px 0 0;display:grid;grid-template-columns:1fr auto;gap:8px;max-width:360px;margin-inline-start:auto`}><dt>المجموع الفرعي</dt><dd>{amount(invoice.subtotal, symbol)}</dd><dt>التوصيل</dt><dd>{amount(invoice.delivery_fee, symbol)}</dd><dt style={sx`font-weight:800;border-top:1px solid var(--admin-primary);padding-top:8px`}>الإجمالي النهائي</dt><dd style={sx`font-weight:800;border-top:1px solid var(--admin-primary);padding-top:8px`}>{amount(invoice.grand_total, symbol)}</dd><dt>المدفوع / المسترد / المتبقي</dt><dd>{amount(invoice.paid_amount, symbol)} / {amount(invoice.refunded_amount, symbol)}</dd></dl>
     </section>
-    <PaymentEditor invoice={invoice} manager={isSuperAdmin} onSave={savePayment} busy={busy} />
+    <PaymentEditor invoice={invoice} onSave={savePayment} busy={busy} />
     <InvoiceLinks invoice={invoice} />
     <section style={card}><h2 style={sx`margin:0 0 12px;font-size:16px`}>سجل النشاط</h2><OrderActivityTimeline activities={invoice.activities || []} /></section>
   </>;

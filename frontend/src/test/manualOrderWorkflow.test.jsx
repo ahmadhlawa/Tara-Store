@@ -127,8 +127,8 @@ describe("manual order workspace", () => {
     await userEvent.type(screen.getByLabelText("ملاحظات العميل"), "اتصال قبل التوصيل");
     await userEvent.type(screen.getByLabelText("ملاحظات داخلية"), "دخلها المدير");
     await userEvent.click(screen.getByLabelText("إتمام الطلب وإصدار فاتورة"));
-    await userEvent.clear(screen.getByLabelText("المبلغ المدفوع"));
-    await userEvent.type(screen.getByLabelText("المبلغ المدفوع"), "5.00");
+    expect(screen.queryByLabelText("المبلغ المدفوع")).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("حالة الدفع عند الإتمام"), "refunded");
     await userEvent.type(screen.getByLabelText("تفاصيل الدفع"), "تحويل بنكي");
     await userEvent.click(screen.getByRole("button", { name: "حفظ الطلب اليدوي" }));
 
@@ -140,8 +140,10 @@ describe("manual order workspace", () => {
         { kind: "catalog", product_id: 7, quantity: 1, unit_price: "12.50" },
         { kind: "manual", name: "تغليف هدية", quantity: 1, unit_price: "2.50" },
       ],
-      completion: { paid_amount: "5.00", payment_details: "تحويل بنكي" },
+      completion: { payment_status: "refunded", payment_details: "تحويل بنكي" },
     });
+    expect(JSON.parse(created.body).completion).not.toHaveProperty("paid_amount");
+    expect(JSON.parse(created.body).completion).not.toHaveProperty("refunded_amount");
   }, 15000);
 
   it("lets only a manager structurally edit an eligible offline order while preserving its mixed item payload", async () => {

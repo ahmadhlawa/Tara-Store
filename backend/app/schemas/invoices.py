@@ -7,6 +7,8 @@ legal identity, so nothing here is reachable without an admin token.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import EmailStr, Field
 
 from app.core.enums import InvoiceStatus, OrderSource, PackagingType, PaymentMethod, PaymentStatus
@@ -137,8 +139,7 @@ class InvoiceCancelRequest(APIModel):
 
 
 class InvoicePaymentUpdate(APIModel):
-    paid_amount: Money | None = Field(default=None, ge=0)
-    refunded_amount: Money | None = Field(default=None, ge=0)
+    payment_status: Literal["unpaid", "paid", "refunded"]
     payment_method: PaymentMethod | None = None
     payment_details: str | None = Field(default=None, max_length=2000)
     reason: str | None = Field(default=None, max_length=500)

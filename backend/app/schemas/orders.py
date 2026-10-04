@@ -313,7 +313,7 @@ class OrderStatusUpdate(APIModel):
 
 class OrderCompletionRequest(APIModel):
     payment_method: PaymentMethod
-    paid_amount: Money = Field(default=Decimal("0.00"), ge=0)
+    payment_status: Literal["unpaid", "paid", "refunded"] = "unpaid"
     payment_details: str | None = Field(default=None, max_length=2000)
     invoice_notes: str | None = Field(default=None, max_length=2000)
 

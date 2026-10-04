@@ -108,8 +108,7 @@ def update_invoice_payment(
     invoices_service.update_payment(
         db,
         invoice,
-        paid_amount=payload.paid_amount,
-        refunded_amount=payload.refunded_amount,
+        payment_status=payload.payment_status,
         payment_method=payload.payment_method.value if payload.payment_method else None,
         payment_details=payload.payment_details,
         details_provided="payment_details" in payload.model_fields_set,

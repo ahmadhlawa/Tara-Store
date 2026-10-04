@@ -7,6 +7,7 @@ import {
   isMoney,
   isWholeQuantity,
   orderStatusLabels,
+  PAYMENT_STATUSES,
   paymentMethodLabels,
   paymentStatusLabels,
 } from "./domain.js";
@@ -80,7 +81,7 @@ export function CompleteOrderDialog({ isOpen, order, onClose, onComplete, busy =
   const dialogRef = useRef(null);
   const firstFieldRef = useRef(null);
   const [paymentMethod, setPaymentMethod] = useState("cash_on_delivery");
-  const [paidAmount, setPaidAmount] = useState("0.00");
+  const [paymentStatus, setPaymentStatus] = useState("unpaid");
   const [paymentDetails, setPaymentDetails] = useState("");
   const [invoiceNotes, setInvoiceNotes] = useState("");
 
@@ -101,18 +102,17 @@ export function CompleteOrderDialog({ isOpen, order, onClose, onComplete, busy =
   const review = order?.final_review || order || {};
   const submit = (event) => {
     event.preventDefault();
-    if (!isMoney(paidAmount)) return;
-    onComplete({ payment_method: paymentMethod, paid_amount: paidAmount, payment_details: paymentDetails.trim() || null, invoice_notes: invoiceNotes.trim() || null });
+    onComplete({ payment_method: paymentMethod, payment_status: paymentStatus, payment_details: paymentDetails.trim() || null, invoice_notes: invoiceNotes.trim() || null });
   };
   return <dialog ref={dialogRef} aria-modal="true" aria-label="إتمام الطلب" onCancel={(event) => { event.preventDefault(); onClose(); }} onKeyDown={(event) => { if (event.key === "Escape") onClose(); }} style={sx`border:0;border-radius:16px;padding:0;max-inline-size:560px;inline-size:calc(100% - 32px);box-shadow:0 30px 70px rgba(26,24,21,.3)`}>
     <form dir="rtl" onSubmit={submit} style={sx`display:flex;flex-direction:column;gap:14px;padding:20px`}>
       <div><h2 style={sx`margin:0;font-size:18px`}>إتمام الطلب وإصدار الفاتورة</h2><p style={sx`margin:5px 0 0;color:#766669;font-size:13px`}>الإجمالي: {formatMoney(review.total ?? "0")}</p></div>
       <div aria-label="مراجعة الطلب النهائية" style={sx`background:#FAF3EA;border-radius:10px;padding:12px`}><OrderTotalsSummary items={review.items || []} discount={review.discount ?? "0"} deliveryFee={review.delivery_fee ?? "0"} /></div>
       <label style={sx`display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700`}>طريقة الدفع<select ref={firstFieldRef} value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} style={sx`height:42px;border:1px solid #DFD2EC;border-radius:8px;padding-inline:10px;font:inherit`}>{Object.entries(paymentMethodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-      <label style={sx`display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700`}>المبلغ المدفوع<input inputMode="decimal" value={paidAmount} onChange={(event) => setPaidAmount(event.target.value)} aria-invalid={!isMoney(paidAmount)} style={sx`height:42px;box-sizing:border-box;border:1px solid #DFD2EC;border-radius:8px;padding-inline:10px;font:inherit`} /></label>
+      <label style={sx`display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700`}>حالة الدفع<select value={paymentStatus} onChange={(event) => setPaymentStatus(event.target.value)} style={sx`height:42px;border:1px solid #DFD2EC;border-radius:8px;padding-inline:10px;font:inherit`}>{PAYMENT_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <label style={sx`display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700`}>تفاصيل الدفع (اختياري)<textarea value={paymentDetails} onChange={(event) => setPaymentDetails(event.target.value)} rows="3" style={sx`box-sizing:border-box;border:1px solid #DFD2EC;border-radius:8px;padding:10px;font:inherit;resize:vertical`} /></label>
       <label style={sx`display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700`}>ملاحظات الفاتورة (اختياري)<textarea value={invoiceNotes} onChange={(event) => setInvoiceNotes(event.target.value)} rows="3" style={sx`box-sizing:border-box;border:1px solid #DFD2EC;border-radius:8px;padding:10px;font:inherit;resize:vertical`} /></label>
-      <div style={sx`display:flex;justify-content:flex-start;gap:10px;flex-wrap:wrap`}><button type="button" onClick={onClose} disabled={busy} style={sx`min-height:42px;padding-inline:14px;border:1px solid #DFD2EC;border-radius:8px;background:#fff;font:inherit;font-weight:700;cursor:pointer`}>إلغاء</button><button type="submit" disabled={busy || !isMoney(paidAmount)} style={sx`min-height:42px;padding-inline:14px;border:1px solid var(--admin-primary);border-radius:8px;background:var(--admin-primary);color:var(--admin-on-primary);font:inherit;font-weight:700;cursor:pointer`}>{busy ? "جارٍ الإتمام…" : "إتمام الطلب وإصدار الفاتورة"}</button></div>
+      <div style={sx`display:flex;justify-content:flex-start;gap:10px;flex-wrap:wrap`}><button type="button" onClick={onClose} disabled={busy} style={sx`min-height:42px;padding-inline:14px;border:1px solid #DFD2EC;border-radius:8px;background:#fff;font:inherit;font-weight:700;cursor:pointer`}>إلغاء</button><button type="submit" disabled={busy} style={sx`min-height:42px;padding-inline:14px;border:1px solid var(--admin-primary);border-radius:8px;background:var(--admin-primary);color:var(--admin-on-primary);font:inherit;font-weight:700;cursor:pointer`}>{busy ? "جارٍ الإتمام…" : "إتمام الطلب وإصدار الفاتورة"}</button></div>
     </form>
   </dialog>;
 }

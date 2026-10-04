@@ -331,7 +331,7 @@ def test_both_roles_complete_an_order_once_with_a_persisted_invoice(
             headers=auth(token),
             json={
                 "payment_method": "card",
-                "paid_amount": "5.00",
+                "payment_status": "paid",
                 "payment_details": "Cash received",
                 "invoice_notes": "Final internal note",
             },
@@ -349,8 +349,8 @@ def test_both_roles_complete_an_order_once_with_a_persisted_invoice(
             f"/api/v1/admin/orders/{order['id']}/invoice", headers=auth(token)
         ).json()
         assert invoice["payment_method"] == "card"
-        assert invoice["paid_amount"] == 5.0
-        assert invoice["remaining_amount"] == 5.0
+        assert invoice["paid_amount"] == 10.0
+        assert invoice["remaining_amount"] == 0.0
         assert invoice["payment_details"] == "Cash received"
         assert invoice["invoice_notes"] == "Final internal note"
         assert invoice["issued_by_admin_id"] == actor.id
@@ -361,7 +361,7 @@ def test_both_roles_complete_an_order_once_with_a_persisted_invoice(
         retried = client.post(
             f"/api/v1/admin/orders/{order['id']}/complete",
             headers=auth(token),
-            json={"payment_method": "card", "paid_amount": "5.00"},
+            json={"payment_method": "card", "payment_status": "paid"},
         )
         assert retried.status_code == 200, retried.text
         db.expire_all()
@@ -388,7 +388,7 @@ def test_super_admin_reopens_completed_order_replaces_invoice_and_recompletion_l
     completed = client.post(
         f"/api/v1/admin/orders/{order['id']}/complete",
         headers=auth(admin_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert completed.status_code == 200, completed.text
     old_invoice_id = completed.json()["active_invoice"]["id"]
@@ -421,7 +421,7 @@ def test_super_admin_reopens_completed_order_replaces_invoice_and_recompletion_l
     recompleted = client.post(
         f"/api/v1/admin/orders/{order['id']}/complete",
         headers=auth(admin_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert recompleted.status_code == 200, recompleted.text
 
@@ -462,7 +462,7 @@ def test_reopen_requires_super_admin_reason_and_completed_active_invoice(
     completed = client.post(
         f"/api/v1/admin/orders/{order['id']}/complete",
         headers=auth(super_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert completed.status_code == 200, completed.text
     invoice = db.get(Invoice, completed.json()["active_invoice"]["id"])
@@ -487,7 +487,7 @@ def test_repeated_reopen_recompletion_links_each_invoice_to_its_predecessor(
     first = client.post(
         complete_path,
         headers=auth(super_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert first.status_code == 200, first.text
     first_id = first.json()["active_invoice"]["id"]
@@ -499,7 +499,7 @@ def test_repeated_reopen_recompletion_links_each_invoice_to_its_predecessor(
     second = client.post(
         complete_path,
         headers=auth(super_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert second.status_code == 200, second.text
     second_id = second.json()["active_invoice"]["id"]
@@ -511,7 +511,7 @@ def test_repeated_reopen_recompletion_links_each_invoice_to_its_predecessor(
     third = client.post(
         complete_path,
         headers=auth(super_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert third.status_code == 200, third.text
 
@@ -541,7 +541,7 @@ def test_completion_rejects_cancelled_and_empty_orders_without_an_invoice(
     blocked = client.post(
         f"/api/v1/admin/orders/{cancelled['id']}/complete",
         headers=auth(admin_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert blocked.status_code == 400
     assert blocked.json()["error"]["code"] == "order_cancelled"
@@ -552,7 +552,7 @@ def test_completion_rejects_cancelled_and_empty_orders_without_an_invoice(
     blocked = client.post(
         f"/api/v1/admin/orders/{empty['id']}/complete",
         headers=auth(admin_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert blocked.status_code == 400
     assert blocked.json()["error"]["code"] == "empty_order"
@@ -905,8 +905,9 @@ def test_super_admin_can_complete_manual_order_with_one_active_invoice(
     payload = _manual_order_payload(
         product,
         completion={
-                "payment_method": "card",
-            "paid_amount": "5.00",
+            "payment_method": "card",
+            "payment_status": "refunded",
+            "paid_amount": "0.01",
             "payment_details": "Cash received",
             "invoice_notes": "Manual order invoice",
         },
@@ -921,3 +922,9 @@ def test_super_admin_can_complete_manual_order_with_one_active_invoice(
     assert body["active_invoice"] is not None
     db.expire_all()
     assert db.query(Invoice).filter(Invoice.order_id == body["id"], Invoice.status == "active").count() == 1
+    invoice = db.get(Invoice, body["active_invoice"]["id"])
+    assert invoice.payment_status == "refunded"
+    assert (invoice.paid_amount, invoice.refunded_amount, invoice.remaining_amount) == (
+        Decimal("30.75"), Decimal("30.75"), Decimal("0.00"))
+    assert invoice.payment_details == "Cash received"
+    assert invoice.invoice_notes == "Manual order invoice"

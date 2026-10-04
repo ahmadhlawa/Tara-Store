@@ -93,9 +93,9 @@ describe("order and invoice API contract", () => {
 
     await adminApi.createManualOrder({ source: "phone", items: [] });
     await adminApi.updateOrder(7, { items: [] });
-    await adminApi.completeOrder(7, { paid_amount: "0.00" });
+    await adminApi.completeOrder(7, { payment_status: "unpaid" });
     await adminApi.reopenOrder(7, "تصحيح");
-    await adminApi.updateInvoicePayment("INV-7", { paid_amount: "5.00" });
+    await adminApi.updateInvoicePayment("INV-7", { payment_status: "paid" });
 
     expect(calls.map((call) => `${call.method} ${call.path}`)).toEqual([
       "POST /api/v1/admin/orders/manual",
@@ -196,21 +196,22 @@ describe("order and invoice components", () => {
     expect(screen.getByText("إجمالي الصنف: —")).toBeInTheDocument();
   });
 
-  it("submits decimal-string completion data and closes on Escape", async () => {
+  it.each(["unpaid", "paid", "refunded"])("submits %s completion state without client amounts and closes on Escape", async (payment_status) => {
     const onComplete = vi.fn();
     const onClose = vi.fn();
-    render(<CompleteOrderDialog isOpen order={{ total: "12.50" }} onClose={onClose} onComplete={onComplete} />);
-
-    await userEvent.clear(screen.getByLabelText("المبلغ المدفوع"));
-    await userEvent.type(screen.getByLabelText("المبلغ المدفوع"), "5.25");
+    render(<CompleteOrderDialog isOpen order={{ total: "0.00" }} onClose={onClose} onComplete={onComplete} />);
+    const selector = screen.getByLabelText("حالة الدفع");
+    expect(Array.from(selector.options, (option) => [option.value, option.textContent])).toEqual([
+      ["unpaid", "غير مدفوع"], ["paid", "مدفوع"], ["refunded", "مردود"],
+    ]);
+    expect(screen.queryByLabelText("المبلغ المدفوع")).not.toBeInTheDocument();
+    await userEvent.selectOptions(selector, payment_status);
+    await userEvent.type(screen.getByLabelText("تفاصيل الدفع (اختياري)"), " Receipt ");
+    await userEvent.type(screen.getByLabelText("ملاحظات الفاتورة (اختياري)"), " Note ");
     await userEvent.click(screen.getByRole("button", { name: "إتمام الطلب وإصدار الفاتورة" }));
     expect(onComplete).toHaveBeenCalledWith({
-      payment_method: "cash_on_delivery",
-      paid_amount: "5.25",
-      payment_details: null,
-      invoice_notes: null,
+      payment_method: "cash_on_delivery", payment_status, payment_details: "Receipt", invoice_notes: "Note",
     });
-
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(1);
   });

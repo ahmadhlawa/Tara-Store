@@ -345,36 +345,71 @@ describe("invoice archive workflow", () => {
     expect(within(table).queryByText("partially_paid")).not.toBeInTheDocument();
   });
 
-  it("limits a normal admin to increasing payment information", async () => {
-    const normalAdmin = { ...ADMIN, role: "admin" };
-    authStorage.save("valid-token", normalAdmin);
+  it.each(["admin", "super_admin"])("lets %s select all three states and save an optional reason without money", async (role) => {
+    const admin = { ...ADMIN, role };
+    authStorage.save("valid-token", admin);
     const calls = stubApi({
-      "/api/v1/auth/me": normalAdmin,
-      "PATCH /api/v1/admin/invoices/INV-000001/payment": { ...INVOICE, paid_amount: 100, remaining_amount: 120 },
-      "/api/v1/admin/invoices/INV-000001": INVOICE,
+      "/api/v1/auth/me": admin,
+      "/api/v1/admin/invoices/INV-000001": { ...INVOICE, status: "active", payment_status: "paid", payment_details: "Existing receipt" },
+      "PATCH /api/v1/admin/invoices/INV-000001/payment": { ...INVOICE, status: "active", payment_status: "unpaid" },
     });
     renderApp("/admin/invoices/INV-000001");
-
-    await screen.findByLabelText("المبلغ المدفوع");
+    const selector = await screen.findByLabelText("حالة الدفع");
+    expect(within(selector).getAllByRole("option").map((option) => [option.value, option.textContent])).toEqual([
+      ["unpaid", "غير مدفوع"], ["paid", "مدفوع"], ["refunded", "مردود"],
+    ]);
+    expect(screen.queryByLabelText("المبلغ المدفوع")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("المبلغ المسترد")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("سبب التصحيح أو الاسترداد")).not.toBeInTheDocument();
-    await userEvent.clear(screen.getByLabelText("المبلغ المدفوع"));
-    await userEvent.type(screen.getByLabelText("المبلغ المدفوع"), "100");
+    for (const payment_status of ["refunded", "unpaid", "paid"]) {
+      await userEvent.selectOptions(selector, payment_status);
+      await userEvent.click(screen.getByRole("button", { name: "حفظ تحديث الدفع" }));
+      await waitFor(() => expect(calls.filter((call) => call.method === "PATCH")).toHaveLength(["refunded", "unpaid", "paid"].indexOf(payment_status) + 1));
+      expect(JSON.parse(calls.filter((call) => call.method === "PATCH").at(-1).body)).toEqual({
+        payment_status, payment_method: "cash_on_delivery", payment_details: payment_status === "refunded" ? "Existing receipt" : null, reason: null,
+      });
+      await screen.findByText("تم حفظ تحديث الدفع.");
+    }
+    await userEvent.type(screen.getByLabelText("سبب التصحيح أو الاسترداد"), "  Customer correction  ");
     await userEvent.click(screen.getByRole("button", { name: "حفظ تحديث الدفع" }));
-    await waitFor(() => expect(calls.some((call) => call.method === "PATCH")).toBe(true));
-    expect(JSON.parse(calls.find((call) => call.method === "PATCH").body)).not.toHaveProperty("refunded_amount");
+    await waitFor(() => expect(calls.filter((call) => call.method === "PATCH")).toHaveLength(4));
+    expect(JSON.parse(calls.filter((call) => call.method === "PATCH").at(-1).body).reason).toBe("Customer correction");
   });
 
-  it("requires a manager reason for corrections and refunds", async () => {
+  it("preserves an existing card method and optional details while selecting a state", async () => {
     signedIn();
-    stubApi({ "/api/v1/auth/me": ADMIN, "/api/v1/admin/invoices/INV-000001": { ...INVOICE, paid_amount: 100, remaining_amount: 120 } });
+    const calls = stubApi({
+      "/api/v1/auth/me": ADMIN,
+      "/api/v1/admin/invoices/INV-000001": { ...INVOICE, payment_method: "card", payment_details: "Existing receipt" },
+      "PATCH /api/v1/admin/invoices/INV-000001/payment": { ...INVOICE, payment_method: "card", payment_status: "paid" },
+    });
     renderApp("/admin/invoices/INV-000001");
-
-    await screen.findByLabelText("المبلغ المسترد");
-    await userEvent.clear(screen.getByLabelText("المبلغ المسترد"));
-    await userEvent.type(screen.getByLabelText("المبلغ المسترد"), "20");
+    const method = await screen.findByLabelText("طريقة الدفع");
+    expect(method).toHaveValue("card");
+    await userEvent.selectOptions(screen.getByLabelText("حالة الدفع"), "paid");
     await userEvent.click(screen.getByRole("button", { name: "حفظ تحديث الدفع" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("سبب التصحيح أو الاسترداد مطلوب");
+    await waitFor(() => expect(calls.some((call) => call.method === "PATCH")).toBe(true));
+    expect(JSON.parse(calls.find((call) => call.method === "PATCH").body)).toEqual({
+      payment_status: "paid", payment_method: "card", payment_details: "Existing receipt", reason: null,
+    });
+  });
+
+  it.each(["partially_paid", "partially_refunded"])("keeps historical %s readable and requires an explicit current selection", async (payment_status) => {
+    signedIn();
+    const calls = stubApi({
+      "/api/v1/auth/me": ADMIN,
+      "/api/v1/admin/invoices/INV-000001": { ...INVOICE, status: "active", payment_status, paid_amount: 100, refunded_amount: 20 },
+      "PATCH /api/v1/admin/invoices/INV-000001/payment": { ...INVOICE, status: "active", payment_status: "paid" },
+    });
+    renderApp("/admin/invoices/INV-000001");
+    const selector = await screen.findByLabelText("حالة الدفع");
+    expect(selector).toHaveValue("");
+    expect(within(selector).queryByRole("option", { name: payment_status })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "حفظ تحديث الدفع" })).toBeDisabled();
+    expect(calls.filter((call) => call.method === "PATCH")).toHaveLength(0);
+    await userEvent.selectOptions(selector, "paid");
+    await userEvent.click(screen.getByRole("button", { name: "حفظ تحديث الدفع" }));
+    await waitFor(() => expect(calls.filter((call) => call.method === "PATCH")).toHaveLength(1));
+    expect(JSON.parse(calls.find((call) => call.method === "PATCH").body).payment_status).toBe("paid");
   });
 });
 
