@@ -123,7 +123,7 @@ export const en = {
   "الاسم: {0}": "Name: {0}", "الهاتف: {0}": "Phone: {0}", "العنوان: {0}": "Address: {0}", "المنتجات:": "Products:",
   "المجموع الفرعي: {0}": "Subtotal: {0}", "الخصم: {0}": "Discount: {0}", "التوصيل{0}: {1}": "Delivery{0}: {1}",
   "الإجمالي: {0}": "Total: {0}", "ملاحظات: {0}": "Notes: {0}", "{0} دقائق": "{0} minutes",
-  "اختر الخيارات": "Choose options", "أضف البكج إلى العربة": "Add package to cart", "−{0}٪": "−{0}%", "مُختار": "Featured",
+  "اختر الخيارات": "Choose options", "أضف البكج إلى العربة": "Add package to cart", "−{0}٪": "−{0}%", "مميز": "Featured",
   "تمت إضافة «{0}» إلى العربة": "Added “{0}” to your cart",
   "تأكيد الطلب": "Order confirmation", "البيانات المرسلة غير صالحة.": "The submitted information is invalid.",
 };

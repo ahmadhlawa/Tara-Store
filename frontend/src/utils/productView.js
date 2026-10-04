@@ -82,6 +82,6 @@ export function productBadges(view) {
   if (view.hasSale) all.push({ key: "sale", label: view.discountText, tone: "sale" });
   if (view.isNew) all.push({ key: "new", label: t("جديد"), tone: "new" });
   if (view.bestSeller) all.push({ key: "best", label: t("الأكثر مبيعاً"), tone: "best" });
-  if (view.featured) all.push({ key: "featured", label: t("مُختار"), tone: "featured" });
+  if (view.featured) all.push({ key: "featured", label: t("مميز"), tone: "featured" });
   return all.slice(0, 2);
 }
