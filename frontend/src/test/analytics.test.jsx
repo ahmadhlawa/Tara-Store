@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { StrictMode } from "react";
@@ -24,6 +24,10 @@ const summary = {
   location_tracking_configured: true,
   sessions: 14,
   unique_visitors: 9,
+  average_session_duration_seconds: 125,
+  completed_orders: 3,
+  funnel: { product_views: 21, add_to_cart: 28, checkout_reached: 6, order_completed: 3 },
+  abandoned_carts: 4,
   top_locations: [{ name: "القدس", sessions: 5 }, { name: "الداخل", sessions: 4 }],
   top_products: [{ product_id: 1, name: "ريزن شفاف", slug: "clear-resin", views: 7, product_exists: true }],
 };
@@ -160,14 +164,111 @@ describe("storefront analytics tracking", () => {
 });
 
 describe("Admin analytics page", () => {
-  it("charts views relative to the largest value and keeps linked rankings below", async () => {
-    adminApi.analytics.mockResolvedValueOnce({ ...summary, top_products: [summary.top_products[0], { product_id: 2, name: "منتج طويل ".repeat(20), views: 14, product_exists: false }, { product_id: 3, name: "بلا مشاهدات", views: 0, product_exists: false }] });
+  it("shows four summary cards with duration and website completion semantics", async () => {
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    const cards = await screen.findByTestId("analytics-summary");
+    expect(cards.children).toHaveLength(4);
+    expect(Array.from(cards.children).map((card) => card.querySelector("strong").textContent)).toEqual(["14", "9", "2 دقيقة و5 ثانية", "3"]);
+    expect(within(cards).getByText("متوسط مدة الزيارة")).toBeInTheDocument();
+    expect(within(cards).getByText("الطلبات المكتملة عبر الموقع")).toBeInTheDocument();
+    expect(within(cards).getByText("طلبات أُنشئت بنجاح عبر الموقع، بغض النظر عن حالة تجهيزها لاحقاً.")).toBeInTheDocument();
+    expect(within(cards).queryByText("السلات المتروكة")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [undefined, "0 ثانية"], [null, "0 ثانية"], ["", "0 ثانية"], [0, "0 ثانية"],
+    [-4, "0 ثانية"], ["invalid", "0 ثانية"], [Infinity, "0 ثانية"], [NaN, "0 ثانية"],
+    [0.4, "0 ثانية"], [45.4, "45 ثانية"], [59.6, "1 دقيقة"], [60, "1 دقيقة"],
+    [3599.6, "1 ساعة"], [3600, "1 ساعة"], [3661, "1 ساعة و1 دقيقة و1 ثانية"],
+  ])("formats average duration %s as %s", async (seconds, expected) => {
+    adminApi.analytics.mockResolvedValueOnce({ ...summary, average_session_duration_seconds: seconds });
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    const cards = await screen.findByTestId("analytics-summary");
+    expect(within(cards).getByText(expected)).toBeInTheDocument();
+  });
+
+  it("charts products once with relative bars, linked existing products and deleted-name fallback", async () => {
+    const longName = "منتج طويل ".repeat(20).trim();
+    adminApi.analytics.mockResolvedValueOnce({ ...summary, top_products: [{ product_id: 2, name: longName, slug: "deleted", views: 14, product_exists: false }, summary.top_products[0], { product_id: 3, name: "بلا مشاهدات", slug: "zero", views: 0, product_exists: false }] });
     render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
     const chart = await screen.findByRole("figure", { name: "مقارنة مشاهدات المنتجات" });
     expect(within(chart).getByText("7 مشاهدة")).toBeInTheDocument();
-    expect(Array.from(chart.querySelectorAll("[data-view-bar]")).map((bar) => bar.style.width)).toEqual(["50%", "100%", "0%"]);
-    expect(screen.getByRole("link", { name: "ريزن شفاف" })).toHaveAttribute("href", "/admin/products/1");
-    expect(chart.nextElementSibling.tagName).toBe("OL");
+    expect(Array.from(chart.querySelectorAll("[data-view-bar]")).map((bar) => bar.style.width)).toEqual(["100%", "50%", "0%"]);
+    expect(within(chart).getByRole("link", { name: "ريزن شفاف" })).toHaveAttribute("href", "/admin/products/1");
+    for (const name of [longName, "ريزن شفاف", "بلا مشاهدات"]) expect(screen.getAllByText(name)).toHaveLength(1);
+    expect(within(chart).queryByRole("link", { name: longName })).not.toBeInTheDocument();
+    expect(within(chart).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(chart).getByText(longName)).toHaveStyle({ overflowWrap: "anywhere" });
+    expect(screen.getAllByRole("figure", { name: "مقارنة مشاهدات المنتجات" })).toHaveLength(1);
+  });
+
+  it("shows locations once as a ranked chart with readable counts and decorative bars", async () => {
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    const chart = await screen.findByRole("figure", { name: "مقارنة زيارات الأماكن" });
+    expect(within(chart).getAllByRole("listitem").map((item) => item.textContent)).toEqual(["1القدس5 زيارة", "2الداخل4 زيارة"]);
+    expect(Array.from(chart.querySelectorAll("[data-view-bar]")).map((bar) => bar.style.width)).toEqual(["100%", "80%"]);
+    for (const bar of chart.querySelectorAll("[data-view-bar]")) expect(bar.parentElement).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getAllByRole("figure")).toHaveLength(2);
+    expect(screen.getAllByText("القدس")).toHaveLength(1);
+    expect(screen.getAllByText("الداخل")).toHaveLength(1);
+  });
+
+  it("keeps zero-count locations visible without suggesting any visits", async () => {
+    adminApi.analytics.mockResolvedValueOnce({ ...summary, top_locations: [{ name: "غير معروف", sessions: 0 }] });
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    const chart = await screen.findByRole("figure", { name: "مقارنة زيارات الأماكن" });
+    expect(within(chart).getByText("غير معروف")).toBeInTheDocument();
+    expect(within(chart).getByText("0 زيارة")).toBeInTheDocument();
+    expect(chart.querySelector("[data-view-bar]")).toHaveStyle({ width: "0%" });
+  });
+
+  it("never displays negative or nonfinite aggregate counts or bar widths", async () => {
+    adminApi.analytics.mockResolvedValueOnce({ ...summary, sessions: -1, unique_visitors: Infinity, completed_orders: NaN, abandoned_carts: undefined, funnel: { product_views: -1, add_to_cart: Infinity, checkout_reached: NaN }, top_locations: [{ name: "غير معروف", sessions: -3 }], top_products: [{ ...summary.top_products[0], views: Infinity }] });
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    const cards = await screen.findByTestId("analytics-summary");
+    expect(Array.from(cards.children).map((card) => card.querySelector("strong").textContent)).toEqual(["0", "0", "2 دقيقة و5 ثانية", "0"]);
+    expect(within(screen.getByRole("region", { name: "مسار الشراء" })).getAllByRole("listitem").map((item) => item.querySelector("strong").textContent)).toEqual(["0", "0", "0", "0"]);
+    expect(within(screen.getByRole("region", { name: "السلات المتروكة" })).getByText("0")).toBeInTheDocument();
+    for (const bar of document.querySelectorAll("[data-view-bar]")) expect(bar).toHaveStyle({ width: "0%" });
+    expect(document.body.textContent).not.toMatch(/NaN|Infinity|∞/);
+  });
+
+  it("renders the four event counts in order without treating them as a visitor cohort", async () => {
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    const funnel = await screen.findByRole("region", { name: "مسار الشراء" });
+    expect(within(funnel).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+      "مشاهدة المنتجات21", "الإضافة إلى السلة28", "الوصول إلى إتمام الطلب6", "إنشاء الطلب بنجاح3",
+    ]);
+    expect(funnel).toHaveTextContent("عدد مرات حدوث كل خطوة خلال الفترة المحددة؛ قد تتكرر الخطوة في الزيارة الواحدة.");
+    expect(funnel.textContent).not.toContain("%");
+  });
+
+  it("shows one separate abandoned-cart aggregate with the inactive, added and uncompleted definition", async () => {
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    const abandoned = await screen.findByRole("region", { name: "السلات المتروكة" });
+    expect(within(abandoned).getByText("4")).toBeInTheDocument();
+    expect(abandoned).toHaveTextContent("زيارات أُضيفت فيها منتجات إلى السلة خلال الفترة المحددة، ولم يُنشأ فيها طلب ناجح، وتجاوز آخر نشاط فيها مهلة الخمول المعتمدة.");
+    expect(screen.getAllByText("السلات المتروكة")).toHaveLength(1);
+  });
+
+  it("keeps empty aggregates safe and shows zero duration, funnel and abandoned counts", async () => {
+    adminApi.analytics.mockResolvedValueOnce({ ...summary, sessions: 0, unique_visitors: 0, average_session_duration_seconds: 0, completed_orders: 0, funnel: {}, abandoned_carts: 0, top_locations: [], top_products: [] });
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    const cards = await screen.findByTestId("analytics-summary");
+    expect(Array.from(cards.children).map((card) => card.querySelector("strong").textContent)).toEqual(["0", "0", "0 ثانية", "0"]);
+    expect(screen.getByText("لا توجد زيارات ضمن هذه الفترة بعد.")).toBeInTheDocument();
+    expect(screen.getByText("لا توجد مشاهدات منتجات ضمن هذه الفترة بعد.")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "مسار الشراء" })).getAllByRole("listitem").map((item) => item.querySelector("strong").textContent)).toEqual(["0", "0", "0", "0"]);
+    expect(within(screen.getByRole("region", { name: "السلات المتروكة" })).getByText("0")).toBeInTheDocument();
+  });
+
+  it("shows only aggregate data and product links even if an unexpected payload includes visitor details", async () => {
+    adminApi.analytics.mockResolvedValueOnce({ ...summary, visitors: [{ name: "PRIVATE-VISITOR", email: "private@example.test", ip: "192.0.2.1" }], session_details: [{ id: "PRIVATE-SESSION", path: "/private-path" }] });
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    await screen.findByTestId("analytics-summary");
+    for (const detail of ["PRIVATE-VISITOR", "private@example.test", "192.0.2.1", "PRIVATE-SESSION", "/private-path"]) expect(document.body.textContent).not.toContain(detail);
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual(["/admin/products/1"]);
   });
 
   it.each([{ rows: [] }, { rows: [{ product_id: 1, name: "صفر", views: 0 }] }])("handles empty and zero views: %j", async ({ rows }) => {
@@ -175,7 +276,7 @@ describe("Admin analytics page", () => {
     render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
     await screen.findByText("الزيارات");
     if (!rows.length) expect(screen.getByText("لا توجد مشاهدات منتجات ضمن هذه الفترة بعد.")).toBeInTheDocument();
-    else expect(screen.getByRole("figure").querySelector("[data-view-bar]")).toHaveStyle({ width: "0%" });
+    else expect(screen.getByRole("figure", { name: "مقارنة مشاهدات المنتجات" }).querySelector("[data-view-bar]")).toHaveStyle({ width: "0%" });
   });
   it("shows merchant-facing analytics copy without technical implementation details", async () => {
     adminApi.analytics.mockResolvedValueOnce({ ...summary, location_tracking_configured: false });
@@ -192,8 +293,8 @@ describe("Admin analytics page", () => {
     expect(screen.getByText("المنتجات التي حازت على أكبر عدد من المشاهدات.")).toBeInTheDocument();
     expect(screen.getByText("القدس")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "ريزن شفاف" })).toBeInTheDocument();
-    expect(screen.getAllByText("زيارة")).not.toHaveLength(0);
-    expect(screen.getAllByText("مشاهدة")).not.toHaveLength(0);
+    expect(screen.getByText("5 زيارة")).toBeInTheDocument();
+    expect(screen.getByText("7 مشاهدة")).toBeInTheDocument();
 
     const pageText = document.body.textContent;
     for (const technicalCopy of ["Cloudflare", "AOP", "fingerprinting", "first-party", "30 دقيقة"]) {
@@ -211,5 +312,32 @@ describe("Admin analytics page", () => {
     await waitFor(() => expect(adminApi.analytics).toHaveBeenLastCalledWith("30d"));
     await user.click(screen.getByRole("button", { name: "اليوم" }));
     await waitFor(() => expect(adminApi.analytics).toHaveBeenLastCalledWith("today"));
+    expect(screen.getByRole("button", { name: "اليوم" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("retains initial loading, error copy and recovery on period change", async () => {
+    let reject;
+    adminApi.analytics.mockReturnValueOnce(new Promise((_, fail) => { reject = fail; }));
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    expect(screen.getByText("جارٍ تحميل الإحصائيات…")).toBeInTheDocument();
+    await act(async () => reject(new Error("unavailable")));
+    expect(screen.getByText("تعذّر تحميل الإحصائيات حالياً. حاول مرة أخرى.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "آخر 7 أيام" }));
+    await screen.findByTestId("analytics-summary");
+    expect(screen.queryByText("تعذّر تحميل الإحصائيات حالياً. حاول مرة أخرى.")).not.toBeInTheDocument();
+  });
+
+  it.each(["resolve", "reject"])("ignores a stale period request that later %s", async (settlement) => {
+    let resolve, reject;
+    adminApi.analytics.mockReturnValueOnce(new Promise((done, fail) => { resolve = done; reject = fail; }));
+    adminApi.analytics.mockResolvedValueOnce({ ...summary, period: "7d", sessions: 77 });
+    render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
+    await userEvent.click(screen.getByRole("button", { name: "آخر 7 أيام" }));
+    const cards = await screen.findByTestId("analytics-summary");
+    expect(within(cards).getByText("77")).toBeInTheDocument();
+    await act(async () => settlement === "resolve" ? resolve(summary) : reject(new Error("stale")));
+    expect(within(cards).getByText("77")).toBeInTheDocument();
+    expect(within(cards).queryByText("14")).not.toBeInTheDocument();
+    expect(screen.queryByText("تعذّر تحميل الإحصائيات حالياً. حاول مرة أخرى.")).not.toBeInTheDocument();
   });
 });
