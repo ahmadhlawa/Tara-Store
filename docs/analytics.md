@@ -6,6 +6,12 @@
 - **Unique visitor:** a server-generated random first-party `tara_visitor` HttpOnly cookie. The database stores only its HMAC hash. Clearing cookies/incognito/another device can count as a new visitor; there is no fingerprinting.
 - **Product view:** a valid PDP view. The same product in the same session is suppressed for 30 seconds to stop refresh inflation. A later revisit can count again; a new session always starts a fresh dedupe scope.
 - **Periods:** Today / 7d / 30d use local `Asia/Hebron` calendar midnights and convert each boundary independently to UTC, including DST changes.
+- **Average session duration:** sessions whose `started_at` is in the selected `[start, end)` range contribute `max(0, last_activity_at - started_at)` seconds, including historical sessions without funnel events. Empty ranges return `0.0`. SQL averages retain fractional seconds (SQLite date arithmetic has millisecond precision; MySQL uses the stored timestamp precision).
+- **Funnel:** `funnel` contains event counts, not distinct visitors or a cohort: `product_views`, `add_to_cart`, `checkout_reached`, `order_completed`. Product views use `viewed_at`; the three new events use `occurred_at`, each within the same `[start, end)` range regardless of session start. Repeated actual adds count separately; checkout entry is deduped per active session.
+- **Completed orders:** `completed_orders` equals the funnel's `order_completed` count: successful new website order creation, never the later Admin fulfillment status `completed`. Recording is best effort and isolated after the commerce commit; retries do not backfill a missing event.
+- **Abandoned carts:** distinct sessions with at least one add event in the selected range, no `order_completed` event at any recorded time (including outside that range), and both session `last_activity_at` and latest event time strictly older than the current time minus `ANALYTICS_SESSION_TIMEOUT_MINUTES` (default 30). Exact-cutoff, active, and future activity exclude a session. Session start need not be in the selected range.
+
+New funnel events and abandoned-cart history begin at deployment; no historical events are inferred or backfilled. Existing historical product views remain the first stage, and historical session timestamps remain usable for duration. The API exposes aggregates only.
 
 ## Location trust
 

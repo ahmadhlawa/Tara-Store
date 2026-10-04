@@ -12,7 +12,7 @@ from urllib.parse import unquote, urlsplit
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, Request, status
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import case, delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -407,7 +407,8 @@ def period_bounds(period: AnalyticsPeriod, *, now: datetime | None = None) -> tu
 
 
 def analytics_summary(db: Session, period: AnalyticsPeriod, *, now: datetime | None = None) -> dict:
-    start, end = period_bounds(period, now=now)
+    current = _utc_naive(now or utcnow())
+    start, end = period_bounds(period, now=current)
 
     session_filter = (
         AnalyticsSession.started_at >= start,
@@ -418,6 +419,52 @@ def analytics_summary(db: Session, period: AnalyticsPeriod, *, now: datetime | N
     ).scalar_one()
     unique_visitors = db.execute(
         select(func.count(func.distinct(AnalyticsSession.visitor_hash))).where(*session_filter)
+    ).scalar_one()
+
+    if db.get_bind().dialect.name == "mysql":
+        duration_seconds = func.timestampdiff(
+            text("MICROSECOND"), AnalyticsSession.started_at, AnalyticsSession.last_activity_at,
+        ) / 1_000_000.0
+    else:
+        # SQLite Julian days preserve fractional seconds to millisecond precision.
+        duration_seconds = (
+            func.julianday(AnalyticsSession.last_activity_at)
+            - func.julianday(AnalyticsSession.started_at)
+        ) * 86400.0
+    average_duration = db.execute(
+        select(func.coalesce(func.avg(case(
+            (AnalyticsSession.last_activity_at > AnalyticsSession.started_at, duration_seconds),
+            else_=0.0,
+        )), 0.0)).where(*session_filter)
+    ).scalar_one()
+
+    add_to_cart, checkout_reached, completed_orders = db.execute(
+        select(*[
+            func.coalesce(func.sum(case((AnalyticsEvent.event_type == event_type, 1), else_=0)), 0)
+            for event_type in ("add_to_cart", "checkout_reached", "order_completed")
+        ]).where(AnalyticsEvent.occurred_at >= start, AnalyticsEvent.occurred_at < end)
+    ).one()
+    product_views = db.execute(
+        select(func.count(AnalyticsProductView.id)).where(
+            AnalyticsProductView.viewed_at >= start, AnalyticsProductView.viewed_at < end,
+        )
+    ).scalar_one()
+
+    cutoff = current - timedelta(minutes=settings.ANALYTICS_SESSION_TIMEOUT_MINUTES)
+    session_events = select(AnalyticsEvent.id).where(AnalyticsEvent.session_id == AnalyticsSession.id)
+    # Counting sessions with EXISTS avoids multiplying carts for repeated adds.
+    # Both activity sources must be strictly older than cutoff, equivalently
+    # max(last_activity_at, latest event time) < cutoff. Completion is all-time.
+    abandoned_carts = db.execute(
+        select(func.count(AnalyticsSession.id)).where(
+            AnalyticsSession.last_activity_at < cutoff,
+            session_events.where(
+                AnalyticsEvent.event_type == "add_to_cart",
+                AnalyticsEvent.occurred_at >= start, AnalyticsEvent.occurred_at < end,
+            ).exists(),
+            ~session_events.where(AnalyticsEvent.event_type == "order_completed").exists(),
+            ~session_events.where(AnalyticsEvent.occurred_at >= cutoff).exists(),
+        )
     ).scalar_one()
 
     location_count = func.count(AnalyticsSession.id)
@@ -464,6 +511,15 @@ def analytics_summary(db: Session, period: AnalyticsPeriod, *, now: datetime | N
         ),
         "sessions": int(sessions),
         "unique_visitors": int(unique_visitors),
+        "average_session_duration_seconds": float(average_duration),
+        "completed_orders": int(completed_orders),
+        "funnel": {
+            "product_views": int(product_views),
+            "add_to_cart": int(add_to_cart),
+            "checkout_reached": int(checkout_reached),
+            "order_completed": int(completed_orders),
+        },
+        "abandoned_carts": int(abandoned_carts),
         "top_locations": top_locations,
         "top_products": [
             {

@@ -11,8 +11,8 @@ from sqlalchemy.exc import IntegrityError
 from starlette.requests import Request
 
 from app.core.config import settings
-from app.models import AnalyticsProductView, AnalyticsSession
-from app.services.analytics import normalize_location, period_bounds, prune_analytics, touch_visit, record_product_view
+from app.models import AnalyticsEvent, AnalyticsProductView, AnalyticsSession
+from app.services.analytics import analytics_summary, normalize_location, period_bounds, prune_analytics, touch_visit, record_product_view
 from tests.conftest import auth, make_product
 
 
@@ -149,6 +149,12 @@ def test_admin_summary_is_authenticated_and_counts_sessions_unique_visitors_and_
     assert payload["sessions"] == 1
     assert payload["unique_visitors"] == 1
     assert payload["top_products"][0]["views"] == 2
+    assert isinstance(payload["average_session_duration_seconds"], float)
+    assert payload["completed_orders"] == 0
+    assert payload["abandoned_carts"] == 0
+    assert payload["funnel"] == {
+        "product_views": 2, "add_to_cart": 0, "checkout_reached": 0, "order_completed": 0,
+    }
 
 
 def test_locations_keep_known_jerusalem_area_places_before_collapsing_other_il_locations():
@@ -511,3 +517,119 @@ def test_retention_cascades_events_only_from_expired_sessions(client, db):
     assert db.scalar(select(func.count(AnalyticsSession.id))) == 1
     assert db.scalar(select(func.count(AnalyticsProductView.id))) == 0
     assert db.get(type(product), product.id) is not None
+
+
+def _summary_session(db, started, last_activity, *, visitor="visitor"):
+    from uuid import uuid4
+
+    session = AnalyticsSession(
+        session_token_hash=uuid4().hex, visitor_hash=visitor,
+        started_at=started, last_activity_at=last_activity, location_label="summary-test",
+    )
+    db.add(session)
+    db.flush()
+    return session
+
+
+@pytest.mark.parametrize("durations,expected", [
+    ([], 0.0), ([0, 0], 0.0), ([-2, -0.5], 0.0), ([1.25, 2.75, -1, 0], 1.0),
+])
+def test_summary_duration_clamps_each_session_and_keeps_fractional_seconds(db, monkeypatch, durations, expected):
+    monkeypatch.setattr(settings, "STORE_TIMEZONE", "Asia/Hebron")
+    started = datetime(2026, 9, 10, 10)
+    for seconds in durations:
+        _summary_session(db, started, started + timedelta(seconds=seconds))
+    db.commit()
+    result = analytics_summary(db, "30d", now=datetime(2026, 10, 4, 12))
+    assert result["sessions"] == len(durations)
+    assert result["average_session_duration_seconds"] == pytest.approx(expected, abs=0.001)
+    assert isinstance(result["average_session_duration_seconds"], float)
+    # Historical sessions contribute duration without invented funnel events.
+    assert result["funnel"] == {
+        "product_views": 0, "add_to_cart": 0, "checkout_reached": 0, "order_completed": 0,
+    }
+    assert result["completed_orders"] == 0
+    assert result["abandoned_carts"] == 0
+
+
+@pytest.mark.parametrize("period,start", [
+    ("today", datetime(2026, 10, 3, 21)),
+    ("7d", datetime(2026, 9, 27, 21)),
+    ("30d", datetime(2026, 9, 4, 21)),
+])
+def test_summary_bounds_use_session_start_but_funnel_uses_event_time(db, monkeypatch, period, start):
+    monkeypatch.setattr(settings, "STORE_TIMEZONE", "Asia/Hebron")
+    end = datetime(2026, 10, 4, 21)
+    moment = timedelta(microseconds=1)
+    older = _summary_session(db, start - moment, start + timedelta(seconds=100))
+    _summary_session(db, start, start + timedelta(seconds=10))
+    _summary_session(db, end - moment, end - moment + timedelta(seconds=30))
+    _summary_session(db, end, end + timedelta(seconds=1000))
+    # Session start is outside the range; its in-range events still count.
+    for occurred in (start - moment, start, end - moment, end):
+        db.add(AnalyticsProductView(
+            session_id=older.id, product_id=999999,
+            product_slug_snapshot="deleted-summary", product_name_snapshot="Deleted summary",
+            viewed_at=occurred,
+        ))
+        for event_type in ("add_to_cart", "checkout_reached", "order_completed"):
+            db.add(AnalyticsEvent(session_id=older.id, event_type=event_type, occurred_at=occurred))
+    db.commit()
+    result = analytics_summary(db, period, now=datetime(2026, 10, 4, 12, tzinfo=timezone.utc))
+    assert (result["range_start"], result["range_end"]) == (start, end)
+    assert result["sessions"] == 2
+    assert result["unique_visitors"] == 1
+    assert result["average_session_duration_seconds"] == pytest.approx(20.0, abs=0.001)
+    assert result["funnel"] == {
+        "product_views": 2, "add_to_cart": 2, "checkout_reached": 2, "order_completed": 2,
+    }
+    assert result["completed_orders"] == 2
+    assert result["abandoned_carts"] == 0
+    assert result["top_locations"] == [{"name": "summary-test", "sessions": 2}]
+    assert result["top_products"] == [{
+        "product_id": 999999, "name": "Deleted summary", "slug": "deleted-summary",
+        "views": 2, "product_exists": False,
+    }]
+
+
+@pytest.mark.parametrize("case,expected", [
+    ("inactive", 1), ("active-session", 0), ("cutoff-session", 0), ("future-session", 0),
+    ("active-event", 0), ("cutoff-event", 0), ("future-event", 0),
+    ("completed-before-period", 0), ("completed-after-period", 0),
+    ("add-outside-period", 0), ("no-add", 0),
+])
+def test_abandoned_carts_count_distinct_inactive_sessions_without_any_completion(db, monkeypatch, case, expected):
+    monkeypatch.setattr(settings, "STORE_TIMEZONE", "Asia/Hebron")
+    monkeypatch.setattr(settings, "ANALYTICS_SESSION_TIMEOUT_MINUTES", 45)
+    now = datetime(2026, 10, 4, 12)
+    start = datetime(2026, 10, 3, 21)
+    cutoff = datetime(2026, 10, 4, 11, 15)
+    old_activity = cutoff - timedelta(microseconds=1)
+    last_activity = {
+        "active-session": cutoff + timedelta(seconds=1), "cutoff-session": cutoff,
+        "future-session": now + timedelta(days=1),
+    }.get(case, old_activity)
+    session = _summary_session(db, start - timedelta(days=1), last_activity)
+    if case != "no-add":
+        add_time = start - timedelta(seconds=1) if case == "add-outside-period" else old_activity
+        # Repeated adds are event counts but only one potential abandoned cart.
+        db.add_all([AnalyticsEvent(session_id=session.id, event_type="add_to_cart", occurred_at=add_time)
+                    for _ in range(2)])
+    event_time = {
+        "active-event": cutoff + timedelta(seconds=1), "cutoff-event": cutoff,
+        "future-event": now + timedelta(days=1),
+    }.get(case)
+    if event_time is not None:
+        db.add(AnalyticsEvent(session_id=session.id, event_type="checkout_reached", occurred_at=event_time))
+    completion = {
+        "completed-before-period": start - timedelta(seconds=1),
+        "completed-after-period": datetime(2026, 10, 4, 21),
+    }.get(case)
+    if completion is not None:
+        db.add(AnalyticsEvent(session_id=session.id, event_type="order_completed", occurred_at=completion))
+    db.commit()
+    result = analytics_summary(db, "today", now=now.replace(tzinfo=timezone.utc))
+    assert result["abandoned_carts"] == expected
+    assert result["sessions"] == 0
+    assert result["completed_orders"] == 0
+    assert result["funnel"]["add_to_cart"] == (0 if case in {"no-add", "add-outside-period"} else 2)

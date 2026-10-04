@@ -8,6 +8,7 @@ exists because passing on SQLite proves none of it on MySQL.
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -19,6 +20,9 @@ from app.core.enums import AdminRole, ProductType
 from app.core.security import hash_password
 from app.models import (
     AdminUser,
+    AnalyticsEvent,
+    AnalyticsProductView,
+    AnalyticsSession,
     Category,
     DeliveryArea,
     HomeSection,
@@ -27,10 +31,62 @@ from app.models import (
     Product,
 )
 from app.services.catalog import refresh_search_text
+from app.services.analytics import analytics_summary
 
 
 def unique(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:10]}"
+
+
+def test_mysql_analytics_summary_duration_and_event_aggregates(db, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "STORE_TIMEZONE", "Asia/Hebron")
+    monkeypatch.setattr(settings, "ANALYTICS_SESSION_TIMEOUT_MINUTES", 45)
+    # Isolate from other CI data without deleting shared fixtures. MySQL DATETIME
+    # stores whole seconds here; the average must still preserve fractional seconds.
+    started = datetime(2001, 1, 15, 10)
+    visitor = unique("summary-visitor")
+    sessions = [AnalyticsSession(
+        session_token_hash=uuid.uuid4().hex,
+        visitor_hash=visitor if index < 2 else unique("summary-visitor"),
+        started_at=started, last_activity_at=started + timedelta(seconds=seconds),
+        location_label="summary-test",
+    ) for index, seconds in enumerate((10, 21, -5))]
+    older = AnalyticsSession(
+        session_token_hash=uuid.uuid4().hex, visitor_hash=unique("summary-old"),
+        started_at=datetime(2001, 1, 1), last_activity_at=started,
+        location_label="summary-test",
+    )
+    db.add_all([*sessions, older])
+    db.flush()
+    db.add_all([
+        AnalyticsEvent(session_id=sessions[0].id, event_type="add_to_cart", occurred_at=started),
+        AnalyticsEvent(session_id=sessions[0].id, event_type="add_to_cart", occurred_at=started),
+        AnalyticsEvent(session_id=sessions[1].id, event_type="checkout_reached", occurred_at=started),
+        AnalyticsEvent(session_id=sessions[1].id, event_type="order_completed", occurred_at=started),
+        AnalyticsEvent(session_id=older.id, event_type="add_to_cart", occurred_at=started),
+        AnalyticsEvent(session_id=older.id, event_type="order_completed", occurred_at=datetime(2001, 1, 16)),
+    ])
+    db.add_all([AnalyticsProductView(
+        session_id=older.id, product_id=2147483647,
+        product_slug_snapshot="mysql-deleted-summary", product_name_snapshot="MySQL deleted summary",
+        viewed_at=started,
+    ) for _ in range(2)])
+    db.flush()
+    try:
+        result = analytics_summary(db, "today", now=datetime(2001, 1, 15, 12))
+        assert result["sessions"] == 3
+        assert result["unique_visitors"] == 2
+        assert result["average_session_duration_seconds"] == pytest.approx(31 / 3, abs=0.001)
+        assert result["completed_orders"] == 1
+        assert result["funnel"] == {
+            "product_views": 2, "add_to_cart": 3, "checkout_reached": 1, "order_completed": 1,
+        }
+        assert result["abandoned_carts"] == 1
+        assert result["top_products"][0]["product_exists"] is False
+    finally:
+        db.rollback()
 
 
 @pytest.fixture()

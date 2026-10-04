@@ -44,6 +44,13 @@ class AnalyticsProductOut(BaseModel):
     product_exists: bool
 
 
+class AnalyticsFunnelOut(BaseModel):
+    product_views: int
+    add_to_cart: int
+    checkout_reached: int
+    order_completed: int
+
+
 class AnalyticsSummaryOut(BaseModel):
     period: AnalyticsPeriod
     range_start: datetime
@@ -51,5 +58,9 @@ class AnalyticsSummaryOut(BaseModel):
     location_tracking_configured: bool
     sessions: int
     unique_visitors: int
+    average_session_duration_seconds: float
+    completed_orders: int
+    funnel: AnalyticsFunnelOut
+    abandoned_carts: int
     top_locations: list[AnalyticsLocationOut]
     top_products: list[AnalyticsProductOut]
