@@ -18,7 +18,7 @@ function open(path) {
 }
 
 describe("storefront localization", () => {
-  it("keeps the fixed TARA header wordmark when switching locale", async () => {
+  it("keeps the fixed TARA header logo when switching locale", async () => {
     stubApi({ ...storefrontRoutes, "/api/v1/store/settings": {
       ...storefrontRoutes["/api/v1/store/settings"],
       store_name: "Configured brand", store_tagline: "Handmade by Yumna",
@@ -27,12 +27,18 @@ describe("storefront localization", () => {
     open("/ar/shop");
     await screen.findByRole("heading", { name: "كل المنتجات" });
     const header = document.querySelector("header.vs-header");
-    expect(within(header).getByText("TARA")).toBeInTheDocument();
-    expect(header.querySelector("img")).toBeNull();
+    expect(within(header).getByRole("img", { name: "TARA" })).toHaveAttribute(
+      "src",
+      "/branding/Lavender TARA Wordmark.png",
+    );
+    expect(header.querySelector('img[src="/branding/tara-logo2.png"]')).toBeNull();
     expect(within(header).queryByText("Handmade by Yumna")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("link", { name: "Switch to English" }));
-    expect(within(header).getByText("TARA")).toBeInTheDocument();
-    expect(header.querySelector("img")).toBeNull();
+    expect(within(header).getByRole("img", { name: "TARA" })).toHaveAttribute(
+      "src",
+      "/branding/Lavender TARA Wordmark.png",
+    );
+    expect(header.querySelector('img[src="/branding/tara-logo2.png"]')).toBeNull();
     expect(within(header).queryByText("Handmade by Yumna")).not.toBeInTheDocument();
   });
 

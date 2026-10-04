@@ -12,7 +12,11 @@ function StoreMark({ settings }) {
   const { t } = useLocale();
   return (
     <Link to="/" className="vs-logo" aria-label={t("{0} — الصفحة الرئيسية", [settings.storeName])}>
-      <span className="vs-logo__name">TARA</span>
+      <img
+        className="vs-logo__wordmark"
+        src="/branding/Lavender TARA Wordmark.png"
+        alt="TARA"
+      />
     </Link>
   );
 }

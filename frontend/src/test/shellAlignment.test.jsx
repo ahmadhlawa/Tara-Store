@@ -194,7 +194,7 @@ describe("homepage hero", () => {
     renderApp("/");
 
     await waitFor(() =>
-      expect(document.querySelector(".vs-header .vs-logo__name")).toHaveTextContent("TARA"),
+      expect(document.querySelector('.vs-header img[src="/branding/Lavender TARA Wordmark.png"]')).not.toBeNull(),
     );
     expect(document.querySelector(".vs-hero__slide")).toBeNull();
   });
@@ -359,27 +359,35 @@ describe("store logo", () => {
     "/api/v1/store/settings": { ...settingsFixture, logo_url: "/brand/store-logo.png" },
   };
 
-  it("uses the fixed wordmark instead of a configured header logo", async () => {
+  it("uses the fixed header logo instead of a configured store logo", async () => {
     stubApi(branded);
     renderApp("/");
     const home = await screen.findByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` });
-    expect(home).toHaveTextContent("TARA");
-    expect(home.querySelector("img")).toBeNull();
+    expect(within(home).getByRole("img", { name: "TARA" })).toHaveAttribute(
+      "src",
+      "/branding/Lavender TARA Wordmark.png",
+    );
     expect(home.querySelector(".vs-logo__tag")).toBeNull();
   });
 
   it("retains accessible store identity with the fixed visible brand", async () => {
     stubApi(branded);
     renderApp("/");
-    expect(await screen.findByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` })).toHaveTextContent("TARA");
+    const home = await screen.findByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` });
+    expect(within(home).getByRole("img", { name: "TARA" })).toHaveAttribute(
+      "src",
+      "/branding/Lavender TARA Wordmark.png",
+    );
   });
 
-  it("keeps the wordmark when no store logo is configured", async () => {
+  it("keeps the fixed header logo when no store logo is configured", async () => {
     stubApi(storefrontRoutes);
     renderApp("/");
     const home = await screen.findByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` });
-    expect(home).toHaveTextContent("TARA");
-    expect(home.querySelector("img")).toBeNull();
+    expect(within(home).getByRole("img", { name: "TARA" })).toHaveAttribute(
+      "src",
+      "/branding/Lavender TARA Wordmark.png",
+    );
     expect(home.querySelector(".vs-logo__tag")).toBeNull();
   });
 });

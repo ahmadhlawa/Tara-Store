@@ -18,7 +18,11 @@ describe("public storefront", () => {
     stubApi(storefrontRoutes);
     renderApp("/");
 
-    expect(await screen.findByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` })).toHaveTextContent("TARA");
+    const home = await screen.findByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` });
+    expect(within(home).getByRole("img", { name: "TARA" })).toHaveAttribute(
+      "src",
+      "/branding/Lavender TARA Wordmark.png",
+    );
     expect(screen.getByRole("search")).toBeInTheDocument();
     expect(document.querySelector(".vs-free-shipping-bar")).toBeNull();
     const footer = within(screen.getByRole("contentinfo"));

@@ -71,7 +71,8 @@
    sideways. */
 .vs-header__row {
   height: 100%;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 14px;
 }
@@ -88,12 +89,18 @@
    the mark is square: stacked under it the type would need ~60px of a 64px band
    and leave the whole block crowded against both edges of it. */
 .vs-logo {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 11px;
-  flex: 0 1 auto;
-  min-width: 0;
+  grid-column: 2;
+  display: block;
+  justify-self: center;
+  line-height: 0;
+}
+
+.vs-logo__wordmark {
+  display: block;
+  width: clamp(144px, 14vw, 180px);
+  height: auto;
+  max-height: 50px;
+  object-fit: contain;
 }
 
 .vs-logo__text {
@@ -179,6 +186,12 @@ img.vs-logo__img {
   flex: 1 1 auto;
   max-width: var(--vs-search-max);
   min-width: 0;
+}
+
+.vs-header__search {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
 }
 
 .vs-hsearch__field {
@@ -359,6 +372,9 @@ img.vs-logo__img {
 }
 
 .vs-hactions {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -868,6 +884,7 @@ img.vs-logo__img {
     padding-block-end: calc(var(--vs-tabbar-h) + env(safe-area-inset-bottom));
   }
   .vs-header__row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 4px;
   }
   .vs-hactions {
@@ -886,12 +903,14 @@ img.vs-logo__img {
   /* `justify-content`, not `align-items`: the row runs horizontally now, and it
      is the main axis that has to centre the mark between the two icon pairs. */
   .vs-logo {
-    flex: 1 1 auto;
-    justify-content: center;
-    text-align: center;
+    grid-column: 2;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
   }
-  .vs-logo__name {
-    font-size: 19px;
+  .vs-logo__wordmark {
+    width: clamp(104px, 32vw, 132px);
+    max-height: 44px;
   }
 }
 

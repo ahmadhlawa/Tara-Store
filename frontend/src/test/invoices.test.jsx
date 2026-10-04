@@ -751,6 +751,10 @@ describe("storefront payment surface", () => {
     });
     renderApp("/");
 
-    expect(await screen.findByRole("link", { name: "متجر فيستا — الصفحة الرئيسية" })).toHaveTextContent("TARA");
+    const home = await screen.findByRole("link", { name: "متجر فيستا — الصفحة الرئيسية" });
+    expect(within(home).getByRole("img", { name: "TARA" })).toHaveAttribute(
+      "src",
+      "/branding/Lavender TARA Wordmark.png",
+    );
   });
 });
