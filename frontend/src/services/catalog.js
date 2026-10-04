@@ -82,10 +82,6 @@ const page = (response) => ({
 });
 
 export const catalogService = {
-  async homeShowcases() {
-    const result = await publicApi.homeShowcases();
-    return Object.fromEntries(Object.entries(result).map(([id, products]) => [id, products.map(normalizeProduct)]));
-  },
   async list(params) {
     return page(await publicApi.products(params));
   },

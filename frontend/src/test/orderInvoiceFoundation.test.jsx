@@ -3,6 +3,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   INVOICE_STATUSES,
+  ORDER_STATUSES,
+  orderStatusLabels,
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
   calculateOrderTotals,
@@ -28,6 +30,21 @@ import { setAuthToken } from "../api/client.js";
 import { stubApi } from "./utils.jsx";
 
 describe("order and invoice domain", () => {
+  it("offers four canonical statuses and retains legacy read labels", () => {
+    expect(ORDER_STATUSES.map(([value]) => value)).toEqual(["new", "ready", "completed", "cancelled"]);
+    ["confirmed", "delivered", "pending", "reviewing", "processing", "preparing", "shipped", "out_for_delivery"].forEach((status) => {
+      expect(orderStatusLabels[status]).toBeTruthy();
+    });
+  });
+
+  it("allows authorized completed and previously completed order eligibility despite legacy locks", () => {
+    const order = { source: "website", status: "completed", is_locked: true, completed_at: "2026-10-03T00:00:00Z" };
+    expect(canEditIncompleteOrder({ role: "admin" }, order)).toBe(true);
+    expect(canEditIncompleteOrder({ role: "viewer" }, order)).toBe(false);
+    expect(canEditIncompleteOrder({ role: "admin" }, { ...order, source: "whatsapp" })).toBe(false);
+    expect(canEditIncompleteOrder({ role: "admin" }, { ...order, items: [{ item_kind: "manual" }] })).toBe(false);
+    expect(canCompleteOrder({ role: "admin" }, { ...order, status: "ready" })).toBe(true);
+  });
   it("calculates totals from decimal strings without floating-point rounding", () => {
     const totals = calculateOrderTotals({
       items: [
@@ -44,11 +61,18 @@ describe("order and invoice domain", () => {
     expect(formatMoney("1000000000000000.05", "₪")).toBe("₪ 1,000,000,000,000,000.05");
   });
 
+  it("includes one packaging fee after discount and delivery in edit and completion breakdowns", () => {
+    expect(calculateOrderTotals({ items: [{ unit_price: "10.00", quantity: 2 }], discount: "1.00", delivery_fee: "3.00", packaging_fee: "5.00" })).toEqual({ subtotal: "20.00", total: "27.00" });
+    render(<CompleteOrderDialog isOpen order={{ final_review: { items: [{ unit_price: "10.00", quantity: 2 }], discount: "1.00", delivery_fee: "3.00", packaging_type: "gift", packaging_fee: "5.00", total: "27.00" } }} onClose={vi.fn()} onComplete={vi.fn()} />);
+    expect(screen.getByLabelText("مراجعة الطلب النهائية")).toHaveTextContent("تغليف كهدية");
+    expect(screen.getByLabelText("مراجعة الطلب النهائية")).toHaveTextContent("27.00");
+  });
+
   it("keeps manager-only actions separate from normal admin actions", () => {
     expect(canCreateManualOrder({ role: "super_admin" })).toBe(true);
     expect(canCreateManualOrder({ role: "admin" })).toBe(false);
     expect(canCompleteOrder({ role: "admin" }, { is_locked: false, status: "confirmed" })).toBe(true);
-    expect(canEditIncompleteOrder({ role: "admin" }, { source: "website", is_locked: false, status: "completed" })).toBe(false);
+    expect(canEditIncompleteOrder({ role: "admin" }, { source: "website", is_locked: false, status: "completed" })).toBe(true);
     expect(canEditIncompleteOrder({ role: "admin" }, { source: "website", is_locked: false, status: "ready" })).toBe(true);
     expect(canEditIncompleteOrder({ role: "super_admin" }, { source: "whatsapp", is_locked: false, status: "ready" })).toBe(true);
     expect(canEditIncompleteOrder({ role: "admin" }, { source: "whatsapp", is_locked: false, status: "ready" })).toBe(false);
@@ -57,8 +81,8 @@ describe("order and invoice domain", () => {
     expect(canReopenOrder({ role: "super_admin" }, { status: "completed", is_locked: false })).toBe(false);
     expect(canReopenOrder({ role: "super_admin" }, { status: "completed", is_locked: true })).toBe(true);
     const reopened = { source: "website", status: "ready", is_locked: false, completed_at: "2026-08-04T00:00:00Z" };
-    expect(canEditIncompleteOrder({ role: "admin" }, reopened)).toBe(false);
-    expect(canCompleteOrder({ role: "admin" }, reopened)).toBe(false);
+    expect(canEditIncompleteOrder({ role: "admin" }, reopened)).toBe(true);
+    expect(canCompleteOrder({ role: "admin" }, reopened)).toBe(true);
     expect(canEditIncompleteOrder({ role: "super_admin" }, reopened)).toBe(true);
   });
 });
@@ -76,9 +100,9 @@ describe("order and invoice API contract", () => {
 
     await adminApi.createManualOrder({ source: "phone", items: [] });
     await adminApi.updateOrder(7, { items: [] });
-    await adminApi.completeOrder(7, { paid_amount: "0.00" });
+    await adminApi.completeOrder(7, { payment_status: "unpaid" });
     await adminApi.reopenOrder(7, "تصحيح");
-    await adminApi.updateInvoicePayment("INV-7", { paid_amount: "5.00" });
+    await adminApi.updateInvoicePayment("INV-7", { payment_status: "paid" });
 
     expect(calls.map((call) => `${call.method} ${call.path}`)).toEqual([
       "POST /api/v1/admin/orders/manual",
@@ -179,21 +203,22 @@ describe("order and invoice components", () => {
     expect(screen.getByText("إجمالي الصنف: —")).toBeInTheDocument();
   });
 
-  it("submits decimal-string completion data and closes on Escape", async () => {
+  it.each(["unpaid", "paid", "refunded"])("submits %s completion state without client amounts and closes on Escape", async (payment_status) => {
     const onComplete = vi.fn();
     const onClose = vi.fn();
-    render(<CompleteOrderDialog isOpen order={{ total: "12.50" }} onClose={onClose} onComplete={onComplete} />);
-
-    await userEvent.clear(screen.getByLabelText("المبلغ المدفوع"));
-    await userEvent.type(screen.getByLabelText("المبلغ المدفوع"), "5.25");
+    render(<CompleteOrderDialog isOpen order={{ total: "0.00" }} onClose={onClose} onComplete={onComplete} />);
+    const selector = screen.getByLabelText("حالة الدفع");
+    expect(Array.from(selector.options, (option) => [option.value, option.textContent])).toEqual([
+      ["unpaid", "غير مدفوع"], ["paid", "مدفوع"], ["refunded", "مردود"],
+    ]);
+    expect(screen.queryByLabelText("المبلغ المدفوع")).not.toBeInTheDocument();
+    await userEvent.selectOptions(selector, payment_status);
+    await userEvent.type(screen.getByLabelText("تفاصيل الدفع (اختياري)"), " Receipt ");
+    await userEvent.type(screen.getByLabelText("ملاحظات الفاتورة (اختياري)"), " Note ");
     await userEvent.click(screen.getByRole("button", { name: "إتمام الطلب وإصدار الفاتورة" }));
     expect(onComplete).toHaveBeenCalledWith({
-      payment_method: "cash_on_delivery",
-      paid_amount: "5.25",
-      payment_details: null,
-      invoice_notes: null,
+      payment_method: "cash_on_delivery", payment_status, payment_details: "Receipt", invoice_notes: "Note",
     });
-
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(1);
   });

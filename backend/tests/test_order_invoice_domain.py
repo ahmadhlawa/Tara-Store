@@ -6,14 +6,96 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.orm import Session
 
-from app.core.enums import AdminRole, PaymentStatus
+from app.core.enums import PaymentStatus
 from app.models import Order
 from app.services import invoices as invoices_service
 from app.services import orders as orders_service
-from app.services.errors import DomainError, PermissionDeniedError
+from app.services.errors import DomainError
 from app.services.invoices import validate_payment_update
 from app.services.orders import calculate_order_totals, record_order_activity
 from tests.conftest import make_product
+
+
+LEGACY_STATUSES = ["confirmed", "delivered", "pending", "reviewing", "processing", "preparing", "out_for_delivery", "shipped"]
+
+
+@pytest.mark.parametrize("status", LEGACY_STATUSES)
+def test_status_mutation_schemas_reject_legacy_targets(status) -> None:
+    from pydantic import ValidationError
+    from app.schemas.orders import OrderAdminUpdate, OrderStatusUpdate
+
+    with pytest.raises(ValidationError):
+        OrderStatusUpdate(status=status)
+    with pytest.raises(ValidationError):
+        OrderAdminUpdate(
+            customer_name="Customer", customer_phone="0590000000", address="Address",
+            payment_method="cash_on_delivery", discount="0", delivery_fee="0",
+            status=status, items=[{"kind": "manual", "name": "Item", "quantity": 1, "unit_price": "10"}],
+        )
+
+
+@pytest.mark.parametrize("status", LEGACY_STATUSES)
+def test_change_status_rejects_legacy_targets(db, status) -> None:
+    order = Order(status="new")
+    with pytest.raises(DomainError) as error:
+        orders_service.change_status(db, order, status)
+    assert error.value.code == "invalid_status"
+    assert order.status == "new"
+
+
+def test_new_and_ready_orders_have_no_invoice(db, category, normal_admin) -> None:
+    product = make_product(db, category_id=category.id, price="10.00")
+    order = orders_service.create_order(db, orders_service.OrderDraft(
+        customer_name="Customer", customer_phone="0590000000", address="Address",
+        items=[(product.id, None, 1)],
+    ))
+    assert invoices_service.get_for_order(db, order.id) is None
+    orders_service.change_status(db, order, "ready", admin=normal_admin)
+    db.flush()
+    assert order.status == "ready"
+    assert invoices_service.get_for_order(db, order.id) is None
+
+
+def test_reopen_persists_ready_status_and_canonical_snapshots(db, category, super_admin) -> None:
+    product = make_product(db, category_id=category.id, price="10.00")
+    order = orders_service.create_order(db, orders_service.OrderDraft(
+        customer_name="Customer", customer_phone="0590000000", address="Address",
+        items=[(product.id, None, 1)],
+    ))
+    orders_service.complete_order(
+        db, order_id=order.id, admin=super_admin,
+        payment_method="cash_on_delivery", payment_status="unpaid",
+        payment_details=None, invoice_notes=None,
+    )
+    orders_service.reopen_completed_order(
+        db, order_id=order.id, reason="Correct address", admin=super_admin,
+    )
+    db.commit()
+    db.expire_all()
+
+    saved = db.get(Order, order.id)
+    assert saved.status == "ready"
+    assert saved.is_locked is False
+    assert saved.locked_at is None
+    assert orders_service.can_structurally_edit_order(order=saved, actor=super_admin)
+    reopened_history = next(row for row in saved.status_history if row.note == "Correct address")
+    assert reopened_history.old_status == "completed"
+    assert reopened_history.new_status == "ready"
+    activity = next(row for row in saved.activities if row.event_type == "order_reopened")
+    assert activity.before_data == {"status": "completed", "is_locked": True}
+    assert activity.after_data["status"] == "ready"
+    assert activity.after_data["is_locked"] is False
+
+
+def test_completed_edit_eligibility_preserves_admin_role_and_source_boundaries() -> None:
+    from types import SimpleNamespace
+
+    order = SimpleNamespace(status="completed", source="website", items=[], is_locked=True)
+    assert orders_service.can_structurally_edit_order(order=order, actor=SimpleNamespace(role="admin"))
+    assert not orders_service.can_structurally_edit_order(order=order, actor=SimpleNamespace(role="viewer"))
+    order.source = "whatsapp"
+    assert not orders_service.can_structurally_edit_order(order=order, actor=SimpleNamespace(role="admin"))
+    assert orders_service.can_structurally_edit_order(order=order, actor=SimpleNamespace(role="super_admin"))
 
 
 @dataclass
@@ -52,91 +134,31 @@ def test_calculate_order_totals_rejects_negative_money_and_nonpositive_quantitie
         calculate_order_totals(items, discount_amount=discount_amount, delivery_fee=delivery_fee)
 
 
-@pytest.mark.parametrize(
-    ("total", "paid", "refunded", "status", "remaining"),
-    [
-        ("10.00", "0.00", "0.00", PaymentStatus.UNPAID, "10.00"),
-        ("10.00", "4.00", "0.00", PaymentStatus.UNPAID, "6.00"),
-        ("10.00", "10.00", "0.00", PaymentStatus.PAID, "0.00"),
-        ("10.00", "10.00", "3.00", PaymentStatus.REFUNDED, "3.00"),
-        ("10.00", "10.00", "10.00", PaymentStatus.REFUNDED, "10.00"),
-    ],
-)
-def test_payment_validation_derives_status_and_nonnegative_remaining_amount(
-    total: str, paid: str, refunded: str, status: PaymentStatus, remaining: str
-) -> None:
-    update = validate_payment_update(
-        total_amount=Decimal(total),
-        current_paid_amount=Decimal("0.00"),
-        paid_amount=Decimal(paid),
-        refunded_amount=Decimal(refunded),
-        actor_role=AdminRole.SUPER_ADMIN.value,
-        reason="Documented correction" if refunded != "0.00" else None,
-    )
-
-    assert update.status == status
-    assert update.remaining_amount == Decimal(remaining)
+@pytest.mark.parametrize("total,status,paid,refunded,remaining", [
+    ("10.00", "unpaid", "0.00", "0.00", "10.00"),
+    ("10.00", "paid", "10.00", "0.00", "0.00"),
+    ("10.00", "refunded", "10.00", "10.00", "0.00"),
+    ("0.00", "unpaid", "0.00", "0.00", "0.00"),
+    ("0.00", "paid", "0.00", "0.00", "0.00"),
+    ("0.00", "refunded", "0.00", "0.00", "0.00"),
+])
+def test_payment_validation_derives_money_from_requested_state(total, status, paid, refunded, remaining):
+    update = validate_payment_update(total_amount=Decimal(total), payment_status=status)
+    assert update.status.value == status
+    assert (update.paid_amount, update.refunded_amount, update.remaining_amount) == tuple(map(Decimal, (paid, refunded, remaining)))
 
 
-@pytest.mark.parametrize(
-    ("total", "paid", "refunded"),
-    [
-        ("-1.00", "0.00", "0.00"),
-        ("10.00", "-0.01", "0.00"),
-        ("10.00", "0.00", "-0.01"),
-        ("10.00", "10.01", "0.00"),
-        ("10.00", "5.00", "5.01"),
-    ],
-)
-def test_payment_validation_rejects_negative_and_out_of_bounds_amounts(
-    total: str, paid: str, refunded: str
-) -> None:
-    with pytest.raises(DomainError):
-        validate_payment_update(
-            total_amount=Decimal(total),
-            current_paid_amount=Decimal("0.00"),
-            paid_amount=Decimal(paid),
-            refunded_amount=Decimal(refunded),
-            actor_role=AdminRole.SUPER_ADMIN.value,
-            reason="Documented correction",
-        )
+@pytest.mark.parametrize("status", ["partially_paid", "partially_refunded", "partial", "unknown", None])
+def test_payment_validation_rejects_noncanonical_targets(status):
+    with pytest.raises(DomainError) as exc:
+        validate_payment_update(total_amount=Decimal("10.00"), payment_status=status)
+    assert exc.value.code == "invalid_payment_status"
 
 
-def test_routine_admin_cannot_lower_paid_amount_or_record_a_refund() -> None:
-    with pytest.raises(PermissionDeniedError):
-        validate_payment_update(
-            total_amount=Decimal("10.00"),
-            current_paid_amount=Decimal("8.00"),
-            paid_amount=Decimal("7.00"),
-            refunded_amount=Decimal("0.00"),
-            actor_role=AdminRole.ADMIN.value,
-            reason=None,
-        )
-
-    with pytest.raises(PermissionDeniedError):
-        validate_payment_update(
-            total_amount=Decimal("10.00"),
-            current_paid_amount=Decimal("10.00"),
-            paid_amount=Decimal("10.00"),
-            refunded_amount=Decimal("1.00"),
-            actor_role=AdminRole.ADMIN.value,
-            reason=None,
-        )
-
-
-@pytest.mark.parametrize("paid,refunded", [("7.00", "0.00"), ("10.00", "1.00")])
-def test_super_admin_correction_or_refund_requires_a_nonempty_reason(
-    paid: str, refunded: str
-) -> None:
-    with pytest.raises(DomainError, match="reason"):
-        validate_payment_update(
-            total_amount=Decimal("10.00"),
-            current_paid_amount=Decimal("10.00"),
-            paid_amount=Decimal(paid),
-            refunded_amount=Decimal(refunded),
-            actor_role=AdminRole.SUPER_ADMIN.value,
-            reason="  ",
-        )
+def test_payment_validation_rejects_negative_invoice_total():
+    with pytest.raises(DomainError) as exc:
+        validate_payment_update(total_amount=Decimal("-0.01"), payment_status="paid")
+    assert exc.value.code == "negative_total_amount"
 
 
 def test_record_order_activity_stores_stable_snapshots_and_reason(db: Session) -> None:
@@ -289,7 +311,7 @@ def test_completion_records_activity_and_invoice_uses_validated_payment_amounts(
         db,
         order_id=order.id,
         payment_method="cash_on_delivery",
-        paid_amount=Decimal("0.00"),
+        payment_status="unpaid",
         payment_details=None,
         invoice_notes=None,
         admin=normal_admin,
@@ -323,7 +345,7 @@ def test_invoice_issuer_snapshot_survives_admin_profile_changes(
         db,
         order_id=order.id,
         payment_method="cash_on_delivery",
-        paid_amount=Decimal("0.00"),
+        payment_status="unpaid",
         payment_details=None,
         invoice_notes=None,
         admin=normal_admin,
@@ -357,12 +379,12 @@ def test_failed_completion_cannot_be_committed_as_a_partial_order(
     )
     db.commit()
 
-    with pytest.raises(DomainError, match="bounds"):
+    with pytest.raises(DomainError, match="Select unpaid, paid or refunded") as exc:
         orders_service.complete_order(
             db,
             order_id=order.id,
             payment_method="cash_on_delivery",
-            paid_amount=Decimal("10.01"),
+            payment_status="partially_paid",
             payment_details=None,
             invoice_notes=None,
             admin=normal_admin,
@@ -370,6 +392,7 @@ def test_failed_completion_cannot_be_committed_as_a_partial_order(
     db.commit()
     db.expire_all()
 
+    assert exc.value.code == "invalid_payment_status"
     saved = db.get(Order, order.id)
     assert saved.status != "completed"
     assert saved.is_locked is False

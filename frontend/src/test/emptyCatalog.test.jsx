@@ -29,7 +29,7 @@ describe("storefront with no catalog", () => {
     stubApi(EMPTY_CATALOG);
     renderApp("/");
 
-    expect(await screen.findAllByText(settingsFixture.store_name)).not.toHaveLength(0);
+    expect(await screen.findAllByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` })).not.toHaveLength(0);
     // The gap the dropped sections leave is filled by an honest empty state rather
     // than by invented content. Waiting on it also means every list has resolved.
     expect(await screen.findByText("المتجر قيد التجهيز")).toBeInTheDocument();
@@ -45,7 +45,7 @@ describe("storefront with no catalog", () => {
     const calls = stubApi(EMPTY_CATALOG);
     renderApp("/");
 
-    await screen.findAllByText(settingsFixture.store_name);
+    await screen.findAllByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` });
     expect(calls.some(({ path }) => /\/api\/v1\/(banners|articles)/.test(path))).toBe(false);
   });
 
@@ -55,7 +55,7 @@ describe("storefront with no catalog", () => {
     stubApi(storefrontRoutes);
     renderApp("/");
 
-    expect(await screen.findAllByText(settingsFixture.store_name)).not.toHaveLength(0);
+    expect(await screen.findAllByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` })).not.toHaveLength(0);
     expect(screen.queryByText("المتجر قيد التجهيز")).not.toBeInTheDocument();
   });
 

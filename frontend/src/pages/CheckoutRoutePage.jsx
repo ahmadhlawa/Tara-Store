@@ -1,13 +1,14 @@
 import { useLocale } from "../i18n/locale.jsx";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "../i18n/routing.jsx";
 import { useStore } from "../app/StoreProvider.jsx";
 import { useCartLines } from "../components/public/cart/useCartLines.js";
 import FreeDeliveryNotice from "../components/public/cart/FreeDeliveryNotice.jsx";
 import Media from "../components/public/shell/Media.jsx";
 import { buildOrderWhatsAppMessage, checkoutService } from "../services/checkout.js";
+import { trackCheckoutReached } from "../services/analytics.js";
 import { orderTokenStorage } from "../storage/authStorage.js";
-import { paymentMethods } from "../store.js";
+import { packagingTypeLabels, paymentMethods } from "../store.js";
 import { useMoney } from "../hooks/useStorefront.js";
 import { whatsappHref } from "../utils/format.js";
 
@@ -42,7 +43,15 @@ export default function CheckoutRoutePage() {
   const money = useMoney();
   const navigate = useNavigate();
   const { lines, subtotal } = useCartLines();
-  const { checkoutForm: form, setCheckoutForm, cart, coupon, setCoupon, deliveryAreas } = store;
+  const { checkoutForm: form, setCheckoutForm, cart, coupon, setCoupon, deliveryAreas, packagingType, setPackagingType } = store;
+
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current) return;
+    checkoutTracked.current = true;
+    // Attempt per mount; the server dedupes per active session, including remounts.
+    trackCheckoutReached();
+  }, []);
 
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const applyCoupon = async () => {
@@ -76,7 +85,13 @@ export default function CheckoutRoutePage() {
   const [errors, setErrors] = useState({});
   const [placing, setPlacing] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const [priced, setPriced] = useState(null);
+  const quoteInputs = useMemo(() => ({
+    cart, couponCode: coupon.applied || null, deliveryAreaId: form.areaId, packagingType, locale,
+  }), [cart, coupon.applied, form.areaId, packagingType, locale]);
+  const [quote, setQuote] = useState(null);
+  // A previous success cannot authorize submission after any pricing input changes.
+  const priced = quote?.inputs === quoteInputs ? quote.result : null;
+  const quoteError = quote?.inputs === quoteInputs ? quote.error : null;
   const clientReference = useRef(null);
   const submitting = useRef(false);
   const formRef = useRef(null);
@@ -92,26 +107,25 @@ export default function CheckoutRoutePage() {
   // tampered price can never become an order total.
   useEffect(() => {
     let cancelled = false;
-    if (!cart.length) {
-      setPriced(null);
+    setQuote(null);
+    if (!quoteInputs.cart.length) {
       return undefined;
     }
     checkoutService
-      .price(cart, { couponCode: coupon.applied || null, deliveryAreaId: form.areaId })
+      .price(quoteInputs.cart, quoteInputs)
       .then((result) => {
         if (cancelled) return;
-        setPriced(result);
+        setQuote({ inputs: quoteInputs, result });
         setSubmitError(null);
       })
       .catch((error) => {
         if (cancelled) return;
-        setPriced(null);
-        setSubmitError(error.message);
+        setQuote({ inputs: quoteInputs, error: error.message || t("تعذّر حساب الإجمالي") });
       });
     return () => {
       cancelled = true;
     };
-  }, [cart, coupon.applied, form.areaId, locale]);
+  }, [quoteInputs, t]);
 
   const update = (patch) => {
     const next = { ...form, ...patch };
@@ -123,7 +137,7 @@ export default function CheckoutRoutePage() {
 
   const placeOrder = async (event) => {
     event.preventDefault();
-    if (placing || submitting.current) return;
+    if (placing || submitting.current || !priced) return;
     const found = validate(form);
     setErrors(found);
     if (Object.keys(found).length) {
@@ -144,6 +158,7 @@ export default function CheckoutRoutePage() {
         couponCode: coupon.applied || null,
         paymentMethod: "cash_on_delivery",
         notes: form.notes.trim() || null,
+        packagingType,
       }, clientReference.current);
       orderTokenStorage.save(order.order_number, order.public_token);
       if (store.settings.whatsapp) {
@@ -313,19 +328,32 @@ export default function CheckoutRoutePage() {
             )}
           </fieldset>
 
-          {(submitError || Object.keys(errors).length > 0) && (
+          <fieldset className="vs-panel">
+            <legend className="vs-panel__title">{t("التغليف")}</legend>
+            {Object.entries(packagingTypeLabels).map(([type, label]) => (
+              <label key={type} className="vs-payopt" data-selected={packagingType === type}>
+                <input type="radio" name="checkout-packaging" value={type}
+                  checked={packagingType === type} onChange={() => setPackagingType(type)} />
+                <span><strong>{t(label)}</strong><span className="vs-payopt__desc" dir="ltr">{type === "gift" ? "+5 ₪" : "0 ₪"}</span></span>
+              </label>
+            ))}
+          </fieldset>
+
+          {(quoteError || submitError || Object.keys(errors).length > 0) && (
             <div className="vs-state vs-state--error vs-checkout__error" role="alert">
-              {submitError || Object.values(errors)[0]}
+              {quoteError || submitError || Object.values(errors)[0]}
             </div>
           )}
 
           <button
             type="submit"
             className="vs-btn vs-btn--primary vs-btn--lg vs-btn--block"
-            disabled={placing || !form.terms}
+            disabled={placing || !form.terms || !priced}
           >
             {placing && <span className="vs-spinner" aria-hidden="true" />}
-            {placing ? t("جارٍ إرسال الطلب…") : t("تأكيد وإرسال الطلب — {0}", [money(totals.total)])}
+            {placing ? t("جارٍ إرسال الطلب…")
+              : priced ? t("تأكيد وإرسال الطلب — {0}", [money(priced.total)])
+                : quoteError ? t("تعذّر حساب الإجمالي") : t("جارٍ حساب الإجمالي…")}
           </button>
         </form>
 
@@ -359,13 +387,17 @@ export default function CheckoutRoutePage() {
             <span>{t("التوصيل")}{" "}{totals.areaName ? `(${totals.areaName})` : ""}</span>
             <strong>{totals.shipping ? money(totals.shipping) : "—"}</strong>
           </div>
+          <div className="vs-summary__row">
+            <span>{t("رسوم التغليف")} ({t(packagingTypeLabels[priced?.packagingType || packagingType])})</span>
+            <strong>{priced ? money(priced.packagingFee) : "—"}</strong>
+          </div>
 
           {/* Priced by the server above; this only explains the rule behind that
               number, and narrows to the chosen area once there is one. */}
           <FreeDeliveryNotice subtotal={totals.subtotal} areaId={form.areaId} />
           <div className="vs-summary__total">
             <span>{t("الإجمالي")}</span>
-            <strong>{money(totals.total)}</strong>
+            <strong>{priced ? money(totals.total) : "—"}</strong>
           </div>
           <details className="vs-coupon-disclosure">
             <summary>{t("هل لديك كوبون خصم؟")}</summary>

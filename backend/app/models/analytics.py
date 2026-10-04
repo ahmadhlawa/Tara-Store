@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, utcnow
@@ -23,6 +23,10 @@ class AnalyticsSession(Base):
 
     product_views: Mapped[list["AnalyticsProductView"]] = relationship(
         back_populates="session", cascade="all, delete-orphan"
+    )
+
+    events: Mapped[list["AnalyticsEvent"]] = relationship(
+        back_populates="session", cascade="all, delete-orphan", passive_deletes=True
     )
 
     __table_args__ = (
@@ -57,4 +61,29 @@ class AnalyticsProductView(Base):
             "product_id",
             "viewed_at",
         ),
+    )
+
+
+class AnalyticsEvent(Base):
+    __tablename__ = "analytics_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    session_id: Mapped[int] = mapped_column(
+        ForeignKey("analytics_sessions.id", ondelete="CASCADE"), nullable=False
+    )
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    # Internal HMAC only: no order FK, client reference, or customer/cart snapshot.
+    dedupe_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    session: Mapped[AnalyticsSession] = relationship(back_populates="events")
+
+    __table_args__ = (
+        CheckConstraint(
+            "event_type IN ('add_to_cart', 'checkout_reached', 'order_completed')",
+            name="ck_analytics_events_type",
+        ),
+        UniqueConstraint("dedupe_key", name="uq_analytics_events_dedupe_key"),
+        Index("ix_analytics_events_type_time", "event_type", "occurred_at"),
+        Index("ix_analytics_events_session_time", "session_id", "occurred_at"),
     )

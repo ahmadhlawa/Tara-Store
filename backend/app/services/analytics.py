@@ -7,18 +7,20 @@ from hashlib import sha256
 import hmac
 import re
 import secrets
+from typing import get_args
 from urllib.parse import unquote, urlsplit
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, Request, status
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import case, delete, func, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.base import utcnow
-from app.models.analytics import AnalyticsProductView, AnalyticsSession
+from app.models.analytics import AnalyticsEvent, AnalyticsProductView, AnalyticsSession
 from app.models.catalog import Product
-from app.schemas.analytics import AnalyticsPeriod
+from app.schemas.analytics import AnalyticsEventType, AnalyticsPeriod
 
 VISITOR_COOKIE = "tara_visitor"
 SESSION_COOKIE = "tara_session"
@@ -327,6 +329,64 @@ def _record_product_view_locked(db: Session, request: Request, product_id: int,
     return context
 
 
+def record_event(
+    db: Session,
+    request: Request,
+    event_type: AnalyticsEventType,
+    *,
+    dedupe_key: str | None = None,
+    now: datetime | None = None,
+) -> TrackingContext | None:
+    """Commit analytics only; commerce callers must commit their order first.
+
+    Checkout entry is once per active session. Each add action is independent.
+    Server completion requires a stable HMAC of order identity, supplied internally.
+    """
+    if event_type not in get_args(AnalyticsEventType):
+        raise ValueError("Unsupported analytics event type")
+    if event_type == "order_completed":
+        if not isinstance(dedupe_key, str) or not re.fullmatch(r"[0-9a-f]{64}", dedupe_key):
+            raise ValueError("Order completion requires an opaque HMAC dedupe key")
+    elif dedupe_key is not None:
+        raise ValueError("Browser event dedupe keys are server managed")
+
+    current = _utc_naive(now or utcnow())
+    visitor_token = _valid_token(request.cookies.get(VISITOR_COOKIE)) or _new_token()
+    with _tracking_lock(db, _token_hash("visitor", visitor_token)) as locked_db:
+        try:
+            context = resolve_session(locked_db, request, now=current, visitor_token=visitor_token)
+            if context is None:
+                locked_db.rollback()
+                return None
+            if event_type == "checkout_reached":
+                dedupe_key = _token_hash("checkout_reached", str(context.session.id))
+            try:
+                # Flush the session touch before the savepoint, so an expected
+                # duplicate does not discard activity or a rotated cookie token.
+                with locked_db.begin_nested():
+                    locked_db.add(AnalyticsEvent(
+                        session_id=context.session.id,
+                        event_type=event_type,
+                        occurred_at=current,
+                        dedupe_key=dedupe_key,
+                    ))
+            except IntegrityError:
+                # A current read also sees a competing visitor's committed key
+                # under MySQL REPEATABLE READ. Never swallow unrelated failures.
+                duplicate = None if dedupe_key is None else locked_db.scalar(
+                    select(AnalyticsEvent.id)
+                    .where(AnalyticsEvent.dedupe_key == dedupe_key)
+                    .with_for_update()
+                )
+                if duplicate is None:
+                    raise
+            locked_db.commit()
+            return context
+        except Exception:
+            locked_db.rollback()
+            raise
+
+
 def period_bounds(period: AnalyticsPeriod, *, now: datetime | None = None) -> tuple[datetime, datetime]:
     current_utc = now or datetime.now(timezone.utc)
     if current_utc.tzinfo is None:
@@ -347,7 +407,8 @@ def period_bounds(period: AnalyticsPeriod, *, now: datetime | None = None) -> tu
 
 
 def analytics_summary(db: Session, period: AnalyticsPeriod, *, now: datetime | None = None) -> dict:
-    start, end = period_bounds(period, now=now)
+    current = _utc_naive(now or utcnow())
+    start, end = period_bounds(period, now=current)
 
     session_filter = (
         AnalyticsSession.started_at >= start,
@@ -358,6 +419,52 @@ def analytics_summary(db: Session, period: AnalyticsPeriod, *, now: datetime | N
     ).scalar_one()
     unique_visitors = db.execute(
         select(func.count(func.distinct(AnalyticsSession.visitor_hash))).where(*session_filter)
+    ).scalar_one()
+
+    if db.get_bind().dialect.name == "mysql":
+        duration_seconds = func.timestampdiff(
+            text("MICROSECOND"), AnalyticsSession.started_at, AnalyticsSession.last_activity_at,
+        ) / 1_000_000.0
+    else:
+        # SQLite Julian days preserve fractional seconds to millisecond precision.
+        duration_seconds = (
+            func.julianday(AnalyticsSession.last_activity_at)
+            - func.julianday(AnalyticsSession.started_at)
+        ) * 86400.0
+    average_duration = db.execute(
+        select(func.coalesce(func.avg(case(
+            (AnalyticsSession.last_activity_at > AnalyticsSession.started_at, duration_seconds),
+            else_=0.0,
+        )), 0.0)).where(*session_filter)
+    ).scalar_one()
+
+    add_to_cart, checkout_reached, completed_orders = db.execute(
+        select(*[
+            func.coalesce(func.sum(case((AnalyticsEvent.event_type == event_type, 1), else_=0)), 0)
+            for event_type in ("add_to_cart", "checkout_reached", "order_completed")
+        ]).where(AnalyticsEvent.occurred_at >= start, AnalyticsEvent.occurred_at < end)
+    ).one()
+    product_views = db.execute(
+        select(func.count(AnalyticsProductView.id)).where(
+            AnalyticsProductView.viewed_at >= start, AnalyticsProductView.viewed_at < end,
+        )
+    ).scalar_one()
+
+    cutoff = current - timedelta(minutes=settings.ANALYTICS_SESSION_TIMEOUT_MINUTES)
+    session_events = select(AnalyticsEvent.id).where(AnalyticsEvent.session_id == AnalyticsSession.id)
+    # Counting sessions with EXISTS avoids multiplying carts for repeated adds.
+    # Both activity sources must be strictly older than cutoff, equivalently
+    # max(last_activity_at, latest event time) < cutoff. Completion is all-time.
+    abandoned_carts = db.execute(
+        select(func.count(AnalyticsSession.id)).where(
+            AnalyticsSession.last_activity_at < cutoff,
+            session_events.where(
+                AnalyticsEvent.event_type == "add_to_cart",
+                AnalyticsEvent.occurred_at >= start, AnalyticsEvent.occurred_at < end,
+            ).exists(),
+            ~session_events.where(AnalyticsEvent.event_type == "order_completed").exists(),
+            ~session_events.where(AnalyticsEvent.occurred_at >= cutoff).exists(),
+        )
     ).scalar_one()
 
     location_count = func.count(AnalyticsSession.id)
@@ -404,6 +511,15 @@ def analytics_summary(db: Session, period: AnalyticsPeriod, *, now: datetime | N
         ),
         "sessions": int(sessions),
         "unique_visitors": int(unique_visitors),
+        "average_session_duration_seconds": float(average_duration),
+        "completed_orders": int(completed_orders),
+        "funnel": {
+            "product_views": int(product_views),
+            "add_to_cart": int(add_to_cart),
+            "checkout_reached": int(checkout_reached),
+            "order_completed": int(completed_orders),
+        },
+        "abandoned_carts": int(abandoned_carts),
         "top_locations": top_locations,
         "top_products": [
             {

@@ -177,7 +177,8 @@ describe("product card behaviour", () => {
     renderApp("/shop");
 
     const card = within(await cardOf(productFixture.name));
-    expect(card.getByText("−23٪")).toBeInTheDocument();
+    expect(card.getByText("%تخفيض")).toBeInTheDocument();
+    expect(card.queryByText("−23٪")).not.toBeInTheDocument();
     expect(card.getByText("100 ₪")).toBeInTheDocument();
     expect(card.getByText("130 ₪")).toBeInTheDocument();
   });

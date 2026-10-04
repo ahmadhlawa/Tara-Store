@@ -5,9 +5,11 @@ from __future__ import annotations
 import secrets
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
+from sqlalchemy.orm import Session
+from app.api.v1.endpoints.analytics import _set_tracking_cookies
 from app.models import DeliveryArea
 from app.services import catalog as catalog_service
 from app.services.translations import localized_checkout
@@ -16,7 +18,7 @@ Locale = Literal["ar", "en"]
 
 from app.api.deps import DbSession
 from app.core.enums import DiscountType
-from app.core.rate_limit import order_create_rate_limit, order_lookup_rate_limit
+from app.core.rate_limit import analytics_rate_limit, order_create_rate_limit, order_lookup_rate_limit
 from app.schemas.marketing import CouponValidateRequest, CouponValidateResponse
 from app.schemas.orders import (
     CartPricingLine,
@@ -27,6 +29,7 @@ from app.schemas.orders import (
     OrderPublicOut,
 )
 from app.services import orders as orders_service
+from app.services import analytics as analytics_service
 from app.services import pricing
 
 router = APIRouter(tags=["public-checkout"])
@@ -62,6 +65,7 @@ def price_cart(payload: CartPricingRequest, db: DbSession, locale: Locale = "ar"
         [(item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids) for item in payload.items],
         coupon_code=payload.coupon_code,
         delivery_area_id=payload.delivery_area_id,
+        packaging_type=payload.packaging_type,
     )
     response = CartPricingResponse(
         lines=[
@@ -81,6 +85,8 @@ def price_cart(payload: CartPricingRequest, db: DbSession, locale: Locale = "ar"
         subtotal=priced.subtotal,
         discount=priced.discount,
         delivery_fee=priced.delivery_fee,
+        packaging_type=priced.packaging_type,
+        packaging_fee=priced.packaging_fee,
         total=priced.total,
         coupon_code=priced.coupon.code if priced.coupon else None,
         delivery_area_name=priced.delivery_area.name if priced.delivery_area else None,
@@ -100,7 +106,7 @@ def price_cart(payload: CartPricingRequest, db: DbSession, locale: Locale = "ar"
 
 
 @router.post("/orders", response_model=OrderCreatedOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(order_create_rate_limit)])
-def create_order(payload: OrderCreate, db: DbSession, response: Response, locale: Locale = "ar") -> OrderCreatedOut:
+def create_order(payload: OrderCreate, db: DbSession, response: Response, request: Request, locale: Locale = "ar") -> OrderCreatedOut:
     draft = orders_service.OrderDraft(
         client_reference=payload.client_reference,
         customer_name=payload.customer_name,
@@ -110,17 +116,36 @@ def create_order(payload: OrderCreate, db: DbSession, response: Response, locale
         delivery_area_id=payload.delivery_area_id,
         coupon_code=payload.coupon_code,
         payment_method=payload.payment_method.value,
+        packaging_type=payload.packaging_type,
         customer_notes=payload.customer_notes,
         items=[(item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids) for item in payload.items],
     )
+    created = False
     try:
-        order = orders_service.create_order(db, draft)
+        order, created = orders_service.create_order_with_result(db, draft)
+        order_id = order.id
         db.commit()
     except IntegrityError:
         db.rollback()
+        created = False
         order = orders_service.get_by_client_reference(db, payload.client_reference)
         if order is None:
             raise
+    if created:
+        try:
+            analytics_rate_limit(request)
+            # Commerce is durable. The recorder owns only this analytics Session;
+            # MySQL's tracking lock may create its own connection-bound Session.
+            with Session(bind=db.get_bind(), autoflush=False, expire_on_commit=False) as analytics_db:
+                context = analytics_service.record_event(
+                    analytics_db, request, "order_completed",
+                    dedupe_key=analytics_service._token_hash("order_completed", str(order_id)),
+                )
+                _set_tracking_cookies(response, context)
+        except Exception:
+            # Optional tracking, including rate/security/storage failures, must
+            # never change the committed commerce result or expose diagnostics.
+            pass
     db.refresh(order)
     response.headers["Cache-Control"] = "no-store"
     return _public_order(db, order, OrderCreatedOut, locale)

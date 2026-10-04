@@ -2,6 +2,7 @@ import { t } from "../i18n/locale.jsx";
 // Checkout talks to the server for every number it shows. The browser cart is a
 // convenience; the API is the source of truth for prices, discounts and totals.
 import { publicApi } from "../api/publicApi.js";
+import { packagingTypeLabels } from "../store.js";
 
 const toItems = (cart) =>
   cart.map((line) => ({
@@ -14,39 +15,45 @@ const toItems = (cart) =>
 const displayMoney = (value) => String(value ?? 0);
 
 /** The server response is the only source for this operator-facing message. */
-export function buildOrderWhatsAppMessage(order) {
+export function buildOrderWhatsAppMessage(order, locale) {
+  const translate = (key, values) => t(key, values, locale);
   const lines = (order.items || []).map(
     (item) =>
       `- ${item.product_name}${item.sku ? ` (${item.sku})` : ""} × ${item.quantity}: ${displayMoney(item.line_total)}`,
   );
   return [
-    t("طلب جديد من الموقع"),
-    t("رقم الطلب: {0}", [order.order_number]),
+    translate("طلب جديد من الموقع"),
+    translate("رقم الطلب: {0}", [order.order_number]),
     "",
-    t("بيانات العميل:"),
-    t("الاسم: {0}", [order.customer_name]),
-    t("الهاتف: {0}", [order.customer_phone]),
-    t("العنوان: {0}", [order.address]),
+    translate("بيانات العميل:"),
+    translate("الاسم: {0}", [order.customer_name]),
+    translate("الهاتف: {0}", [order.customer_phone]),
+    translate("العنوان: {0}", [order.address]),
     "",
-    t("المنتجات:"),
+    translate("المنتجات:"),
     ...lines,
     "",
-    t("المجموع الفرعي: {0}", [displayMoney(order.subtotal)]),
-    t("الخصم: {0}", [displayMoney(order.discount)]),
-    t("التوصيل{0}: {1}", [order.delivery_area_name ? ` (${order.delivery_area_name})` : "", displayMoney(order.delivery_fee)]),
-    t("الإجمالي: {0}", [displayMoney(order.total)]),
-    ...(order.customer_notes ? ["", t("ملاحظات: {0}", [order.customer_notes])] : []),
+    translate("المجموع الفرعي: {0}", [displayMoney(order.subtotal)]),
+    translate("الخصم: {0}", [displayMoney(order.discount)]),
+    translate("التوصيل{0}: {1}", [order.delivery_area_name ? ` (${order.delivery_area_name})` : "", displayMoney(order.delivery_fee)]),
+    ...(order.packaging_type ? [
+      `${translate("التغليف")}: ${translate(packagingTypeLabels[order.packaging_type] || order.packaging_type)}`,
+      translate("رسوم التغليف: {0}", [displayMoney(order.packaging_fee)]),
+    ] : []),
+    translate("الإجمالي: {0}", [displayMoney(order.total)]),
+    ...(order.customer_notes ? ["", translate("ملاحظات: {0}", [order.customer_notes])] : []),
   ].join("\n");
 }
 
 export const checkoutService = {
   /** Re-price the cart server-side. Returns null for an empty cart. */
-  async price(cart, { couponCode = null, deliveryAreaId = null } = {}) {
+  async price(cart, { couponCode = null, deliveryAreaId = null, packagingType = "normal" } = {}) {
     if (!cart.length) return null;
     const response = await publicApi.priceCart({
       items: toItems(cart),
       coupon_code: couponCode || null,
       delivery_area_id: deliveryAreaId ?? null,
+      packaging_type: packagingType,
     });
     return {
       lines: response.lines,
@@ -56,6 +63,8 @@ export const checkoutService = {
       total: response.total,
       couponCode: response.coupon_code,
       areaName: response.delivery_area_name,
+      packagingType: response.packaging_type ?? "normal",
+      packagingFee: response.packaging_fee ?? 0,
     };
   },
 
@@ -71,6 +80,7 @@ export const checkoutService = {
       coupon_code: customer.couponCode || null,
       payment_method: customer.paymentMethod,
       customer_notes: customer.notes || null,
+      packaging_type: customer.packagingType ?? "normal",
       items: toItems(cart),
     });
   },

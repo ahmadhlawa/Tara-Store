@@ -21,7 +21,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
-from app.core.enums import AdminRole, OrderSource, OrderStatus, PaymentMethod, ProductType
+from app.core.enums import AdminRole, MUTABLE_ORDER_STATUSES, OrderSource, OrderStatus, PackagingType, PaymentMethod, ProductType
 from app.db.base import utcnow
 from app.models import (
     AdminUser,
@@ -36,7 +36,7 @@ from app.models import (
 from app.services import audit as audit_service
 from app.services import invoices as invoices_service
 from app.services import store_settings as settings_service
-from app.services.errors import DomainError, NotFoundError, PermissionDeniedError
+from app.services.errors import ConflictError, DomainError, NotFoundError, PermissionDeniedError
 from app.services.pricing import PricedLine, detailed_stock_error, money, price_cart, price_lines
 
 ORDER_NUMBER_PREFIX = "ORD"
@@ -67,6 +67,7 @@ def calculate_order_totals(
     items: Sequence[OrderItemLike],
     discount_amount: Decimal,
     delivery_fee: Decimal,
+    packaging_fee: Decimal = Decimal("0.00"),
 ) -> OrderTotals:
     """Calculate persisted order money values from quantized line totals."""
     line_totals: list[Decimal] = []
@@ -79,7 +80,8 @@ def calculate_order_totals(
     subtotal = money(sum(line_totals, Decimal("0.00")))
     discount = _nonnegative_money(discount_amount, field="discount_amount")
     delivery = _nonnegative_money(delivery_fee, field="delivery_fee")
-    total = money(max(Decimal("0.00"), subtotal - discount + delivery))
+    packaging = _nonnegative_money(packaging_fee, field="packaging_fee")
+    total = money(max(Decimal("0.00"), subtotal - discount + delivery + packaging))
     return OrderTotals(tuple(line_totals), subtotal, discount, delivery, total)
 
 
@@ -105,6 +107,13 @@ _ACTIVITY_SAFE_FIELDS = frozenset(
         "discount",
         "discount_amount",
         "delivery_fee",
+        "delivery_address",
+        "delivery_area_name",
+        "coupon_code",
+        "packaging_type",
+        "packaging_fee",
+        "tax_amount",
+        "grand_total",
         "total",
         "total_amount",
         "customer_name",
@@ -136,6 +145,11 @@ _ACTIVITY_SAFE_FIELDS = frozenset(
         "context",
         "from",
         "to",
+        "stock_conflicts",
+        "current_stock",
+        "committed_quantity",
+        "requested_quantity",
+        "projected_stock",
     }
 )
 _ACTIVITY_REDACTED = "[redacted]"
@@ -193,6 +207,7 @@ def record_order_activity(
 
 # Statuses that mean stock is currently committed to the order.
 _STOCK_HELD_STATUSES = {
+    OrderStatus.COMPLETED.value,
     OrderStatus.NEW.value,
     OrderStatus.CONFIRMED.value,
     OrderStatus.READY.value,
@@ -213,6 +228,7 @@ class OrderDraft:
     coupon_code: str | None = None
     payment_method: str = PaymentMethod.CASH_ON_DELIVERY.value
     customer_notes: str | None = None
+    packaging_type: PackagingType = PackagingType.NORMAL
 
 
 @dataclass(frozen=True, slots=True)
@@ -250,6 +266,8 @@ class AdminOrderEditDraft:
     status: str
     reason: str | None
     items: tuple[AdminOrderItemDraft, ...]
+    packaging_type: PackagingType | None = None
+    allow_negative_stock: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -494,10 +512,16 @@ def _validate_and_apply_stock(lines: Sequence[PricedLine], sign: int) -> None:
 
 
 def create_order(db: Session, draft: OrderDraft) -> Order:
+    order, _created = create_order_with_result(db, draft)
+    return order
+
+
+def create_order_with_result(db: Session, draft: OrderDraft) -> tuple[Order, bool]:
+    """Return request-local newness; an idempotent lookup never creates an order."""
     if draft.client_reference:
         existing = get_by_client_reference(db, draft.client_reference)
         if existing is not None:
-            return existing
+            return existing, False
 
     if not draft.items:
         raise DomainError("العربة فارغة.", code="empty_cart")
@@ -507,6 +531,7 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
         draft.items,
         coupon_code=draft.coupon_code,
         delivery_area_id=draft.delivery_area_id,
+        packaging_type=draft.packaging_type,
         reveal_stock=True,
     )
     package_snapshots = _package_component_snapshots(priced.lines)
@@ -516,6 +541,7 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
         priced.lines,
         discount_amount=priced.discount,
         delivery_fee=priced.delivery_fee,
+        packaging_fee=priced.packaging_fee,
     )
     order = Order(
         order_number=generate_order_number(db),
@@ -534,6 +560,8 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
         discount=totals.discount_amount,
         total=totals.total_amount,
         coupon_code=priced.coupon.code if priced.coupon else None,
+        packaging_type=priced.packaging_type.value,
+        packaging_fee=priced.packaging_fee,
         payment_method=draft.payment_method,
         customer_notes=(draft.customer_notes or "").strip() or None,
     )
@@ -581,7 +609,7 @@ def create_order(db: Session, draft: OrderDraft) -> Order:
         after_data={"status": order.status, "total_amount": order.total},
         reason=None,
     )
-    return order
+    return order, True
 
 
 def get_by_client_reference(db: Session, client_reference: str) -> Order | None:
@@ -609,31 +637,22 @@ def change_status(
     admin: AdminUser | None = None,
     note: str | None = None,
 ) -> Order:
-    if new_status not in {
-        OrderStatus.NEW.value, OrderStatus.CONFIRMED.value, OrderStatus.READY.value,
-        OrderStatus.DELIVERED.value, OrderStatus.COMPLETED.value, OrderStatus.CANCELLED.value,
-    }:
+    if new_status not in MUTABLE_ORDER_STATUSES:
         raise DomainError("حالة الطلب غير معروفة.", code="invalid_status")
 
+    order = db.execute(
+        select(Order).where(Order.id == order.id).with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalar_one()
     old_status = order.status
-    if order.completed_at is not None and not order.is_locked and (
-        admin is None or admin.role != AdminRole.SUPER_ADMIN.value
-    ):
-        raise PermissionDeniedError(
-            "Reopened completed orders require a super administrator.",
-            code="reopened_order_manager_only",
-        )
-    if old_status == OrderStatus.COMPLETED.value:
-        raise DomainError("Completed orders are locked.", code="order_locked")
+    if old_status == new_status:
+        # Idempotent: no history row, no stock movement.
+        return order
     if new_status == OrderStatus.COMPLETED.value:
         raise DomainError(
             "Order completion requires explicit confirmation.",
             code="completion_requires_confirmation",
         )
-    if old_status == new_status:
-        # Idempotent: no history row, no stock movement.
-        return order
-
     if old_status == OrderStatus.CANCELLED.value:
         raise DomainError(
             "لا يمكن تغيير حالة طلب ملغى.", code="order_cancelled"
@@ -649,6 +668,12 @@ def change_status(
     if new_status == OrderStatus.CANCELLED.value:
         invoice = invoices_service.cancel_for_order(db, order, admin=admin, reason=note)
         invoice_id = invoice.id if invoice else None
+    elif old_status == OrderStatus.COMPLETED.value:
+        invoice = invoices_service.archive_active_for_order(db, order, admin=admin, reason=note)
+        invoice_id = invoice.id if invoice else None
+    if old_status == OrderStatus.COMPLETED.value:
+        order.is_locked = False
+        order.locked_at = None
 
     order.updated_at = utcnow()
     db.add(
@@ -696,7 +721,7 @@ def complete_order(
     *,
     order_id: int,
     payment_method: str,
-    paid_amount: Decimal,
+    payment_status: str,
     payment_details: str | None,
     invoice_notes: str | None,
     admin: AdminUser,
@@ -710,12 +735,6 @@ def complete_order(
     ).scalar_one_or_none()
     if order is None:
         raise NotFoundError("Order not found.", code="order_not_found")
-    if order.completed_at is not None and not order.is_locked and admin.role != AdminRole.SUPER_ADMIN.value:
-        raise PermissionDeniedError(
-            "Reopened completed orders require a super administrator.",
-            code="reopened_order_manager_only",
-        )
-
     existing_invoice = invoices_service.get_for_order(db, order.id)
     if order.status == OrderStatus.COMPLETED.value:
         if existing_invoice is not None:
@@ -730,7 +749,7 @@ def complete_order(
     if existing_invoice is not None:
         raise DomainError("An active invoice already exists for this order.", code="active_invoice_exists")
 
-    totals = calculate_order_totals(order.items, order.discount, order.delivery_fee)
+    totals = calculate_order_totals(order.items, order.discount, order.delivery_fee, order.packaging_fee)
     if (
         totals.subtotal != money(order.subtotal)
         or totals.total_amount != money(order.total)
@@ -741,20 +760,21 @@ def complete_order(
     ):
         raise DomainError("Order totals must be recalculated before completion.", code="invalid_order_totals")
 
-    # Create and validate the immutable snapshot before changing the operational row.
-    # If payment/tax/numbering fails, callers that handle the exception cannot commit a
-    # half-completed order.
-    invoice = invoices_service.issue_for_order(
-        db,
-        order,
-        admin=admin,
-        payment_method=payment_method,
-        paid_amount=paid_amount,
-        payment_details=payment_details,
-        invoice_notes=invoice_notes,
-    )
-    completed_at = utcnow()
     previous_status = order.status
+    # Start the outer write transaction before the savepoint (also on SQLite).
+    # Failed issuance rolls back its number/snapshot and restores the operational state.
+    order.status = OrderStatus.COMPLETED.value
+    db.flush()
+    try:
+        with db.begin_nested():
+            invoice = invoices_service.issue_for_order(
+                db, order, admin=admin, payment_method=payment_method, payment_status=payment_status,
+                payment_details=payment_details, invoice_notes=invoice_notes,
+            )
+    except Exception:
+        order.status = previous_status
+        raise
+    completed_at = utcnow()
     order.payment_method = payment_method
     order.status = OrderStatus.COMPLETED.value
     order.is_locked = True
@@ -803,7 +823,7 @@ def complete_order(
 def reopen_completed_order(
     db: Session, *, order_id: int, reason: str, admin: AdminUser
 ) -> Order:
-    """Reopen a completed order for a manager correction and archive its active invoice."""
+    """Compatibility correction path: archive the invoice and return to ready."""
     if admin.role != AdminRole.SUPER_ADMIN.value:
         raise PermissionDeniedError(
             "Only a super administrator can reopen an order.", code="reopen_manager_only"
@@ -817,14 +837,14 @@ def reopen_completed_order(
     ).scalar_one_or_none()
     if order is None:
         raise NotFoundError("Order not found.", code="order_not_found")
-    if order.status != OrderStatus.COMPLETED.value or not order.is_locked:
+    if order.status != OrderStatus.COMPLETED.value:
         raise DomainError("Only completed orders can be reopened.", code="order_not_completed")
 
     invoice = invoices_service.replace_for_reopen(db, order, admin=admin, reason=normalized_reason)
     if invoice is None:
         raise DomainError("Completed orders require an active invoice.", code="active_invoice_required")
 
-    order.status = OrderStatus.CONFIRMED.value
+    order.status = OrderStatus.READY.value
     order.is_locked = False
     order.locked_at = None
     order.updated_at = utcnow()
@@ -870,14 +890,8 @@ def update_order_notes(
     """Update internal notes only when their material change is explained."""
     if order.status == OrderStatus.CANCELLED.value:
         raise DomainError("Cancelled orders are locked.", code="order_cancelled")
-    if order.is_locked or order.status == OrderStatus.COMPLETED.value:
+    if order.is_locked and order.status != OrderStatus.COMPLETED.value:
         raise DomainError("Completed orders are locked.", code="order_locked")
-
-    if order.completed_at is not None and admin.role != AdminRole.SUPER_ADMIN.value:
-        raise PermissionDeniedError(
-            "Reopened completed orders require a super administrator.",
-            code="reopened_order_manager_only",
-        )
 
     before = order.admin_notes
     after = (admin_notes or "").strip() or None
@@ -913,10 +927,9 @@ def update_order_notes(
 _PATCHABLE_INCOMPLETE_STATUSES = frozenset(
     {
         OrderStatus.NEW.value,
-        OrderStatus.CONFIRMED.value,
         OrderStatus.READY.value,
-        OrderStatus.DELIVERED.value,
         OrderStatus.CANCELLED.value,
+        OrderStatus.COMPLETED.value,
     }
 )
 _EDITABLE_CURRENT_STATUSES = _PATCHABLE_INCOMPLETE_STATUSES - {
@@ -947,7 +960,7 @@ def _item_snapshot(item: OrderItem) -> dict[str, Any]:
 
 
 def can_structurally_edit_order(*, order: Order, actor: AdminUser) -> bool:
-    if order.status in {OrderStatus.COMPLETED.value, OrderStatus.CANCELLED.value}:
+    if order.status == OrderStatus.CANCELLED.value:
         return False
     if order.source != OrderSource.WEBSITE.value or any(
         item.item_kind == "manual" for item in order.items
@@ -957,7 +970,7 @@ def can_structurally_edit_order(*, order: Order, actor: AdminUser) -> bool:
 
 
 def rebuild_order_items(
-    db: Session, *, order: Order, drafts: Sequence[AdminOrderItemDraft]
+    db: Session, *, order: Order, drafts: Sequence[AdminOrderItemDraft], priced_lines: Sequence[PricedLine] | None = None
 ) -> list[OrderItem]:
     catalog_drafts = [item for item in drafts if item.kind == "catalog"]
     catalog_keys = [
@@ -972,7 +985,7 @@ def rebuild_order_items(
         _item_key(item.product_id, item.variant_id, item.selected_option_value_ids): line
         for item, line in zip(
             catalog_drafts,
-            price_lines(
+            priced_lines if priced_lines is not None else price_lines(
                 db,
                 [
                     (item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids)
@@ -1011,6 +1024,24 @@ def rebuild_order_items(
                 if draft.unit_price is not None
                 else (old.unit_price if old is not None else priced.unit_price)
             )
+            if old is not None:
+                package_components = [
+                    OrderItemPackageComponent(
+                        source_product_id=component.source_product_id,
+                        source_variant_id=component.source_variant_id,
+                        product_name=component.product_name,
+                        variant_description=component.variant_description,
+                        sku=component.sku,
+                        quantity_per_package=component.quantity_per_package,
+                        package_quantity=(component.package_quantity if draft.quantity == old.quantity else draft.quantity),
+                        total_quantity=(component.total_quantity if draft.quantity == old.quantity
+                                        else component.quantity_per_package * draft.quantity),
+                        tracks_inventory=component.tracks_inventory,
+                    )
+                    for component in old.package_components
+                ]
+            else:
+                package_components = _package_component_snapshots([priced]).get(id(priced), [])
             items.append(
                 OrderItem(
                     product_id=priced.product.id,
@@ -1029,6 +1060,7 @@ def rebuild_order_items(
                     unit_price=unit_price,
                     quantity=draft.quantity,
                     line_total=money(unit_price * draft.quantity),
+                    package_components=package_components,
                 )
             )
             continue
@@ -1069,6 +1101,64 @@ def rebuild_order_items(
     return items
 
 
+def _apply_admin_inventory_delta(
+    db: Session, *, old_items: Sequence[OrderItem], drafts: Sequence[AdminOrderItemDraft],
+    allow_negative_stock: bool,
+) -> list[dict[str, Any]]:
+    """Lock catalog stock and compare aggregate commitments, before changing any row."""
+    old: dict[tuple[int, int | None], int] = defaultdict(int)
+    new: dict[tuple[int, int | None], int] = defaultdict(int)
+    for items, quantities in ((old_items, old), (drafts, new)):
+        for item in items:
+            kind = item.item_kind if isinstance(item, OrderItem) else item.kind
+            if kind != "catalog" or item.product_id is None:
+                continue
+            quantities[(item.product_id, None)] += item.quantity
+            if item.variant_id is not None:
+                quantities[(item.product_id, item.variant_id)] += item.quantity
+    keys = sorted(old.keys() | new.keys(), key=lambda key: (key[0], key[1] or 0))
+    product_ids = sorted({key[0] for key in keys})
+    variant_ids = sorted({key[1] for key in keys if key[1] is not None})
+    products = {row.id: row for row in db.execute(
+        select(Product).where(Product.id.in_(product_ids)).order_by(Product.id).with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalars()}
+    variants = {row.id: row for row in db.execute(
+        select(ProductVariant).where(ProductVariant.id.in_(variant_ids)).order_by(ProductVariant.id).with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalars()} if variant_ids else {}
+    movements = []
+    conflicts = []
+    for key in keys:
+        product = products.get(key[0])
+        if product is None or not product.track_inventory:
+            continue
+        variant = variants.get(key[1]) if key[1] is not None else None
+        if key[1] is not None and variant is None:
+            continue
+        stock_row = variant if variant is not None else product
+        consumption = new[key] - old[key]
+        projected = stock_row.stock_quantity - consumption
+        if consumption > 0 and projected < 0:
+            conflicts.append({
+                "product_id": product.id, "product_name": product.name,
+                "variant_id": variant.id if variant is not None else None,
+                "variant_description": variant.title if variant is not None else None,
+                "current_stock": stock_row.stock_quantity, "committed_quantity": old[key],
+                "requested_quantity": new[key], "projected_stock": projected,
+            })
+        if consumption:
+            movements.append((stock_row, projected))
+    if conflicts and not allow_negative_stock:
+        raise ConflictError(
+            "الكمية المطلوبة أكبر من المخزون المتوفر حاليًا، واستمرار التعديل سيجعل المخزون بالسالب. هل تريد المتابعة؟",
+            code="negative_stock_confirmation_required", details={"stock_conflicts": conflicts},
+        )
+    for stock_row, projected in movements:
+        stock_row.stock_quantity = projected
+    return conflicts
+
+
 def edit_incomplete_order(
     db: Session,
     *,
@@ -1087,13 +1177,8 @@ def edit_incomplete_order(
         raise NotFoundError("Ø§Ù„Ø·Ù„Ø¨ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.", code="order_not_found")
     if order.status == OrderStatus.CANCELLED.value:
         raise DomainError("Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØ¹Ø¯ÙŠÙ„ Ø·Ù„Ø¨ Ù…Ù„ØºÙ‰.", code="order_cancelled")
-    if order.is_locked or order.status == OrderStatus.COMPLETED.value:
+    if order.is_locked and order.status != OrderStatus.COMPLETED.value:
         raise DomainError("Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØ¹Ø¯ÙŠÙ„ Ø·Ù„Ø¨ Ù…Ù‚ÙÙ„.", code="order_locked")
-    if order.completed_at is not None and admin.role != AdminRole.SUPER_ADMIN.value:
-        raise PermissionDeniedError(
-            "Reopened completed orders require a super administrator.",
-            code="reopened_order_manager_only",
-        )
     if not can_structurally_edit_order(order=order, actor=admin):
         raise PermissionDeniedError(
             "ÙŠÙ…ÙƒÙ† ØªØ¹Ø¯ÙŠÙ„ Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…ÙˆÙ‚Ø¹ ÙÙ‚Ø·.", code="order_source_not_editable"
@@ -1107,7 +1192,7 @@ def edit_incomplete_order(
         raise DomainError(
             "Order status is not eligible for editing.", code="order_status_not_editable"
         )
-    if draft.status == OrderStatus.COMPLETED.value:
+    if draft.status == OrderStatus.COMPLETED.value and order.status != OrderStatus.COMPLETED.value:
         raise DomainError(
             "Ø¥ÙƒÙ…Ø§Ù„ Ø§Ù„Ø·Ù„Ø¨ ÙŠØªØ·Ù„Ø¨ ØªØ£ÙƒÙŠØ¯Ø§Ù‹ Ù…Ù†ÙØµÙ„Ø§Ù‹.",
             code="completion_requires_confirmation",
@@ -1131,6 +1216,10 @@ def edit_incomplete_order(
     }
     old_discount = money(order.discount)
     old_delivery_fee = money(order.delivery_fee)
+    old_packaging_type = order.packaging_type
+    old_packaging_fee = money(order.packaging_fee)
+    packaging_type = draft.packaging_type or PackagingType(order.packaging_type)
+    packaging_fee = Decimal("5.00") if packaging_type == PackagingType.GIFT else Decimal("0.00")
     old_by_key = {
         _item_key(item.product_id, item.variant_id, item.selected_option_value_ids): item
         for item in old_items
@@ -1178,38 +1267,50 @@ def edit_incomplete_order(
             money(order.delivery_fee) != money(draft.delivery_fee),
             customer_before != customer_after,
             order.status != draft.status,
+            order.packaging_type != packaging_type.value,
         )
     )
     reason = (draft.reason or "").strip() or None
     if material_change and reason is None:
         raise DomainError("Ø³Ø¨Ø¨ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ Ù…Ø·Ù„ÙˆØ¨.", code="edit_reason_required")
 
-    # Return the existing reservation before validating the replacement against stock;
-    # the same order's previously reserved units remain available to its new draft.
-    _restore_stock(db, order)
-    new_items = rebuild_order_items(db, order=order, drafts=draft.items)
+    # Only the authenticated correction path prices without checking the whole new
+    # quantity. Its aggregate delta validation replaces that check below.
     priced_lines = price_lines(
         db,
         [
             (item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids)
             for item in draft.items
             if item.kind == "catalog" and item.product_id is not None
-        ],
+        ], enforce_stock=False,
     )
-    totals = calculate_order_totals(new_items, draft.discount, draft.delivery_fee)
+    stock_conflicts = _apply_admin_inventory_delta(
+        db, old_items=old_items, drafts=draft.items, allow_negative_stock=draft.allow_negative_stock,
+    )
+    new_items = rebuild_order_items(db, order=order, drafts=draft.items, priced_lines=priced_lines)
+    totals = calculate_order_totals(new_items, draft.discount, draft.delivery_fee, packaging_fee)
     for item, line_total in zip(new_items, totals.line_totals, strict=True):
         item.line_total = line_total
 
-    _apply_stock_delta(priced_lines, sign=-1)
     order.items[:] = new_items
     order.subtotal = totals.subtotal
     order.discount = totals.discount_amount
     order.delivery_fee = totals.delivery_fee
+    order.packaging_type = packaging_type.value
+    order.packaging_fee = packaging_fee
     order.total = totals.total_amount
     for field, value in customer_after.items():
         setattr(order, field, value)
     old_notes = order.admin_notes
     order.admin_notes = (draft.admin_notes or "").strip() or None
+
+    if stock_conflicts:
+        record_order_activity(
+            db, order_id=order.id, invoice_id=None, actor_admin_id=admin.id,
+            event_type="order_negative_stock_override",
+            before_data={"stock_conflicts": stock_conflicts},
+            after_data={"stock_conflicts": stock_conflicts}, reason=reason,
+        )
 
     for key in set(requested_by_key) - old_keys:
         record_order_activity(
@@ -1300,33 +1401,25 @@ def edit_incomplete_order(
             event_type="order_customer_updated", before_data={"customer": customer_before},
             after_data={"customer": customer_after}, reason=reason,
         )
+    if old_packaging_type != order.packaging_type or old_packaging_fee != order.packaging_fee:
+        record_order_activity(
+            db, order_id=order.id, invoice_id=None, actor_admin_id=admin.id,
+            event_type="order_packaging_changed",
+            before_data={"packaging_type": old_packaging_type, "packaging_fee": old_packaging_fee},
+            after_data={"packaging_type": order.packaging_type, "packaging_fee": order.packaging_fee},
+            reason=reason,
+        )
     if old_notes != order.admin_notes:
         record_order_activity(
             db, order_id=order.id, invoice_id=None, actor_admin_id=admin.id,
             event_type="order_notes_updated", before_data={"admin_notes": old_notes},
             after_data={"admin_notes": order.admin_notes}, reason=reason,
         )
-    old_status = order.status
-    if old_status != draft.status:
-        order.status = draft.status
-        if draft.status == OrderStatus.CANCELLED.value:
-            _restore_stock(db, order)
-            order.is_locked = True
-            order.locked_at = utcnow()
-        db.add(
-            OrderStatusHistory(
-                order_id=order.id,
-                old_status=old_status,
-                new_status=draft.status,
-                admin_user_id=admin.id,
-                note=reason,
-            )
-        )
-        record_order_activity(
-            db, order_id=order.id, invoice_id=None, actor_admin_id=admin.id,
-            event_type="order_status_changed", before_data={"status": old_status},
-            after_data={"status": draft.status}, reason=reason,
-        )
+    if order.status == OrderStatus.COMPLETED.value:
+        invoices_service.sync_active_from_order(db, order, admin=admin, reason=reason)
+    if order.status != draft.status:
+        db.flush()
+        change_status(db, order, draft.status, admin=admin, note=reason)
     order.updated_at = utcnow()
     audit_service.record(
         db, admin=admin, action="order.edited", entity_type="order", entity_id=order.id,

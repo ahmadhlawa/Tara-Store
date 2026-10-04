@@ -41,6 +41,12 @@ class OrderStatus(StrEnum):
     SHIPPED = "shipped"
 
 
+MUTABLE_ORDER_STATUSES = frozenset({
+    OrderStatus.NEW.value, OrderStatus.READY.value,
+    OrderStatus.COMPLETED.value, OrderStatus.CANCELLED.value,
+})
+
+
 class OrderSource(StrEnum):
     WEBSITE = "website"
     WHATSAPP = "whatsapp"
@@ -64,6 +70,11 @@ class PaymentMethod(StrEnum):
     CASH_ON_DELIVERY = "cash_on_delivery"
     CARD = "card"
     BANK_TRANSFER = "bank_transfer"
+
+
+class PackagingType(StrEnum):
+    NORMAL = "normal"
+    GIFT = "gift"
 
 
 class InvoiceStatus(StrEnum):

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+import pytest
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models import Invoice, Order, OrderItem, Product, ProductOption, ProductOptionValue
+from app.models import Invoice, Order, OrderActivity, OrderItem, Product, ProductOption, ProductOptionValue, ProductVariant
 from tests.conftest import auth, make_product
 
 
@@ -34,7 +36,7 @@ def _edit_payload(first: Product, second: Product | None = None, **changes: obje
         "admin_notes": "Internal note",
         "discount": "5.00",
         "delivery_fee": "7.00",
-        "status": "confirmed",
+        "status": "ready",
         "reason": "Customer agreed to the correction",
         "items": [
             {
@@ -48,6 +50,361 @@ def _edit_payload(first: Product, second: Product | None = None, **changes: obje
         payload["items"].append({"product_id": second.id, "quantity": 3})
     payload.update(changes)
     return payload
+
+
+def _completed_order(client, product, token, items=None, payment_status="paid"):
+    order = _create_order(client, product, items=items or [{"product_id": product.id, "quantity": 2}])
+    response = client.post(f"/api/v1/admin/orders/{order['id']}/complete", headers=auth(token),
+                           json={"payment_method": "cash_on_delivery", "payment_status": payment_status})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+@pytest.mark.parametrize("quantity", [2, 3, 1])
+def test_completed_package_correction_preserves_fulfillment_snapshot(client, db, admin_token, quantity):
+    from app.models import PackageItem
+
+    component = make_product(db, slug="snapshot-component", name="Original component", stock=0)
+    component.sku = "ORIGINAL"
+    variant = ProductVariant(product_id=component.id, title="Original variant", sku="ORIGINAL-V", stock_quantity=0, is_active=True)
+    db.add(variant)
+    db.flush()
+    package = make_product(db, slug="snapshot-package", stock=10, product_type="package")
+    contents = PackageItem(package_product_id=package.id, included_product_id=component.id, included_variant_id=variant.id, quantity=2)
+    db.add(contents)
+    db.commit()
+    order = _completed_order(client, package, admin_token)
+    db.expire_all()
+    snapshot = db.get(Order, order["id"]).items[0].package_components[0]
+    # Historical references may be null after source deletion; catalog metadata may evolve.
+    snapshot.source_product_id = None
+    snapshot.source_variant_id = None
+    component.name, component.sku, component.track_inventory = "Current component", "CURRENT", False
+    variant.title, variant.sku = "Current variant", "CURRENT-V"
+    contents.quantity = 7
+    db.commit()
+
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token),
+        json=_edit_payload(package, status="completed", customer_name=order["customer_name"],
+            customer_phone=order["customer_phone"], customer_email=order["customer_email"],
+            customer_notes=order["customer_notes"], admin_notes=order["admin_notes"],
+            discount=order["discount"], delivery_fee=order["delivery_fee"],
+            items=[{"product_id": package.id, "quantity": quantity}]))
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    saved = db.get(Order, order["id"])
+    assert len(saved.items[0].package_components) == 1
+    snapshot = saved.items[0].package_components[0]
+    assert (snapshot.source_product_id, snapshot.source_variant_id, snapshot.product_name,
+            snapshot.variant_description, snapshot.sku, snapshot.quantity_per_package,
+            snapshot.tracks_inventory) == (None, None, "Original component", "Original variant", "ORIGINAL-V", 2, True)
+    assert (snapshot.package_quantity, snapshot.total_quantity) == (quantity, {2: 4, 3: 6, 1: 2}[quantity])
+    assert db.get(Product, package.id).stock_quantity == {2: 8, 3: 7, 1: 9}[quantity]
+    assert db.get(Product, component.id).stock_quantity == 0
+    assert db.get(ProductVariant, variant.id).stock_quantity == 0
+    assert response.json()["active_invoice"]["id"] == order["active_invoice"]["id"]
+    assert response.json()["active_invoice"]["invoice_number"] == order["active_invoice"]["invoice_number"]
+
+
+@pytest.mark.parametrize("action", ["add", "switch"])
+def test_completed_correction_snapshots_new_package_without_component_stock(client, db, admin_token, action):
+    from app.models import PackageItem
+
+    component = make_product(db, slug="new-component", name="Current component", stock=0)
+    old = make_product(db, slug="old-line", stock=10, product_type="package" if action == "switch" else "simple")
+    new = make_product(db, slug="new-package", stock=10, product_type="package")
+    db.add(PackageItem(package_product_id=new.id, included_product_id=component.id, quantity=3))
+    if action == "switch":
+        db.add(PackageItem(package_product_id=old.id, included_product_id=component.id, quantity=1))
+    db.commit()
+    order = _completed_order(client, old, admin_token)
+    items = [{"product_id": new.id, "quantity": 2}]
+    if action == "add":
+        items.insert(0, {"product_id": old.id, "quantity": 2})
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token),
+        json=_edit_payload(old, status="completed", items=items))
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    line = next(item for item in db.get(Order, order["id"]).items if item.product_id == new.id)
+    assert len(line.package_components) == 1
+    snapshot = line.package_components[0]
+    assert (snapshot.source_product_id, snapshot.product_name, snapshot.quantity_per_package,
+            snapshot.package_quantity, snapshot.total_quantity) == (component.id, "Current component", 3, 2, 6)
+    assert db.get(Product, component.id).stock_quantity == 0
+    assert db.get(Product, new.id).stock_quantity == 8
+    assert db.get(Product, old.id).stock_quantity == (10 if action == "switch" else 8)
+    assert response.json()["active_invoice"]["id"] == order["active_invoice"]["id"]
+
+
+@pytest.mark.parametrize("correction", ["address", "quantity", "packaging"])
+def test_invoice_payment_method_correction_survives_completed_order_edit(client, db, admin_token, correction):
+    product = make_product(db)
+    order = _completed_order(client, product, admin_token)
+    invoice = order["active_invoice"]
+    payment_path = f"/api/v1/admin/invoices/{invoice['invoice_number']}/payment"
+    response = client.patch(payment_path, headers=auth(admin_token), json={
+        "payment_status": "paid", "payment_method": "bank_transfer", "payment_details": "Bank receipt 123"})
+    assert response.status_code == 200, response.text
+    current = client.get(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token)).json()
+    payload = _edit_payload(product, status="completed", payment_method=current["payment_method"],
+        customer_name=current["customer_name"], customer_phone=current["customer_phone"],
+        address=current["address"], discount=current["discount"], delivery_fee=current["delivery_fee"],
+        items=[{"product_id": product.id, "quantity": 2}])
+    if correction == "address":
+        payload["address"] = "Corrected address"
+    elif correction == "quantity":
+        payload["items"][0]["quantity"] = 3
+    else:
+        payload["packaging_type"] = "gift"
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json=payload)
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    saved = db.get(Invoice, invoice["id"])
+    assert saved.payment_method == "bank_transfer"
+    assert db.get(Order, order["id"]).payment_method == "bank_transfer"
+    assert saved.payment_details == "Bank receipt 123"
+    assert saved.invoice_number == invoice["invoice_number"]
+    assert saved.paid_amount == saved.grand_total
+    # Omitting method in a later payment update preserves both current methods.
+    response = client.patch(payment_path, headers=auth(admin_token), json={"payment_status": "unpaid"})
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Order, order["id"]).payment_method == db.get(Invoice, invoice["id"]).payment_method == "bank_transfer"
+    # An explicit order method correction remains authoritative.
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token),
+        json={**payload, "payment_method": "cash_on_delivery"})
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Order, order["id"]).payment_method == db.get(Invoice, invoice["id"]).payment_method == "cash_on_delivery"
+
+
+def test_payment_refreshes_stale_order_and_rejects_archived_invoice(client, db, session_factory, admin_token, normal_admin):
+    from app.models import AdminUser
+    from app.services import invoices as service
+    from app.services.errors import ConflictError
+
+    product = make_product(db)
+    order = _completed_order(client, product, admin_token)
+    invoice = order["active_invoice"]
+    path = f"/api/v1/admin/invoices/{invoice['invoice_number']}/payment"
+    with session_factory() as stale:
+        stale_order = stale.get(Order, order["id"])
+        stale_invoice = stale.get(Invoice, invoice["id"])
+        admin = stale.get(AdminUser, normal_admin.id)
+        response = client.patch(path, headers=auth(admin_token), json={
+            "payment_status": "paid", "payment_method": "bank_transfer", "payment_details": "Receipt"})
+        assert response.status_code == 200, response.text
+        service.update_payment(stale, stale_invoice, payment_status="unpaid", payment_method=None,
+            payment_details=None, details_provided=False, reason=None, admin=admin)
+        assert stale_order.payment_method == "bank_transfer"
+        assert stale_invoice.payment_method == "bank_transfer"
+        stale.commit()
+        assert stale_invoice.status == "active"
+        assert stale_order.payment_method == "bank_transfer"
+
+        response = client.post(f"/api/v1/admin/orders/{order['id']}/status", headers=auth(admin_token), json={"status": "ready"})
+        assert response.status_code == 200, response.text
+        response = client.post(f"/api/v1/admin/orders/{order['id']}/complete", headers=auth(admin_token),
+            json={"payment_method": "cash_on_delivery", "payment_status": "paid"})
+        assert response.status_code == 200, response.text
+        successor = response.json()["active_invoice"]
+        # Retain deliberately stale active objects across the archive/recompletion.
+        with pytest.raises(ConflictError) as exc:
+            service.update_payment(stale, stale_invoice, payment_status="paid", payment_method="bank_transfer",
+                payment_details="Overwrite history", details_provided=True, reason=None, admin=admin)
+        assert exc.value.code == "invoice_not_active"
+        stale.rollback()
+
+    response = client.patch(path, headers=auth(admin_token), json={
+        "payment_status": "paid", "payment_method": "bank_transfer", "payment_details": "Overwrite history"})
+    assert response.status_code == 409, response.text
+    db.expire_all()
+    archived = db.get(Invoice, invoice["id"])
+    assert (archived.status, archived.active_invoice_marker, archived.payment_method,
+            archived.payment_details, archived.payment_status) == ("replaced", None, "bank_transfer", "Receipt", "unpaid")
+    assert (archived.paid_amount, archived.refunded_amount, archived.remaining_amount) == (Decimal("0.00"), Decimal("0.00"), Decimal("200.00"))
+    assert successor["id"] != invoice["id"]
+    assert db.get(Order, order["id"]).payment_method == "cash_on_delivery"
+    assert db.get(Invoice, successor["id"]).payment_method == "cash_on_delivery"
+
+
+@pytest.mark.parametrize("quantity,stock", [(3, 7), (1, 9)])
+def test_completed_edit_applies_only_delta_without_replaying_stock(client, db, admin_token, monkeypatch, quantity, stock):
+    from app.services import orders as service
+    product = make_product(db, stock=10, price="10.00")
+    order = _completed_order(client, product, admin_token)
+    original = service.price_lines
+    observed = []
+
+    def observe_pricing(*args, **kwargs):
+        observed.append(args[0].get(Product, product.id).stock_quantity)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(service, "price_lines", observe_pricing)
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token),
+                            json=_edit_payload(product, status="completed", items=[{"product_id": product.id, "quantity": quantity}]))
+    assert response.status_code == 200, response.text
+    assert observed == [8]  # Pricing sees actual committed stock once, with no blanket restoration.
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == stock
+    assert response.json()["active_invoice"]["id"] == order["active_invoice"]["id"]
+
+
+def test_admin_conflict_is_structured_atomic_and_explicit_retry_persists_negative(client, db, admin_token):
+    product = make_product(db, stock=3, price="10.00")
+    order = _completed_order(client, product, admin_token)
+    path = f"/api/v1/admin/orders/{order['id']}"
+    payload = _edit_payload(product, status="completed", packaging_type="gift",
+                            items=[{"product_id": product.id, "quantity": 4}])
+    before_events = db.query(OrderActivity).count()
+    response = client.patch(path, headers=auth(admin_token), json=payload)
+    assert response.status_code == 409, response.text
+    error = response.json()["error"]
+    assert error["code"] == "negative_stock_confirmation_required"
+    assert error["stock_conflicts"] == [{"product_id": product.id, "product_name": product.name,
+        "variant_id": None, "variant_description": None, "current_stock": 1,
+        "committed_quantity": 2, "requested_quantity": 4, "projected_stock": -1}]
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == 1
+    assert db.get(Order, order["id"]).total == Decimal("20.00")
+    assert db.get(Invoice, order["active_invoice"]["id"]).grand_total == Decimal("20.00")
+    assert db.query(OrderActivity).count() == before_events
+    response = client.patch(path, headers=auth(admin_token), json={**payload, "allow_negative_stock": True, "packaging_fee": 999})
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == -1
+    invoice = db.get(Invoice, order["active_invoice"]["id"])
+    assert invoice.invoice_number == order["active_invoice"]["invoice_number"]
+    assert (invoice.grand_total, invoice.paid_amount, invoice.remaining_amount) == (Decimal("47.00"), Decimal("47.00"), Decimal("0.00"))
+    event = db.query(OrderActivity).filter_by(event_type="order_negative_stock_override").one()
+    assert event.actor_admin_id is not None
+    assert event.before_data["stock_conflicts"][0]["current_stock"] == 1
+    assert event.after_data["stock_conflicts"][0]["projected_stock"] == -1
+
+
+@pytest.mark.parametrize("quantity,expected", [(2, -3), (1, -2)])
+def test_existing_negative_stock_edit_without_further_consumption_needs_no_override(client, db, admin_token, quantity, expected):
+    product = make_product(db, stock=10)
+    order = _completed_order(client, product, admin_token)
+    db.expire_all()
+    db.get(Product, product.id).stock_quantity = -3
+    db.commit()
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token),
+        json=_edit_payload(product, status="completed", items=[{"product_id": product.id, "quantity": quantity}]))
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == expected
+
+
+def test_admin_variant_and_parent_conflicts_aggregate_different_options(client, db, admin_token):
+    product = make_product(db, stock=5)
+    variants = [ProductVariant(product_id=product.id, title=title, stock_quantity=2, is_active=True) for title in ("Small", "Large")]
+    db.add_all(variants)
+    db.commit()
+    order = _completed_order(client, product, admin_token, [{"product_id": product.id, "variant_id": variants[0].id, "quantity": 1}])
+    payload = _edit_payload(product, status="completed", items=[{"product_id": product.id, "variant_id": v.id, "quantity": 3} for v in variants])
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json=payload)
+    assert response.status_code == 409, response.text
+    conflicts = response.json()["error"]["stock_conflicts"]
+    assert {(c["variant_id"], c["current_stock"], c["requested_quantity"], c["projected_stock"]) for c in conflicts} == {
+        (None, 4, 6, -1), (variants[0].id, 1, 3, -1), (variants[1].id, 2, 3, -1)}
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json={**payload, "allow_negative_stock": True})
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == -1
+    assert [db.get(ProductVariant, v.id).stock_quantity for v in variants] == [-1, -1]
+
+
+def test_admin_simple_option_lines_share_parent_stock_and_conflict_before_clamping(client, db, admin_token):
+    product = make_product(db, stock=4)
+    option = ProductOption(product_id=product.id, name="Size", values=[ProductOptionValue(value="Small"), ProductOptionValue(value="Large")])
+    db.add(option)
+    db.commit()
+    values = [v.id for v in option.values]
+    order = _completed_order(client, product, admin_token, [{"product_id": product.id, "quantity": 1, "selected_option_value_ids": [values[0]]}])
+    payload = _edit_payload(product, status="completed", items=[{"product_id": product.id, "quantity": 3, "selected_option_value_ids": [v]} for v in values])
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json=payload)
+    assert response.status_code == 409, response.text
+    assert response.json()["error"]["stock_conflicts"][0]["requested_quantity"] == 6
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json={**payload, "allow_negative_stock": True})
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == -2
+
+
+def test_completed_remove_add_switch_untracked_and_cancel_once(client, db, admin_token):
+    first = make_product(db, slug="delta-first", stock=10)
+    second = make_product(db, slug="delta-second", stock=6)
+    variant = ProductVariant(product_id=second.id, title="Large", stock_quantity=6, is_active=True)
+    db.add(variant)
+    db.commit()
+    untracked = make_product(db, slug="delta-untracked", stock=0, track_inventory=False)
+    order = _completed_order(client, first, admin_token)
+    path = f"/api/v1/admin/orders/{order['id']}"
+    items = [{"product_id": second.id, "variant_id": variant.id, "quantity": 3}, {"product_id": untracked.id, "quantity": 20}]
+    response = client.patch(path, headers=auth(admin_token), json=_edit_payload(first, status="completed", items=items))
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert [db.get(Product, p.id).stock_quantity for p in (first, second, untracked)] == [10, 3, 0]
+    assert db.get(ProductVariant, variant.id).stock_quantity == 3
+    for status in ("ready", "completed", "new", "completed"):
+        response = client.post(path + ("/complete" if status == "completed" else "/status"), headers=auth(admin_token),
+                               json={"payment_method": "cash_on_delivery"} if status == "completed" else {"status": status})
+        assert response.status_code == 200, response.text
+        db.expire_all()
+        assert db.get(Product, second.id).stock_quantity == 3
+    response = client.post(path + "/status", headers=auth(admin_token), json={"status": "cancelled"})
+    assert response.status_code == 200, response.text
+    repeated = client.post(path + "/status", headers=auth(admin_token), json={"status": "cancelled"})
+    assert repeated.status_code == 200
+    db.expire_all()
+    assert db.get(Product, second.id).stock_quantity == 6
+    assert db.get(ProductVariant, variant.id).stock_quantity == 6
+
+
+def test_anonymous_admin_override_is_rejected(client, db):
+    product = make_product(db)
+    order = _create_order(client, product)
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", json=_edit_payload(product, allow_negative_stock=True))
+    assert response.status_code in (401, 403)
+
+
+def test_same_parent_variant_switch_returns_old_and_consumes_new_once(client, db, admin_token):
+    product = make_product(db, stock=8)
+    variants = [ProductVariant(product_id=product.id, title=title, stock_quantity=5) for title in ("Old", "New")]
+    db.add_all(variants)
+    db.commit()
+    order = _completed_order(client, product, admin_token, [{"product_id": product.id, "variant_id": variants[0].id, "quantity": 2}])
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json=_edit_payload(product,
+        status="completed", items=[{"product_id": product.id, "variant_id": variants[1].id, "quantity": 3}]))
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == 5
+    assert [db.get(ProductVariant, v.id).stock_quantity for v in variants] == [5, 2]
+
+
+def test_negative_override_rolls_back_stock_order_invoice_and_activity_on_sync_failure(client, db, admin_token, monkeypatch):
+    from app.services import invoices as service
+    from app.services.errors import DomainError
+    product = make_product(db, stock=3)
+    order = _completed_order(client, product, admin_token)
+    before_events = db.query(OrderActivity).count()
+    original_sync = service.sync_active_from_order
+
+    def fail_after_sync(*args, **kwargs):
+        original_sync(*args, **kwargs)
+        raise DomainError("Injected invoice sync failure", code="test_sync_failure")
+
+    monkeypatch.setattr(service, "sync_active_from_order", fail_after_sync)
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json=_edit_payload(product,
+        status="completed", allow_negative_stock=True, items=[{"product_id": product.id, "quantity": 5}]))
+    assert response.status_code == 400, response.text
+    assert response.json()["error"]["code"] == "test_sync_failure"
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == 1
+    assert db.get(Order, order["id"]).total == Decimal("200.00")
+    assert db.get(Invoice, order["active_invoice"]["id"]).grand_total == Decimal("200.00")
+    assert db.query(OrderActivity).count() == before_events
 
 
 def test_admin_order_list_filters_search_source_payment_date_and_paginates(
@@ -216,7 +573,7 @@ def test_edit_rejects_completed_or_cancelled_status_and_manual_items(
     assert response.json()["error"]["code"] == "order_cancelled"
 
 
-def test_status_endpoint_cannot_complete_or_move_a_completed_order(
+def test_status_endpoint_requires_explicit_completion_and_allows_completed_departure(
     client: TestClient, db: Session, admin_token: str
 ) -> None:
     product = make_product(db, slug="admin-status-completed", name="Status", price="10.00")
@@ -237,10 +594,11 @@ def test_status_endpoint_cannot_complete_or_move_a_completed_order(
     moved = client.post(
         f"/api/v1/admin/orders/{order['id']}/status",
         headers=auth(admin_token),
-        json={"status": "confirmed"},
+        json={"status": "ready"},
     )
-    assert moved.status_code == 400
-    assert moved.json()["error"]["code"] == "order_locked"
+    assert moved.status_code == 200, moved.text
+    assert moved.json()["status"] == "ready"
+    assert moved.json()["is_locked"] is False
 
 
 def test_notes_change_requires_reason_and_records_material_activity(
@@ -306,14 +664,14 @@ def test_edit_rejects_legacy_current_statuses_outside_approved_workflow(
     response = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=auth(admin_token),
-        json=_edit_payload(product, status="confirmed"),
+        json=_edit_payload(product, status="ready"),
     )
 
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "order_status_not_editable"
 
 
-def test_both_roles_complete_an_order_once_with_an_immutable_final_invoice(
+def test_both_roles_complete_an_order_once_with_a_persisted_invoice(
     client: TestClient, db: Session, admin_token: str, super_token: str, normal_admin, super_admin
 ) -> None:
     product = make_product(db, slug="completion-snapshot", name="Final price", price="10.00")
@@ -330,7 +688,7 @@ def test_both_roles_complete_an_order_once_with_an_immutable_final_invoice(
             headers=auth(token),
             json={
                 "payment_method": "card",
-                "paid_amount": "5.00",
+                "payment_status": "paid",
                 "payment_details": "Cash received",
                 "invoice_notes": "Final internal note",
             },
@@ -348,8 +706,8 @@ def test_both_roles_complete_an_order_once_with_an_immutable_final_invoice(
             f"/api/v1/admin/orders/{order['id']}/invoice", headers=auth(token)
         ).json()
         assert invoice["payment_method"] == "card"
-        assert invoice["paid_amount"] == 5.0
-        assert invoice["remaining_amount"] == 5.0
+        assert invoice["paid_amount"] == 10.0
+        assert invoice["remaining_amount"] == 0.0
         assert invoice["payment_details"] == "Cash received"
         assert invoice["invoice_notes"] == "Final internal note"
         assert invoice["issued_by_admin_id"] == actor.id
@@ -360,7 +718,7 @@ def test_both_roles_complete_an_order_once_with_an_immutable_final_invoice(
         retried = client.post(
             f"/api/v1/admin/orders/{order['id']}/complete",
             headers=auth(token),
-            json={"payment_method": "card", "paid_amount": "5.00"},
+            json={"payment_method": "card", "payment_status": "paid"},
         )
         assert retried.status_code == 200, retried.text
         db.expire_all()
@@ -381,13 +739,13 @@ def test_super_admin_reopens_completed_order_replaces_invoice_and_recompletion_l
     super_token: str,
     super_admin,
 ) -> None:
-    """Removing the reopen transition must leave the completed financial snapshot locked."""
+    """Reopen retains the prior snapshot and permits authorized website corrections."""
     product = make_product(db, slug="reopen-history", name="Reopen history", price="10.00")
     order = _create_order(client, product, suffix="reopen-history")
     completed = client.post(
         f"/api/v1/admin/orders/{order['id']}/complete",
         headers=auth(admin_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert completed.status_code == 200, completed.text
     old_invoice_id = completed.json()["active_invoice"]["id"]
@@ -399,27 +757,28 @@ def test_super_admin_reopens_completed_order_replaces_invoice_and_recompletion_l
     )
 
     assert reopened.status_code == 200, reopened.text
+    assert reopened.json()["status"] == "ready"
     assert reopened.json()["is_locked"] is False
     assert reopened.json()["active_invoice"] is None
     assert reopened.json()["invoices"][0]["status"] == "replaced"
 
-    blocked_edit = client.patch(
+    admin_edit = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=auth(admin_token),
-        json=_edit_payload(product),
+        json=_edit_payload(product, status="ready"),
     )
-    assert blocked_edit.status_code == 403
+    assert admin_edit.status_code == 200, admin_edit.text
 
     corrected = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=auth(super_token),
-        json=_edit_payload(product, address="Ramallah, Corrected Street 30"),
+        json=_edit_payload(product, status="ready", address="Ramallah, Corrected Street 30"),
     )
     assert corrected.status_code == 200, corrected.text
     recompleted = client.post(
         f"/api/v1/admin/orders/{order['id']}/complete",
-        headers=auth(super_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        headers=auth(admin_token),
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert recompleted.status_code == 200, recompleted.text
 
@@ -460,7 +819,7 @@ def test_reopen_requires_super_admin_reason_and_completed_active_invoice(
     completed = client.post(
         f"/api/v1/admin/orders/{order['id']}/complete",
         headers=auth(super_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert completed.status_code == 200, completed.text
     invoice = db.get(Invoice, completed.json()["active_invoice"]["id"])
@@ -485,7 +844,7 @@ def test_repeated_reopen_recompletion_links_each_invoice_to_its_predecessor(
     first = client.post(
         complete_path,
         headers=auth(super_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert first.status_code == 200, first.text
     first_id = first.json()["active_invoice"]["id"]
@@ -497,7 +856,7 @@ def test_repeated_reopen_recompletion_links_each_invoice_to_its_predecessor(
     second = client.post(
         complete_path,
         headers=auth(super_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert second.status_code == 200, second.text
     second_id = second.json()["active_invoice"]["id"]
@@ -509,7 +868,7 @@ def test_repeated_reopen_recompletion_links_each_invoice_to_its_predecessor(
     third = client.post(
         complete_path,
         headers=auth(super_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert third.status_code == 200, third.text
 
@@ -539,7 +898,7 @@ def test_completion_rejects_cancelled_and_empty_orders_without_an_invoice(
     blocked = client.post(
         f"/api/v1/admin/orders/{cancelled['id']}/complete",
         headers=auth(admin_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert blocked.status_code == 400
     assert blocked.json()["error"]["code"] == "order_cancelled"
@@ -550,7 +909,7 @@ def test_completion_rejects_cancelled_and_empty_orders_without_an_invoice(
     blocked = client.post(
         f"/api/v1/admin/orders/{empty['id']}/complete",
         headers=auth(admin_token),
-        json={"payment_method": "cash_on_delivery", "paid_amount": "0.00"},
+        json={"payment_method": "cash_on_delivery", "payment_status": "unpaid"},
     )
     assert blocked.status_code == 400
     assert blocked.json()["error"]["code"] == "empty_order"
@@ -672,7 +1031,7 @@ def _manual_edit_payload(order: dict, items: list[dict]) -> dict:
         "admin_notes": "Corrected by manager",
         "discount": str(order["discount"]),
         "delivery_fee": str(order["delivery_fee"]),
-        "status": "confirmed",
+        "status": "ready",
         "reason": "Correct the saved manual order",
         "items": items,
     }
@@ -903,8 +1262,9 @@ def test_super_admin_can_complete_manual_order_with_one_active_invoice(
     payload = _manual_order_payload(
         product,
         completion={
-                "payment_method": "card",
-            "paid_amount": "5.00",
+            "payment_method": "card",
+            "payment_status": "refunded",
+            "paid_amount": "0.01",
             "payment_details": "Cash received",
             "invoice_notes": "Manual order invoice",
         },
@@ -919,3 +1279,9 @@ def test_super_admin_can_complete_manual_order_with_one_active_invoice(
     assert body["active_invoice"] is not None
     db.expire_all()
     assert db.query(Invoice).filter(Invoice.order_id == body["id"], Invoice.status == "active").count() == 1
+    invoice = db.get(Invoice, body["active_invoice"]["id"])
+    assert invoice.payment_status == "refunded"
+    assert (invoice.paid_amount, invoice.refunded_amount, invoice.remaining_amount) == (
+        Decimal("30.75"), Decimal("30.75"), Decimal("0.00"))
+    assert invoice.payment_details == "Cash received"
+    assert invoice.invoice_notes == "Manual order invoice"

@@ -1,6 +1,6 @@
 export const ORDER_STATUSES = [
-  ["new", "طلب جديد"], ["confirmed", "طلب مؤكد"], ["ready", "جاهز"],
-  ["delivered", "تم تسليمه"], ["completed", "مكتمل"], ["cancelled", "طلب ملغى"],
+  ["new", "طلب جديد"], ["ready", "جاهز"],
+  ["completed", "مكتمل"], ["cancelled", "ملغى"],
 ];
 
 // The first element of every pair is the value the API validates; the second is a
@@ -8,7 +8,7 @@ export const ORDER_STATUSES = [
 // a 422 that reaches the manager as "البيانات المرسلة غير صالحة." with a filter that
 // looks perfectly valid on screen.
 export const PAYMENT_STATUSES = [
-  ["unpaid", "غير مدفوع"], ["paid", "مدفوع"], ["refunded", "مسترد"],
+  ["unpaid", "غير مدفوع"], ["paid", "مدفوع"], ["refunded", "مردود"],
 ];
 
 export const INVOICE_STATUSES = [["active", "نشطة"], ["cancelled", "ملغاة"], ["replaced", "مستبدلة"]];
@@ -18,8 +18,8 @@ export const ORDER_SOURCES = [["website", "الموقع"], ["whatsapp", "وات�
 export const PAYMENT_METHODS = [["cash_on_delivery", "الدفع عند الاستلام"], ["bank_transfer", "تحويل يدوي / بنكي"]];
 
 const labels = (entries) => Object.fromEntries(entries);
-export const orderStatusLabels = { ...labels(ORDER_STATUSES), pending: "طلب مؤكد", reviewing: "طلب مؤكد", processing: "جاهز", preparing: "جاهز", shipped: "تم تسليمه", out_for_delivery: "تم تسليمه" };
-export const paymentStatusLabels = { ...labels(PAYMENT_STATUSES), partially_paid: "غير مدفوع", partially_refunded: "مسترد" };
+export const orderStatusLabels = { ...labels(ORDER_STATUSES), confirmed: "طلب مؤكد", delivered: "تم تسليمه", pending: "طلب مؤكد", reviewing: "طلب مؤكد", processing: "جاهز", preparing: "جاهز", shipped: "تم تسليمه", out_for_delivery: "تم تسليمه" };
+export const paymentStatusLabels = { ...labels(PAYMENT_STATUSES), partially_paid: "غير مدفوع", partially_refunded: "مردود" };
 export const invoiceStatusLabels = labels(INVOICE_STATUSES);
 export const orderSourceLabels = { ...labels(ORDER_SOURCES), phone: "أخرى", walk_in: "أخرى", social: "أخرى" };
 export const paymentMethodLabels = { ...labels(PAYMENT_METHODS), card: "بطاقة" };
@@ -64,12 +64,12 @@ export function multiplyMoney(unitPrice, quantity) {
   return scaledText(withScale(parts, scale) * BigInt(String(quantity)), scale);
 }
 
-export function calculateOrderTotals({ items = [], discount = "0", delivery_fee = "0", deliveryFee } = {}) {
-  const charges = [discount, deliveryFee ?? delivery_fee];
+export function calculateOrderTotals({ items = [], discount = "0", delivery_fee = "0", deliveryFee, packaging_fee = "0", packagingFee } = {}) {
+  const charges = [discount, deliveryFee ?? delivery_fee, packagingFee ?? packaging_fee];
   const parts = [...items.map((item) => decimalParts(item.unit_price ?? "0")), ...charges.map(decimalParts)];
   const scale = Math.max(2, ...parts.map((part) => part.scale));
   const subtotal = items.reduce((sum, item) => sum + (isWholeQuantity(item.quantity) ? withScale(decimalParts(item.unit_price ?? "0"), scale) * BigInt(String(item.quantity)) : 0n), 0n);
-  const total = subtotal - withScale(decimalParts(discount), scale) + withScale(decimalParts(deliveryFee ?? delivery_fee), scale);
+  const total = subtotal - withScale(decimalParts(discount), scale) + withScale(decimalParts(deliveryFee ?? delivery_fee), scale) + withScale(decimalParts(packagingFee ?? packaging_fee), scale);
   return { subtotal: scaledText(subtotal, scale), total: scaledText(total < 0n ? 0n : total, scale) };
 }
 
@@ -83,9 +83,8 @@ export function formatMoney(value, currencySymbol = "") {
 export const isManager = (admin) => admin?.role === "super_admin";
 export const isAdmin = (admin) => admin?.role === "admin" || isManager(admin);
 export const canCreateManualOrder = (admin) => isManager(admin);
-const canManageReopenedOrder = (admin, order) => !order?.completed_at || isManager(admin);
-const editableOrderStatuses = new Set(["new", "confirmed", "ready", "delivered"]);
-export const canEditIncompleteOrder = (admin, order) => isAdmin(admin) && canManageReopenedOrder(admin, order) && !order?.is_locked && editableOrderStatuses.has(order?.status) && (isManager(admin) || (order?.source === "website" && !(order?.items || []).some((item) => item.item_kind === "manual")));
-export const canCompleteOrder = (admin, order) => isAdmin(admin) && canManageReopenedOrder(admin, order) && !order?.is_locked && order?.status !== "cancelled";
+const editableOrderStatuses = new Set(["new", "ready", "completed", "confirmed", "delivered"]);
+export const canEditIncompleteOrder = (admin, order) => isAdmin(admin) && editableOrderStatuses.has(order?.status) && (isManager(admin) || (order?.source === "website" && !(order?.items || []).some((item) => item.item_kind === "manual")));
+export const canCompleteOrder = (admin, order) => isAdmin(admin) && editableOrderStatuses.has(order?.status) && order?.status !== "completed";
 export const canReopenOrder = (admin, order) => isManager(admin) && order?.is_locked && order?.status === "completed";
 export const canUpdateInvoicePayment = (admin, invoice) => isAdmin(admin) && invoice?.status === "active";

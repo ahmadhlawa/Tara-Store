@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import sx from "../../sx.js";
 import { adminApi } from "../../api/adminApi.js";
 import { Button, Field, PageHeader, Spinner, card, input, textarea, useFeedback } from "../ui.jsx";
-import { ORDER_SOURCES, PAYMENT_METHODS, calculateOrderTotals, formatMoney, isMoney, isWholeQuantity, orderSourceLabels } from "../orderInvoice/domain.js";
+import { ORDER_SOURCES, PAYMENT_METHODS, PAYMENT_STATUSES, calculateOrderTotals, formatMoney, isMoney, isWholeQuantity, orderSourceLabels } from "../orderInvoice/domain.js";
 import CatalogItemPicker from "../orderInvoice/CatalogItemPicker.jsx";
 
 const manualSources = ORDER_SOURCES;
@@ -11,7 +11,7 @@ const blankManualItem = () => ({ kind: "manual", name: "", description: "", quan
 const initialValues = () => ({
   source: "whatsapp", source_note: "", customer_name: "", customer_phone: "", customer_email: "", address: "",
   payment_method: "cash_on_delivery", customer_notes: "", admin_notes: "", discount: "0.00", delivery_fee: "0.00",
-  items: [], complete: false, paid_amount: "0.00", payment_details: "", invoice_notes: "",
+  items: [], complete: false, payment_status: "unpaid", payment_details: "", invoice_notes: "",
 });
 
 function OrderLines({ items, products, catalogQuery, onCatalogQueryChange, onCatalogSearch, onChange, disabled }) {
@@ -52,12 +52,11 @@ export default function ManualOrderPage() {
     if (!values.items.length || values.items.some((item) => !isWholeQuantity(item.quantity) || !isMoney(item.unit_price) || (item.kind === "manual" && !item.name.trim()))) return feedback.error("أضف صنفاً واحداً صحيحاً على الأقل، مع كمية وسعر صالحين.");
     if (!isMoney(values.discount) || !isMoney(values.delivery_fee)) return feedback.error("تحقق من الخصم ورسوم التوصيل.");
     if (values.source === "other" && !values.source_note.trim()) return feedback.error("ملاحظة المصدر مطلوبة عند اختيار «أخرى».");
-    if (values.complete && !isMoney(values.paid_amount)) return feedback.error("تحقق من المبلغ المدفوع قبل الإتمام.");
     const payload = {
       source: values.source, source_note: values.source_note.trim() || null, customer_name: values.customer_name.trim(), customer_phone: values.customer_phone.trim(), customer_email: values.customer_email.trim() || null, address: values.address.trim(), payment_method: values.payment_method,
       customer_notes: values.customer_notes.trim() || null, admin_notes: values.admin_notes.trim() || null, discount: values.discount, delivery_fee: values.delivery_fee,
       items: values.items.map((item) => item.kind === "catalog" ? { kind: "catalog", product_id: item.product_id, variant_id: item.variant_id || null, selected_option_value_ids: item.selected_option_value_ids || [], quantity: Number(item.quantity), unit_price: item.unit_price } : { kind: "manual", name: item.name.trim(), description: item.description.trim() || null, quantity: Number(item.quantity), unit_price: item.unit_price }),
-      ...(values.complete ? { completion: { payment_method: values.payment_method, paid_amount: values.paid_amount, payment_details: values.payment_details.trim() || null, invoice_notes: values.invoice_notes.trim() || null } } : {}),
+      ...(values.complete ? { completion: { payment_method: values.payment_method, payment_status: values.payment_status, payment_details: values.payment_details.trim() || null, invoice_notes: values.invoice_notes.trim() || null } } : {}),
     };
     setBusy(true);
     try { const order = await adminApi.createManualOrder(payload); navigate(`/admin/orders/${order.id}`); }
@@ -76,7 +75,7 @@ export default function ManualOrderPage() {
       </div></section>
       <section style={card}><h2 style={sx`margin:0 0 14px;font-size:16px`}>الأصناف والأسعار</h2><OrderLines items={values.items} products={products} catalogQuery={catalogQuery} onCatalogQueryChange={setCatalogQuery} onCatalogSearch={() => load(catalogQuery.trim())} disabled={busy || catalogBusy} onChange={(items) => setValues((current) => ({ ...current, items }))} /></section>
       <section style={card}><h2 style={sx`margin:0 0 14px;font-size:16px`}>الدفع والملاحظات</h2><div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px`}><Field title="طريقة الدفع"><select value={values.payment_method} onChange={change("payment_method")} style={input}>{PAYMENT_METHODS.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select></Field><Field title="الخصم"><input aria-label="الخصم" inputMode="decimal" value={values.discount} onChange={change("discount")} style={input} /></Field><Field title="رسوم التوصيل"><input aria-label="رسوم التوصيل" inputMode="decimal" value={values.delivery_fee} onChange={change("delivery_fee")} style={input} /></Field><Field title="ملاحظات العميل"><textarea aria-label="ملاحظات العميل" rows="3" value={values.customer_notes} onChange={change("customer_notes")} style={textarea} /></Field><Field title="ملاحظات داخلية"><textarea aria-label="ملاحظات داخلية" rows="3" value={values.admin_notes} onChange={change("admin_notes")} style={textarea} /></Field></div></section>
-      <section style={card}><label style={sx`display:flex;align-items:center;gap:9px;font-weight:800;cursor:pointer`}><input aria-label="إتمام الطلب وإصدار فاتورة" type="checkbox" checked={values.complete} onChange={change("complete")} />إتمام الطلب وإصدار فاتورة</label>{values.complete && <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px`}><Field title="المبلغ المدفوع"><input aria-label="المبلغ المدفوع" inputMode="decimal" value={values.paid_amount} onChange={change("paid_amount")} style={input} /></Field><Field title="تفاصيل الدفع"><input aria-label="تفاصيل الدفع" value={values.payment_details} onChange={change("payment_details")} style={input} /></Field><Field title="ملاحظات الفاتورة"><input value={values.invoice_notes} onChange={change("invoice_notes")} style={input} /></Field></div>}<div aria-label="ملخص إجمالي الطلب" style={sx`margin-top:16px;padding:12px;border-radius:10px;background:#FAF3EA;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-weight:800`}><span>المجموع الفرعي: {formatMoney(totals.subtotal)}</span><span>الإجمالي: {formatMoney(totals.total)}</span></div><div style={sx`display:flex;gap:10px;flex-wrap:wrap;margin-top:14px`}><Button type="submit" disabled={busy}>{busy ? "جارٍ الحفظ…" : "حفظ الطلب اليدوي"}</Button><Button variant="ghost" disabled={busy} onClick={() => setValues(initialValues())}>إعادة تعيين</Button></div></section>
+      <section style={card}><label style={sx`display:flex;align-items:center;gap:9px;font-weight:800;cursor:pointer`}><input aria-label="إتمام الطلب وإصدار فاتورة" type="checkbox" checked={values.complete} onChange={change("complete")} />إتمام الطلب وإصدار فاتورة</label>{values.complete && <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px`}><Field title="حالة الدفع عند الإتمام"><select aria-label="حالة الدفع عند الإتمام" value={values.payment_status} onChange={change("payment_status")} style={input}>{PAYMENT_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Field title="تفاصيل الدفع"><input aria-label="تفاصيل الدفع" value={values.payment_details} onChange={change("payment_details")} style={input} /></Field><Field title="ملاحظات الفاتورة"><input value={values.invoice_notes} onChange={change("invoice_notes")} style={input} /></Field></div>}<div aria-label="ملخص إجمالي الطلب" style={sx`margin-top:16px;padding:12px;border-radius:10px;background:#FAF3EA;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-weight:800`}><span>المجموع الفرعي: {formatMoney(totals.subtotal)}</span><span>الإجمالي: {formatMoney(totals.total)}</span></div><div style={sx`display:flex;gap:10px;flex-wrap:wrap;margin-top:14px`}><Button type="submit" disabled={busy}>{busy ? "جارٍ الحفظ…" : "حفظ الطلب اليدوي"}</Button><Button variant="ghost" disabled={busy} onClick={() => setValues(initialValues())}>إعادة تعيين</Button></div></section>
     </form>
   </>;
 }

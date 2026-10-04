@@ -38,7 +38,6 @@ from app.core.config import settings
 from app.core.enums import (
     AdminRole,
     DiscountType,
-    HomeSectionType,
     ProductType,
     StorageProviderName,
 )
@@ -247,15 +246,8 @@ HERO_SLIDES = [
     ),
 ]
 
-HOME_SECTIONS = [
-    ("categories", HomeSectionType.CATEGORIES, "أقسام منتجاتنا", "تسوّق حسب القسم", 1, {"limit": 12}),
-    ("packages", HomeSectionType.PACKAGES, "بكجات المبتدئين", "ابدأ من هنا", 2, {"limit": 8}),
-    ("molds", HomeSectionType.SILICONE_MOLDS, "قوالب سيليكون", "أكبر تشكيلة قوالب سيليكون", 3, {"limit": 4}),
-    ("featured", HomeSectionType.FEATURED_PRODUCTS, "منتجات مختارة", "اختيارات فريق الورشة", 4, {"limit": 8}),
-    ("new-and-best", HomeSectionType.NEW_PRODUCTS, "منتجات جديدة", "وصل حديثاً", 5, {"limit": 8}),
-    ("bestsellers", HomeSectionType.BESTSELLERS, "الأكثر مبيعاً", "ما يطلبه الحرفيون أكثر", 6, {"limit": 8}),
-    ("workshop-note", HomeSectionType.CUSTOM_TEXT, "من الورشة", "نختبر كل منتج قبل إضافته إلى المتجر.", 7, {"body": "منتجات جديدة، وعروض خاصة."}),
-]
+# Home Sections belong to Admin; demo seeding must not recreate or overwrite them.
+HOME_SECTIONS = []
 
 COUPONS = [
     ("WELCOME10", "خصم ١٠٪ على أول طلب", DiscountType.PERCENTAGE, "10", "100.00", "50.00", 500),

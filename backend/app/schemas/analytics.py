@@ -3,9 +3,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 AnalyticsPeriod = Literal["today", "7d", "30d"]
+AnalyticsEventType = Literal["add_to_cart", "checkout_reached", "order_completed"]
+
+
+class AnalyticsEventIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    event_type: Literal["add_to_cart", "checkout_reached"]
 
 
 class AnalyticsVisitIn(BaseModel):
@@ -37,6 +44,13 @@ class AnalyticsProductOut(BaseModel):
     product_exists: bool
 
 
+class AnalyticsFunnelOut(BaseModel):
+    product_views: int
+    add_to_cart: int
+    checkout_reached: int
+    order_completed: int
+
+
 class AnalyticsSummaryOut(BaseModel):
     period: AnalyticsPeriod
     range_start: datetime
@@ -44,5 +58,9 @@ class AnalyticsSummaryOut(BaseModel):
     location_tracking_configured: bool
     sessions: int
     unique_visitors: int
+    average_session_duration_seconds: float
+    completed_orders: int
+    funnel: AnalyticsFunnelOut
+    abandoned_carts: int
     top_locations: list[AnalyticsLocationOut]
     top_products: list[AnalyticsProductOut]

@@ -145,11 +145,12 @@ img.vs-logo__img {
    template's 0.13em tracking is a latin display trick that pulls Arabic letters
    apart at their joins, so it is dialled back to something both scripts wear. */
 .vs-logo__name {
-  font-family: "Marcellus", var(--vs-font);
+  font-family: var(--vs-font);
   font-size: 25px;
+  font-weight: 800;
   line-height: 1.05;
   letter-spacing: 0.04em;
-  color: var(--vs-primary);
+  color: #d7cae8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

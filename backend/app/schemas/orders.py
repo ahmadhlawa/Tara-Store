@@ -7,11 +7,17 @@ from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, EmailStr, Field, field_validator, model_validator
 
-from app.core.enums import OrderSource, OrderStatus, PaymentMethod, PaymentStatus
+from app.core.enums import OrderSource, OrderStatus, PackagingType, PaymentMethod, PaymentStatus
 from app.schemas.common import APIModel, Money, UTCDateTime
 from app.schemas.invoices import InvoiceSummary
 
 PHONE_PATTERN = re.compile(r"^\+?\d{7,15}$")
+
+
+def _reject_public_stock_override(value: Any) -> Any:
+    if isinstance(value, dict) and "allow_negative_stock" in value:
+        raise ValueError("Stock override is only available on authenticated Admin edits")
+    return value
 
 
 class OrderItemIn(APIModel):
@@ -31,9 +37,12 @@ class OrderCreate(APIModel):
     address: str = Field(min_length=6, max_length=1000)
     delivery_area_id: int | None = None
     coupon_code: str | None = Field(default=None, max_length=64)
+    packaging_type: PackagingType = PackagingType.NORMAL
     payment_method: PaymentMethod = PaymentMethod.CASH_ON_DELIVERY
     customer_notes: str | None = Field(default=None, max_length=1000)
     items: list[OrderItemIn] = Field(min_length=1, max_length=100)
+
+    _no_stock_override = model_validator(mode="before")(_reject_public_stock_override)
 
     @field_validator("customer_phone")
     @classmethod
@@ -50,6 +59,9 @@ class CartPricingRequest(APIModel):
     items: list[OrderItemIn] = Field(min_length=1, max_length=100)
     coupon_code: str | None = Field(default=None, max_length=64)
     delivery_area_id: int | None = None
+    packaging_type: PackagingType = PackagingType.NORMAL
+
+    _no_stock_override = model_validator(mode="before")(_reject_public_stock_override)
 
 
 class CartPricingLine(APIModel):
@@ -69,6 +81,8 @@ class CartPricingResponse(APIModel):
     subtotal: Money
     discount: Money
     delivery_fee: Money
+    packaging_type: PackagingType
+    packaging_fee: Money
     total: Money
     coupon_code: str | None = None
     delivery_area_name: str | None = None
@@ -126,6 +140,8 @@ class OrderPublicOut(APIModel):
     customer_name: str
     delivery_area_name: str | None = None
     delivery_fee: Money
+    packaging_type: PackagingType
+    packaging_fee: Money
     subtotal: Money
     discount: Money
     total: Money
@@ -169,6 +185,8 @@ class OrderFinalReviewOut(APIModel):
     subtotal: Money
     discount: Money
     delivery_fee: Money
+    packaging_type: PackagingType
+    packaging_fee: Money
     total: Money
 
 
@@ -185,6 +203,8 @@ class OrderAdminOut(APIModel):
     delivery_area_id: int | None = None
     delivery_area_name: str | None = None
     delivery_fee: Money
+    packaging_type: PackagingType
+    packaging_fee: Money
     subtotal: Money
     discount: Money
     total: Money
@@ -261,6 +281,7 @@ AdminOrderItemInput = Annotated[
 
 
 class OrderAdminUpdate(APIModel):
+    allow_negative_stock: bool = Field(default=False, strict=True)
     customer_name: str = Field(min_length=3, max_length=150)
     customer_phone: str = Field(min_length=7, max_length=40)
     customer_email: EmailStr | None = None
@@ -270,7 +291,8 @@ class OrderAdminUpdate(APIModel):
     admin_notes: str | None = Field(default=None, max_length=2000)
     discount: Money = Field(ge=0)
     delivery_fee: Money = Field(ge=0)
-    status: Literal["new", "confirmed", "ready", "delivered", "completed", "cancelled"]
+    packaging_type: PackagingType | None = None
+    status: Literal["new", "ready", "completed", "cancelled"]
     reason: str | None = Field(default=None, max_length=500)
     items: list[AdminOrderItemInput] = Field(min_length=1, max_length=100)
 
@@ -296,13 +318,13 @@ class OrderAdminUpdate(APIModel):
 
 
 class OrderStatusUpdate(APIModel):
-    status: Literal["new", "confirmed", "ready", "delivered", "completed", "cancelled"]
+    status: Literal["new", "ready", "completed", "cancelled"]
     note: str | None = Field(default=None, max_length=500)
 
 
 class OrderCompletionRequest(APIModel):
     payment_method: PaymentMethod
-    paid_amount: Money = Field(default=Decimal("0.00"), ge=0)
+    payment_status: Literal["unpaid", "paid", "refunded"] = "unpaid"
     payment_details: str | None = Field(default=None, max_length=2000)
     invoice_notes: str | None = Field(default=None, max_length=2000)
 

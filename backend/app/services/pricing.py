@@ -13,7 +13,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.core.enums import DiscountType, ProductType
+from app.core.enums import DiscountType, PackagingType, ProductType
 from app.db.base import utcnow
 from app.models import Coupon, DeliveryArea, Product, ProductOptionValue, ProductVariant
 from app.services.errors import DomainError, NotFoundError
@@ -69,6 +69,8 @@ class PricedCart:
     subtotal: Decimal
     discount: Decimal
     delivery_fee: Decimal
+    packaging_type: PackagingType
+    packaging_fee: Decimal
     total: Decimal
     coupon: Coupon | None
     delivery_area: DeliveryArea | None
@@ -93,7 +95,7 @@ def detailed_stock_error(product: Product, variant: ProductVariant | None, stock
     )
 
 
-def price_lines(db: Session, requested: list[tuple], *, reveal_stock: bool = False) -> list[PricedLine]:
+def price_lines(db: Session, requested: list[tuple], *, reveal_stock: bool = False, enforce_stock: bool = True) -> list[PricedLine]:
     """Price `(product_id, variant_id, quantity)` triples against the database."""
     lines: list[PricedLine] = []
     for request in requested:
@@ -158,7 +160,7 @@ def price_lines(db: Session, requested: list[tuple], *, reveal_stock: bool = Fal
             raise DomainError("قيم الخيارات المنفصلة غير صالحة لهذا المنتج.", code="option_value_mismatch")
 
         stock = available_stock(product, variant)
-        if stock is not None and stock < quantity:
+        if enforce_stock and stock is not None and stock < quantity:
             if reveal_stock:
                 raise detailed_stock_error(product, variant, stock)
             raise DomainError(
@@ -242,6 +244,7 @@ def price_cart(
     *,
     coupon_code: str | None = None,
     delivery_area_id: int | None = None,
+    packaging_type: PackagingType = PackagingType.NORMAL,
     reveal_stock: bool = False,
 ) -> PricedCart:
     lines = price_lines(db, requested, reveal_stock=reveal_stock)
@@ -257,13 +260,17 @@ def price_cart(
     coupon = find_valid_coupon(db, coupon_code, subtotal)
     discount = compute_discount(coupon, subtotal)
     delivery_fee = compute_delivery_fee(area, subtotal)
-    total = money(max(ZERO, subtotal - discount + delivery_fee))
+    packaging_type = PackagingType(packaging_type)
+    packaging_fee = Decimal("5.00") if packaging_type == PackagingType.GIFT else ZERO
+    total = money(max(ZERO, subtotal - discount + delivery_fee + packaging_fee))
 
     return PricedCart(
         lines=lines,
         subtotal=subtotal,
         discount=discount,
         delivery_fee=delivery_fee,
+        packaging_type=packaging_type,
+        packaging_fee=packaging_fee,
         total=total,
         coupon=coupon,
         delivery_area=area,

@@ -111,7 +111,6 @@ class Product(TimestampMixin, Base):
 
     __table_args__ = (
         CheckConstraint("price >= 0", name="ck_products_price_non_negative"),
-        CheckConstraint("stock_quantity >= 0", name="ck_products_stock_non_negative"),
     )
 
     @property
@@ -254,11 +253,6 @@ class ProductVariant(Base):
     option_values: Mapped[list[ProductOptionValue]] = relationship(
         secondary="product_variant_option_values", lazy="selectin"
     )
-
-    __table_args__ = (
-        CheckConstraint("stock_quantity >= 0", name="ck_variants_stock_non_negative"),
-    )
-
 
 class PackageItem(Base):
     """A product included in a package (a Product with product_type='package')."""

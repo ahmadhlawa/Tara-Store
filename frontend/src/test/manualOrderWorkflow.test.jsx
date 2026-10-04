@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { authStorage } from "../storage/authStorage.js";
 import { page, renderApp, stubApi } from "./utils.jsx";
@@ -20,6 +20,31 @@ const mixedOfflineOrder = {
 };
 
 describe("manual order workspace", () => {
+  it.each(["new", "ready"])("explains invoice issuance at completion for a %s order", async (status) => {
+    authStorage.save("manager-token", manager);
+    stubApi({
+      "/api/v1/auth/me": manager,
+      "/api/v1/admin/orders/18": { ...mixedOfflineOrder, status, active_invoice: null },
+      "/api/v1/admin/products": page([product]),
+    });
+    renderApp("/admin/orders/18");
+
+    expect(await screen.findByText("تصدر الفاتورة تلقائياً عند تغيير الحالة إلى «مكتمل».")).toBeInTheDocument();
+  });
+
+  it.each(["parent", "variant"])("keeps a depleted %s blocked in new manual orders", async (kind) => {
+    authStorage.save("manager-token", manager);
+    stubApi({ "/api/v1/auth/me": manager, "/api/v1/admin/products": page([product]),
+      "/api/v1/admin/products/7": { ...product, is_active: true, track_inventory: true, stock_quantity: 0, options: [],
+        variants: kind === "variant" ? [{ id: 20, title: "نافد", stock_quantity: -2, is_active: true }] : [] } });
+    renderApp("/admin/orders/manual");
+    await userEvent.selectOptions(await screen.findByLabelText("إضافة منتج من الكتالوج"), "7");
+    if (kind === "variant") {
+      const selector = await screen.findByLabelText("الخيار");
+      expect(within(selector).getByRole("option", { name: "نافد — نفد" })).toBeDisabled();
+    }
+    await waitFor(() => expect(screen.getByRole("button", { name: "إضافة المنتج" })).toBeDisabled());
+  });
   it("keeps the manager-only manual-order navigation and route unavailable to a normal admin", async () => {
     authStorage.save("admin-token", admin);
     stubApi({ "/api/v1/auth/me": admin, "/api/v1/admin/dashboard": dashboard });
@@ -127,8 +152,8 @@ describe("manual order workspace", () => {
     await userEvent.type(screen.getByLabelText("ملاحظات العميل"), "اتصال قبل التوصيل");
     await userEvent.type(screen.getByLabelText("ملاحظات داخلية"), "دخلها المدير");
     await userEvent.click(screen.getByLabelText("إتمام الطلب وإصدار فاتورة"));
-    await userEvent.clear(screen.getByLabelText("المبلغ المدفوع"));
-    await userEvent.type(screen.getByLabelText("المبلغ المدفوع"), "5.00");
+    expect(screen.queryByLabelText("المبلغ المدفوع")).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("حالة الدفع عند الإتمام"), "refunded");
     await userEvent.type(screen.getByLabelText("تفاصيل الدفع"), "تحويل بنكي");
     await userEvent.click(screen.getByRole("button", { name: "حفظ الطلب اليدوي" }));
 
@@ -140,8 +165,10 @@ describe("manual order workspace", () => {
         { kind: "catalog", product_id: 7, quantity: 1, unit_price: "12.50" },
         { kind: "manual", name: "تغليف هدية", quantity: 1, unit_price: "2.50" },
       ],
-      completion: { paid_amount: "5.00", payment_details: "تحويل بنكي" },
+      completion: { payment_status: "refunded", payment_details: "تحويل بنكي" },
     });
+    expect(JSON.parse(created.body).completion).not.toHaveProperty("paid_amount");
+    expect(JSON.parse(created.body).completion).not.toHaveProperty("refunded_amount");
   }, 15000);
 
   it("lets only a manager structurally edit an eligible offline order while preserving its mixed item payload", async () => {

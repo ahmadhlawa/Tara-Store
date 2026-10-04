@@ -319,6 +319,8 @@ def get_order(order_id: int, db: DbSession, admin: CurrentAdmin):
             "subtotal": order.subtotal,
             "discount": order.discount,
             "delivery_fee": order.delivery_fee,
+            "packaging_type": order.packaging_type,
+            "packaging_fee": order.packaging_fee,
             "total": order.total,
         }
     return {
@@ -379,7 +381,7 @@ def create_manual_order(payload: ManualOrderCreate, db: DbSession, admin: SuperA
             db,
             order_id=order.id,
             payment_method=payload.completion.payment_method.value,
-            paid_amount=payload.completion.paid_amount,
+            payment_status=payload.completion.payment_status,
             payment_details=payload.completion.payment_details,
             invoice_notes=payload.completion.invoice_notes,
             admin=admin,
@@ -393,6 +395,7 @@ def edit_order(
     order_id: int, payload: OrderAdminUpdate, db: DbSession, admin: CurrentAdmin
 ):
     draft = orders_service.AdminOrderEditDraft(
+        allow_negative_stock=payload.allow_negative_stock,
         customer_name=payload.customer_name,
         customer_phone=payload.customer_phone,
         customer_email=str(payload.customer_email) if payload.customer_email else None,
@@ -402,6 +405,7 @@ def edit_order(
         admin_notes=payload.admin_notes,
         discount=payload.discount,
         delivery_fee=payload.delivery_fee,
+        packaging_type=payload.packaging_type,
         status=payload.status,
         reason=payload.reason,
         items=tuple(
@@ -458,7 +462,7 @@ def complete_order(
         db,
         order_id=order_id,
         payment_method=payload.payment_method.value,
-        paid_amount=payload.paid_amount,
+        payment_status=payload.payment_status,
         payment_details=payload.payment_details,
         invoice_notes=payload.invoice_notes,
         admin=admin,

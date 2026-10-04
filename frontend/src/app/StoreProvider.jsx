@@ -2,6 +2,7 @@ import { useLocale } from "../i18n/locale.jsx";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { catalogService } from "../services/catalog.js";
 import { checkoutService } from "../services/checkout.js";
+import { trackAddToCart } from "../services/analytics.js";
 import { storefrontService, FALLBACK_SETTINGS, normalizeSettings } from "../services/storefront.js";
 import { cartStorage, lineKey, searchStorage, viewedStorage } from "../storage/cartStorage.js";
 
@@ -114,6 +115,7 @@ export function StoreProvider({ children }) {
     payment: "cash_on_delivery",
     terms: false,
   });
+  const [packagingType, setPackagingType] = useState("normal");
 
   // ── bootstrap ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -230,6 +232,7 @@ export function StoreProvider({ children }) {
         });
       }
       persistCart(next);
+      trackAddToCart();
       setBump((value) => value + 1);
       const label = product.name.length > 34 ? `${product.name.slice(0, 34)}…` : product.name;
       showToast(t("تمت إضافة «{0}» إلى العربة", [label]));
@@ -253,7 +256,10 @@ export function StoreProvider({ children }) {
     [cart, persistCart],
   );
 
-  const clearCart = useCallback(() => persistCart([]), [persistCart]);
+  const clearCart = useCallback(() => {
+    persistCart([]);
+    setPackagingType("normal");
+  }, [persistCart]);
 
   // ── search suggestions ─────────────────────────────────────────────────────
   const runSuggest = useCallback(
@@ -331,13 +337,15 @@ export function StoreProvider({ children }) {
       setCoupon,
       checkoutForm,
       setCheckoutForm,
+      packagingType,
+      setPackagingType,
     }),
     [
        ready, loadError, settings, categories, deliveryAreas, cart, localizedCart, bump,
       addToCart, setLineQty, removeLine, clearCart, toast, showToast, overlay, quickSlug,
       openOverlay, closeAll, navOpenCat, announce, scrolled, query,
       suggestions, suggestTried, runSuggest, recentSearches, rememberSearch,
-      viewed, rememberViewed, coupon, checkoutForm,
+      viewed, rememberViewed, coupon, checkoutForm, packagingType,
     ],
   );
 

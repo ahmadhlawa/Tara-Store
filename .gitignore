@@ -112,3 +112,6 @@ instance/generated/
 *.xlsm
 # …except the empty template we hand to the client. It holds no client data.
 !docs/client-templates/tara-store-catalog-template.xlsx
+
+# Isolated implementation worktrees
+.worktrees/

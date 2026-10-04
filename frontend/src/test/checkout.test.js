@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createOrder } = vi.hoisted(() => ({ createOrder: vi.fn() }));
+const { createOrder, priceCart } = vi.hoisted(() => ({ createOrder: vi.fn(), priceCart: vi.fn() }));
 
 vi.mock("../api/publicApi.js", () => ({
   publicApi: {
     createOrder,
-    priceCart: vi.fn(),
+    priceCart,
     validateCoupon: vi.fn(),
     order: vi.fn(),
   },
@@ -17,6 +17,7 @@ import { paymentMethodLabels, paymentMethods } from "../store.js";
 describe("checkout confirmation", () => {
   beforeEach(() => {
     createOrder.mockReset();
+    priceCart.mockReset();
   });
 
   it("submits the caller's stable reference with identifier-only cart lines", async () => {
@@ -37,8 +38,48 @@ describe("checkout confirmation", () => {
       coupon_code: null,
       payment_method: "cash_on_delivery",
       customer_notes: null,
+      packaging_type: "normal",
       items: [{ product_id: 4, variant_id: null, selected_option_value_ids: [], quantity: 2 }],
     });
+  });
+
+  it("defaults quotes to normal packaging", async () => {
+    priceCart.mockResolvedValue({ packaging_type: "normal", packaging_fee: 0, total: 100 });
+    await checkoutService.price([{ productId: 4, qty: 1 }]);
+    expect(priceCart.mock.calls[0][0]).toHaveProperty("packaging_type", "normal");
+  });
+
+  it("sends only the gift identifier and preserves server quote amounts", async () => {
+    priceCart.mockResolvedValue({ packaging_type: "gift", packaging_fee: 7, total: 137 });
+    const quote = await checkoutService.price([{ productId: 4, qty: 1, unit: 1 }], {
+      packagingType: "gift", packagingFee: 999, packaging_fee: 999,
+    });
+    expect(priceCart).toHaveBeenCalledWith({
+      items: [{ product_id: 4, variant_id: null, selected_option_value_ids: [], quantity: 1 }],
+      coupon_code: null, delivery_area_id: null, packaging_type: "gift",
+    });
+    expect(quote).toMatchObject({ packagingType: "gift", packagingFee: 7, total: 137 });
+  });
+
+  it("places gift orders without accepting an arbitrary packaging fee", async () => {
+    const order = { packaging_type: "gift", packaging_fee: 7, total: 137 };
+    createOrder.mockResolvedValue(order);
+    const result = await checkoutService.placeOrder([{ productId: 4, qty: 1 }], {
+      name: "Customer", packagingType: "gift", packagingFee: 999, packaging_fee: 999,
+    }, "reference");
+    expect(createOrder.mock.calls[0][0]).toHaveProperty("packaging_type", "gift");
+    expect(createOrder.mock.calls[0][0]).not.toHaveProperty("packaging_fee");
+    expect(result).toBe(order);
+  });
+
+  it.each(["ar", "en"])("translates WhatsApp packaging labels in %s using canonical amounts", (locale) => {
+    const message = buildOrderWhatsAppMessage({
+      packaging_type: "gift", packaging_fee: 7, total: 137, items: [],
+    }, locale);
+    expect(message).toContain(locale === "en" ? "Gift packaging" : "تغليف كهدية");
+    expect(message).toContain(locale === "en" ? "Packaging fee: 7" : "رسوم التغليف: 7");
+    expect(message).toContain("137");
+    expect(message).not.toContain("999");
   });
 
   it("builds the Arabic WhatsApp text entirely from the canonical order response", () => {

@@ -194,7 +194,7 @@ describe("homepage hero", () => {
     renderApp("/");
 
     await waitFor(() =>
-      expect(document.querySelector(".vs-header .vs-logo__name")).toHaveTextContent("متجر الاختبار"),
+      expect(document.querySelector(".vs-header .vs-logo__name")).toHaveTextContent("TARA"),
     );
     expect(document.querySelector(".vs-hero__slide")).toBeNull();
   });
@@ -359,51 +359,28 @@ describe("store logo", () => {
     "/api/v1/store/settings": { ...settingsFixture, logo_url: "/brand/store-logo.png" },
   };
 
-  it("clips the logo to a fixed viewport and leaves the file untouched", async () => {
+  it("uses the fixed wordmark instead of a configured header logo", async () => {
     stubApi(branded);
     renderApp("/");
-
-    // The header's, not the footer's — both render the same file.
-    await waitFor(() => expect(document.querySelector(".vs-header .vs-logo__img")).not.toBeNull());
-    const logo = document.querySelector(".vs-header .vs-logo__img");
-    expect(logo.closest(".vs-logo__box")).not.toBeNull();
-    expect(logo).toHaveAttribute("src", "/brand/store-logo.png");
-    // The mark is decorative: the wordmark beside it already names the store, so
-    // announcing it twice is what a screen reader would otherwise get.
-    expect(logo).toHaveAttribute("alt", "");
-    expect(logo).toHaveAttribute("aria-hidden", "true");
-    // Nothing measurable here — no canvas in jsdom — so the fit must not have
-    // written any geometry of its own: the stylesheet's `contain` still rules.
-    expect(logo.getAttribute("style")).toBeNull();
+    const home = await screen.findByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` });
+    expect(home).toHaveTextContent("TARA");
+    expect(home.querySelector("img")).toBeNull();
+    expect(home.querySelector(".vs-logo__tag")).toBeNull();
   });
 
-  it("writes the store name beside the mark rather than behind it", async () => {
+  it("retains accessible store identity with the fixed visible brand", async () => {
     stubApi(branded);
     renderApp("/");
-
-    await waitFor(() => expect(document.querySelector(".vs-logo__name")).not.toBeNull());
-    // Tara's supplied logo is a square lockup whose own wordmark is illegible at
-    // header size, so the name is set in type next to it — a logo never removes
-    // the store's name from the header.
-    expect(document.querySelector(".vs-logo__name")).toHaveTextContent("متجر الاختبار");
-    expect(document.querySelector(".vs-header .vs-logo__box")).not.toBeNull();
+    expect(await screen.findByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` })).toHaveTextContent("TARA");
   });
 
-  it("falls back to Tara's shipped logo when the store has configured none", async () => {
+  it("keeps the wordmark when no store logo is configured", async () => {
     stubApi(storefrontRoutes);
     renderApp("/");
-
-    await waitFor(() => expect(document.querySelector(".vs-logo")).not.toBeNull());
-    // A fresh database carries no logo of its own, so the instance's shipped
-    // branding stands in rather than the header going bare.
-    expect(document.querySelector(".vs-header .vs-logo__img")).toHaveAttribute(
-      "src",
-      "/branding/tara-logo2.png",
-    );
-    // What the store *has* set still wins over the shipped defaults — the
-    // fallback fills gaps, it does not overwrite the owner's identity.
-    expect(document.querySelector(".vs-logo__name")).toHaveTextContent("متجر الاختبار");
-    expect(document.querySelector(".vs-logo__tag")).toHaveTextContent("مستلزمات حرفية");
+    const home = await screen.findByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` });
+    expect(home).toHaveTextContent("TARA");
+    expect(home.querySelector("img")).toBeNull();
+    expect(home.querySelector(".vs-logo__tag")).toBeNull();
   });
 });
 

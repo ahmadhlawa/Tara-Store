@@ -60,7 +60,7 @@ export function productView(product, money) {
     priceText: money(effective),
     oldText: hasSale ? money(product.price) : "",
     discount: hasSale ? discountPercent(product.sale, product.price) : 0,
-    discountText: hasSale ? t("−{0}٪", [discountPercent(product.sale, product.price)]) : "",
+    discountText: hasSale ? "%تخفيض" : "",
     isNew: !!product.isNew,
     featured: !!product.featured,
     bestSeller: !!product.bestSeller,
