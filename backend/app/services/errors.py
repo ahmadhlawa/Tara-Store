@@ -25,8 +25,8 @@ class NotFoundError(DomainError):
 class ConflictError(DomainError):
     status_code = 409
 
-    def __init__(self, message: str, code: str = "conflict") -> None:
-        super().__init__(message, code)
+    def __init__(self, message: str, code: str = "conflict", *, details: dict | None = None) -> None:
+        super().__init__(message, code, details=details)
 
 
 class PermissionDeniedError(DomainError):

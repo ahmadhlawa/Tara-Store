@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { authStorage } from "../storage/authStorage.js";
 import { page, renderApp, stubApi } from "./utils.jsx";
@@ -20,6 +20,19 @@ const mixedOfflineOrder = {
 };
 
 describe("manual order workspace", () => {
+  it.each(["parent", "variant"])("keeps a depleted %s blocked in new manual orders", async (kind) => {
+    authStorage.save("manager-token", manager);
+    stubApi({ "/api/v1/auth/me": manager, "/api/v1/admin/products": page([product]),
+      "/api/v1/admin/products/7": { ...product, is_active: true, track_inventory: true, stock_quantity: 0, options: [],
+        variants: kind === "variant" ? [{ id: 20, title: "نافد", stock_quantity: -2, is_active: true }] : [] } });
+    renderApp("/admin/orders/manual");
+    await userEvent.selectOptions(await screen.findByLabelText("إضافة منتج من الكتالوج"), "7");
+    if (kind === "variant") {
+      const selector = await screen.findByLabelText("الخيار");
+      expect(within(selector).getByRole("option", { name: "نافد — نفد" })).toBeDisabled();
+    }
+    await waitFor(() => expect(screen.getByRole("button", { name: "إضافة المنتج" })).toBeDisabled());
+  });
   it("keeps the manager-only manual-order navigation and route unavailable to a normal admin", async () => {
     authStorage.save("admin-token", admin);
     stubApi({ "/api/v1/auth/me": admin, "/api/v1/admin/dashboard": dashboard });

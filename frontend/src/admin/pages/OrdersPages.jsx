@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import sx from "../../sx.js";
 import { adminApi } from "../../api/adminApi.js";
@@ -20,6 +20,8 @@ const filterStyle = sx`display:flex;flex-direction:column;gap:5px;font-size:12px
 const asText = (value) => String(value ?? "");
 const phoneDigits = (phone) => String(phone || "").replace(/[^\d]/g, "");
 const number = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
+const completedWarning = "هذا الطلب مكتمل وتم تسجيل بياناته وفاتورته في النظام. أي تعديل من الآن قد يغيّر البيانات المالية أو المخزون. تأكد من التعديلات قبل الحفظ، وأنت مسؤول عن صحة البيانات الجديدة.";
+const negativeStockWarning = "الكمية المطلوبة أكبر من المخزون المتوفر حاليًا، واستمرار التعديل سيجعل المخزون بالسالب. هل تريد المتابعة؟";
 
 function OrderFilters({ values, onChange }) {
   const update = (key, value) => onChange({ ...values, [key]: value });
@@ -93,7 +95,7 @@ function CatalogItemsEditor({ items, products, onChange, disabled }) {
       <label style={filterStyle}>سعر الطلب<input aria-label={`سعر ${item.product_name}`} inputMode="decimal" value={item.unit_price} onChange={(event) => update(index, "unit_price", event.target.value)} style={input} /></label>
       <Button variant="danger" aria-label={`حذف ${item.product_name}`} disabled={disabled || items.length === 1} onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))}>حذف</Button>
     </fieldset>)}
-    <CatalogItemPicker products={products} disabled={disabled} onAdd={(item) => onChange([...items, item])} />
+    <CatalogItemPicker products={products} disabled={disabled} correctionMode onAdd={(item) => onChange([...items, item])} />
   </section>;
 }
 
@@ -105,38 +107,72 @@ function ReadOnlyOrderItems({ order }) {
     { key: "unit_price", title: "سعر القطعة" },
     { key: "quantity", title: "الكمية" },
     { key: "line_total", title: "الإجمالي" },
-  ]} />{(order.items || []).filter((item) => item.package_components?.length).map((item) => <div key={`package-${item.id}`} style={sx`margin-top:12px;padding:10px 12px;border:1px solid #E7DCF2;border-radius:10px;background:#FAF9FC`}><strong style={sx`font-size:13px`}>محتويات الباقة وقت الطلب: {item.product_name}</strong><ul style={sx`margin:8px 0 0;padding-inline-start:18px;font-size:13px;line-height:1.8`}>{item.package_components.map((component) => <li key={component.id}>{component.product_name}{component.variant_description ? ` · ${component.variant_description}` : ""} × {component.total_quantity}</li>)}</ul></div>)}{(order.items || []).filter((item) => item.item_kind === "catalog" && item.product_id && item.product_name && item.package_components?.length === 0).length > 0 && null}<div style={sx`margin-top:14px`}><OrderTotalsSummary items={order.items || []} discount={order.discount} deliveryFee={order.delivery_fee} /></div></section>;
+  ]} />{(order.items || []).filter((item) => item.package_components?.length).map((item) => <div key={`package-${item.id}`} style={sx`margin-top:12px;padding:10px 12px;border:1px solid #E7DCF2;border-radius:10px;background:#FAF9FC`}><strong style={sx`font-size:13px`}>محتويات الباقة وقت الطلب: {item.product_name}</strong><ul style={sx`margin:8px 0 0;padding-inline-start:18px;font-size:13px;line-height:1.8`}>{item.package_components.map((component) => <li key={component.id}>{component.product_name}{component.variant_description ? ` · ${component.variant_description}` : ""} × {component.total_quantity}</li>)}</ul></div>)}{(order.items || []).filter((item) => item.item_kind === "catalog" && item.product_id && item.product_name && item.package_components?.length === 0).length > 0 && null}<div style={sx`margin-top:14px`}><OrderTotalsSummary items={order.items || []} discount={order.discount} deliveryFee={order.delivery_fee} packagingType={order.packaging_type} packagingFee={order.packaging_fee ?? "0"} /></div></section>;
 }
 
 const initialDraft = (row) => ({
-  customer_name: row.customer_name || "", customer_phone: row.customer_phone || "", customer_email: row.customer_email || "", address: row.address || "", payment_method: row.payment_method || "cash_on_delivery", customer_notes: row.customer_notes || "", admin_notes: row.admin_notes || "", discount: asText(row.discount), delivery_fee: asText(row.delivery_fee), status: row.status, reason: "",
+  customer_name: row.customer_name || "", customer_phone: row.customer_phone || "", customer_email: row.customer_email || "", address: row.address || "", payment_method: row.payment_method || "cash_on_delivery", customer_notes: row.customer_notes || "", admin_notes: row.admin_notes || "", discount: asText(row.discount), delivery_fee: asText(row.delivery_fee), packaging_type: row.packaging_type || "normal", status: row.status, reason: "",
   items: (row.items || []).map((item) => item.product_id ? { ...item, kind: "catalog", quantity: asText(item.quantity), unit_price: asText(item.unit_price) } : { kind: "manual", order_item_id: item.id, name: item.product_name, description: item.manual_description || "", quantity: asText(item.quantity), unit_price: asText(item.unit_price) }),
 });
 
 export function OrderDetailPage() {
   const { orderId } = useParams(); const navigate = useNavigate(); const { admin } = useAdminAuth(); const feedback = useFeedback();
   const [order, setOrder] = useState(null); const [draft, setDraft] = useState(null); const [products, setProducts] = useState([]); const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false); const [nextStatus, setNextStatus] = useState(""); const [statusNote, setStatusNote] = useState(""); const [confirming, setConfirming] = useState(false); const [completing, setCompleting] = useState(false); const [reopenReason, setReopenReason] = useState(""); const [reopenConfirming, setReopenConfirming] = useState(false);
-  const load = useCallback(async () => { setLoading(true); try { const row = await adminApi.getOrder(orderId); setOrder(row); setDraft(initialDraft(row)); setNextStatus(row.status); } catch (error) { feedback.error(error.message || "تعذّر تحميل الطلب."); } finally { setLoading(false); } // eslint-disable-next-line react-hooks/exhaustive-deps
+  const [editConfirmed, setEditConfirmed] = useState(false);
+  const [completedConfirmation, setCompletedConfirmation] = useState(null);
+  const [stockConfirmation, setStockConfirmation] = useState(null);
+  const saving = useRef(null);
+  const currentOrderId = useRef(orderId);
+  currentOrderId.current = orderId;
+  const load = useCallback(async () => { setLoading(true); try { const row = await adminApi.getOrder(orderId); if (currentOrderId.current !== orderId) return; setOrder(row); setDraft(initialDraft(row)); setNextStatus(row.status); } catch (error) { if (currentOrderId.current === orderId) feedback.error(error.message || "تعذّر تحميل الطلب."); } finally { if (currentOrderId.current === orderId) setLoading(false); } // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    setCompletedConfirmation(null); setStockConfirmation(null); setEditConfirmed(false);
+    setConfirming(false); setCompleting(false); setReopenConfirming(false);
+    setStatusNote(""); setReopenReason(""); setBusy(false); saving.current = null;
+    load();
+  }, [load]);
   const editable = canEditIncompleteOrder(admin, order);
   useEffect(() => { if (!editable || products.length) return; adminApi.listProducts({ page_size: 100 }).then((result) => setProducts(result.items || [])).catch(() => feedback.error("تعذّر تحميل الكتالوج.")); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editable]);
-  const applyStatus = async () => { setBusy(true); try { const row = await adminApi.updateOrderStatus(orderId, nextStatus, statusNote.trim() || null); setOrder(row); setDraft(initialDraft(row)); setStatusNote(""); feedback.success("تم تحديث الحالة."); } catch (error) { feedback.error(error.message || "تعذّر تحديث الحالة."); } finally { setBusy(false); setConfirming(false); } };
-  const saveOrder = async () => {
+  const applyStatus = async (status = nextStatus, originOrderId = orderId) => { if (originOrderId !== currentOrderId.current) return; setBusy(true); try { const row = await adminApi.updateOrderStatus(originOrderId, status, statusNote.trim() || null); if (originOrderId !== currentOrderId.current) return; setOrder(row); setDraft(initialDraft(row)); setNextStatus(row.status); setEditConfirmed(false); setStatusNote(""); feedback.success("تم تحديث الحالة."); } catch (error) { if (originOrderId === currentOrderId.current) feedback.error(error.message || "تعذّر تحديث الحالة."); } finally { if (originOrderId === currentOrderId.current) { setBusy(false); setConfirming(false); } } };
+  const submitOrder = async (payload, allowNegativeStock = false, originOrderId = orderId) => {
+    if (originOrderId !== currentOrderId.current || saving.current?.orderId === originOrderId) return;
+    const request = { orderId: originOrderId };
+    saving.current = request;
+    setBusy(true); try {
+      const row = await adminApi.updateOrder(originOrderId, { ...payload, allow_negative_stock: allowNegativeStock });
+      if (originOrderId !== currentOrderId.current || saving.current !== request) return;
+      setOrder(row); setDraft(initialDraft(row)); setNextStatus(row.status); feedback.success("تم حفظ تعديلات الطلب.");
+    } catch (error) {
+      if (originOrderId !== currentOrderId.current || saving.current !== request) return;
+      if (!allowNegativeStock && error.status === 409 && error.code === "negative_stock_confirmation_required") {
+        setStockConfirmation({ orderId: originOrderId, payload, conflicts: error.stockConflicts });
+      } else feedback.error(error.message || "تعذّر حفظ تعديلات الطلب.");
+    } finally { if (saving.current === request) { saving.current = null; if (originOrderId === currentOrderId.current) setBusy(false); } }
+  };
+  const saveOrder = () => {
     if (!draft.reason.trim()) { feedback.error("سبب التعديل مطلوب."); return; }
     if (!draft.items.length || draft.items.some((item) => !isWholeQuantity(item.quantity) || !isMoney(item.unit_price))) { feedback.error("راجِع الكمية وسعر كل صنف."); return; }
-    setBusy(true); try {
-      const row = await adminApi.updateOrder(orderId, { ...draft, customer_email: draft.customer_email.trim() || null, customer_notes: draft.customer_notes.trim() || null, admin_notes: draft.admin_notes.trim() || null, discount: draft.discount || "0", delivery_fee: draft.delivery_fee || "0", items: draft.items.map((item) => item.kind === "manual" ? { kind: "manual", order_item_id: item.order_item_id, name: item.name, description: item.description.trim() || null, quantity: Number(item.quantity), unit_price: item.unit_price } : { kind: "catalog", product_id: item.product_id, variant_id: item.variant_id || null, selected_option_value_ids: item.selected_option_value_ids || [], quantity: Number(item.quantity), unit_price: item.unit_price }) });
-      setOrder(row); setDraft(initialDraft(row)); setNextStatus(row.status); feedback.success("تم حفظ تعديلات الطلب.");
-    } catch (error) { feedback.error(error.message || "تعذّر حفظ تعديلات الطلب."); } finally { setBusy(false); }
+    const payload = { ...draft, customer_email: draft.customer_email.trim() || null, customer_notes: draft.customer_notes.trim() || null, admin_notes: draft.admin_notes.trim() || null, discount: draft.discount || "0", delivery_fee: draft.delivery_fee || "0", items: draft.items.map((item) => item.kind === "manual" ? { kind: "manual", order_item_id: item.order_item_id, name: item.name, description: item.description.trim() || null, quantity: Number(item.quantity), unit_price: item.unit_price } : { kind: "catalog", product_id: item.product_id, variant_id: item.variant_id || null, selected_option_value_ids: [...(item.selected_option_value_ids || [])], quantity: Number(item.quantity), unit_price: item.unit_price }) };
+    if (order.status === "completed") setCompletedConfirmation({ orderId, action: "save", payload });
+    else submitOrder(payload);
+  };
+  const confirmCompleted = () => {
+    const confirmation = completedConfirmation;
+    setCompletedConfirmation(null);
+    if (!confirmation || confirmation.orderId !== currentOrderId.current) return;
+    if (confirmation.action === "edit") setEditConfirmed(true);
+    else if (confirmation.action === "save") submitOrder(confirmation.payload, false, confirmation.orderId);
+    else applyStatus(confirmation.status, confirmation.orderId);
   };
   const openComplete = async () => { setBusy(true); try { const latest = await adminApi.getOrder(orderId); setOrder(latest); setDraft(initialDraft(latest)); setCompleting(true); } catch (error) { feedback.error(error.message || "تعذّر جلب المراجعة النهائية."); } finally { setBusy(false); } };
   const complete = async (payload) => { setBusy(true); try { const row = await adminApi.completeOrder(orderId, payload); setOrder(row); setDraft(initialDraft(row)); setCompleting(false); feedback.success("اكتمل الطلب وصُدرت الفاتورة."); } catch (error) { feedback.error(error.message || "تعذّر إتمام الطلب."); } finally { setBusy(false); } };
   const reopen = async () => { if (!reopenReason.trim()) { feedback.error("سبب إعادة الفتح مطلوب."); return; } setBusy(true); try { const row = await adminApi.reopenOrder(orderId, reopenReason.trim()); setOrder(row); setDraft(initialDraft(row)); setNextStatus(row.status); setReopenReason(""); setReopenConfirming(false); feedback.success("أعيد فتح الطلب واستُبدلت الفاتورة النشطة."); } catch (error) { feedback.error(error.message || "تعذّر إعادة فتح الطلب."); } finally { setBusy(false); } };
-  if (loading) return <Spinner />; if (!order || !draft) return <p role="alert">تعذّر تحميل الطلب.</p>;
+  if (loading || (order && String(order.id) !== orderId)) return <Spinner />; if (!order || !draft) return <p role="alert">تعذّر تحميل الطلب.</p>;
   const invoice = order.active_invoice || order.invoice;
-  const canManageWorkflow = canCompleteOrder(admin, order);
+  const canManageWorkflow = canCompleteOrder(admin, order) || (order.status === "completed" && editable);
+  const showEditor = editable && (order.status !== "completed" || editConfirmed);
   const invoiceHistory = order.invoices || (invoice ? [invoice] : []);
   return <>
     <PageHeader title={`الطلب ${order.order_number}`} description={`${orderSourceLabels[order.source] || order.source} · ${formatDateTime(order.created_at)}`} actions={<Button variant="ghost" onClick={() => navigate("/admin/orders")}>رجوع</Button>} />
@@ -147,14 +183,18 @@ export function OrderDetailPage() {
     </div>
     <section style={{ ...card, ...sx`margin-bottom:16px` }}><h2 style={sx`margin:0 0 12px;font-size:16px`}>الفاتورة</h2>{invoice ? <div style={sx`display:flex;align-items:center;gap:10px;flex-wrap:wrap`}><InvoiceStatusBadge status={invoice.status} /><Link to={`/admin/invoices/${invoice.invoice_number}`} style={sx`font-weight:800`}>{invoice.invoice_number}</Link><span style={sx`font-size:13px;color:#766669`}>صادرة</span>{invoice.issued_at && <span style={sx`font-size:13px;color:#766669`}>{formatDateTime(invoice.issued_at)}</span>}<div style={sx`display:flex;gap:8px;margin-inline-start:auto;flex-wrap:wrap`}><Button variant="ghost" onClick={() => navigate(`/admin/invoices/${invoice.invoice_number}`)}>عرض الفاتورة</Button></div></div> : <p style={sx`margin:0;color:#766669;font-size:13px`}>تصدر الفاتورة تلقائياً عند تغيير الحالة إلى «تم التأكيد».</p>}{invoiceHistory.length > 0 && <div aria-label="سجل الفواتير والاستبدالات" style={sx`display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid #E7DCF2`}>{invoiceHistory.map((entry) => <Link key={entry.invoice_number} to={`/admin/invoices/${entry.invoice_number}`} style={sx`font-size:13px;font-weight:800`}>{entry.invoice_number} <InvoiceStatusBadge status={entry.status} /></Link>)}</div>}</section>
     <ReadOnlyOrderItems order={order} />
-    {editable && <section style={{ ...card, ...sx`margin-bottom:16px` }}><h2 style={sx`margin:0 0 14px;font-size:16px`}>تعديل الطلب</h2><div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px`}>
+    {editable && order.status === "completed" && !editConfirmed && <Button disabled={busy} onClick={() => setCompletedConfirmation({ orderId, action: "edit" })}>تعديل الطلب المكتمل</Button>}
+    {showEditor && <section style={{ ...card, ...sx`margin-bottom:16px` }}><fieldset disabled={busy || !!stockConfirmation || !!completedConfirmation} style={sx`border:0;padding:0;margin:0;min-width:0`}><h2 style={sx`margin:0 0 14px;font-size:16px`}>تعديل الطلب</h2><div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px`}>
       {[["اسم العميل", "customer_name"], ["الهاتف", "customer_phone"], ["البريد الإلكتروني", "customer_email"], ["العنوان", "address"]].map(([label, key]) => <Field key={key} title={label}><input value={draft[key]} onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} style={input} /></Field>)}
       <Field title="طريقة الدفع"><select value={draft.payment_method} onChange={(event) => setDraft({ ...draft, payment_method: event.target.value })} style={input}>{PAYMENT_METHODS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Field title="الخصم"><input inputMode="decimal" value={draft.discount} onChange={(event) => setDraft({ ...draft, discount: event.target.value })} style={input} /></Field><Field title="رسوم التوصيل"><input inputMode="decimal" value={draft.delivery_fee} onChange={(event) => setDraft({ ...draft, delivery_fee: event.target.value })} style={input} /></Field>
-    </div><CatalogItemsEditor items={draft.items} products={products} onChange={(items) => setDraft({ ...draft, items })} disabled={busy} /><div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:14px`}><Field title="ملاحظات العميل"><textarea rows="3" value={draft.customer_notes} onChange={(event) => setDraft({ ...draft, customer_notes: event.target.value })} style={textarea} /></Field><Field title="ملاحظات داخلية"><textarea rows="3" value={draft.admin_notes} onChange={(event) => setDraft({ ...draft, admin_notes: event.target.value })} style={textarea} /></Field><Field title="سبب التعديل *" hint="يظهر في سجل النشاط."><textarea aria-label="سبب التعديل *" required rows="3" value={draft.reason} onChange={(event) => setDraft({ ...draft, reason: event.target.value })} style={textarea} /></Field></div><div style={sx`display:flex;justify-content:flex-start;gap:12px;align-items:start;flex-wrap:wrap;margin-top:14px`}><OrderTotalsSummary items={draft.items} discount={draft.discount} deliveryFee={draft.delivery_fee} /><Button disabled={busy || !draft.reason.trim()} onClick={saveOrder}>{busy ? "جارٍ الحفظ…" : "حفظ التعديلات"}</Button></div></section>}
+      <Field title="التغليف"><select aria-label="التغليف" value={draft.packaging_type} onChange={(event) => setDraft({ ...draft, packaging_type: event.target.value })} style={input}><option value="normal">تغليف عادي — 0 ₪</option><option value="gift">تغليف كهدية — 5 ₪</option></select></Field>
+    </div><CatalogItemsEditor items={draft.items} products={products} onChange={(items) => setDraft({ ...draft, items })} disabled={busy} /><div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:14px`}><Field title="ملاحظات العميل"><textarea rows="3" value={draft.customer_notes} onChange={(event) => setDraft({ ...draft, customer_notes: event.target.value })} style={textarea} /></Field><Field title="ملاحظات داخلية"><textarea rows="3" value={draft.admin_notes} onChange={(event) => setDraft({ ...draft, admin_notes: event.target.value })} style={textarea} /></Field><Field title="سبب التعديل *" hint="يظهر في سجل النشاط."><textarea aria-label="سبب التعديل *" required rows="3" value={draft.reason} onChange={(event) => setDraft({ ...draft, reason: event.target.value })} style={textarea} /></Field></div><div style={sx`display:flex;justify-content:flex-start;gap:12px;align-items:start;flex-wrap:wrap;margin-top:14px`}><OrderTotalsSummary items={draft.items} discount={draft.discount} deliveryFee={draft.delivery_fee} packagingType={draft.packaging_type} packagingFee={draft.packaging_type === "gift" ? "5.00" : "0.00"} /><Button disabled={busy || !draft.reason.trim()} onClick={saveOrder}>{busy ? "جارٍ الحفظ…" : "حفظ التعديلات"}</Button></div></fieldset></section>}
     {canReopenOrder(admin, order) && <section style={{ ...card, ...sx`margin-bottom:16px;border-color:#E5C4BE;background:#FDF6F4` }}><h2 style={sx`margin:0 0 8px;font-size:16px`}>إعادة فتح الطلب المكتمل</h2><p style={sx`margin:0 0 12px;line-height:1.8;font-size:13px;color:#8E3B34`}>{invoice ? `سيتم استبدال الفاتورة النشطة ${invoice.invoice_number}` : "سيُعاد فتح الطلب لتصحيح بياناته."}، وستبقى الفاتورة السابقة متاحة في سجل الاستبدالات.</p><div style={sx`display:flex;gap:12px;align-items:end;flex-wrap:wrap`}><div style={sx`min-width:min(100%,320px);flex:1`}><Field title="سبب إعادة الفتح" hint="يسجل السبب في نشاط الطلب والفاتورة المستبدلة."><textarea aria-label="سبب إعادة الفتح" required rows="3" value={reopenReason} onChange={(event) => setReopenReason(event.target.value)} style={textarea} /></Field></div><Button variant="danger" disabled={busy || !reopenReason.trim()} onClick={() => setReopenConfirming(true)}>إعادة فتح الطلب</Button></div></section>}
-    <section style={{ ...card, ...sx`margin-bottom:16px` }}><h2 style={sx`margin:0 0 12px;font-size:16px`}>تقدم الطلب</h2>{canManageWorkflow ? <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;align-items:end`}><Field title="تغيير الحالة"><select disabled={busy || !canManageWorkflow} value={nextStatus} onChange={(event) => setNextStatus(event.target.value)} style={input}>{ORDER_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Field title="ملاحظة الحالة"><input disabled={busy || !canManageWorkflow} value={statusNote} onChange={(event) => setStatusNote(event.target.value)} style={input} /></Field><Button disabled={busy || !canManageWorkflow || nextStatus === order.status} onClick={() => nextStatus === "cancelled" ? setConfirming(true) : applyStatus()}>تحديث الحالة</Button><Button disabled={busy || !canManageWorkflow} onClick={openComplete}>إتمام الطلب</Button></div> : <p style={sx`margin:0;color:#766669;font-size:13px`}>لا تملك صلاحية تعديل سير هذا الطلب.</p>}</section>
+    <section style={{ ...card, ...sx`margin-bottom:16px` }}><h2 style={sx`margin:0 0 12px;font-size:16px`}>تقدم الطلب</h2>{canManageWorkflow ? <div style={sx`display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;align-items:end`}><Field title="تغيير الحالة"><select disabled={busy || !canManageWorkflow} value={nextStatus} onChange={(event) => setNextStatus(event.target.value)} style={input}>{ORDER_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Field title="ملاحظة الحالة"><input disabled={busy || !canManageWorkflow} value={statusNote} onChange={(event) => setStatusNote(event.target.value)} style={input} /></Field><Button disabled={busy || !canManageWorkflow || nextStatus === order.status} onClick={() => nextStatus === "cancelled" ? setConfirming(true) : nextStatus === "completed" ? openComplete() : order.status === "completed" ? setCompletedConfirmation({ orderId, action: "status", status: nextStatus }) : applyStatus()}>تحديث الحالة</Button>{canCompleteOrder(admin, order) && <Button disabled={busy} onClick={openComplete}>إتمام الطلب</Button>}</div> : <p style={sx`margin:0;color:#766669;font-size:13px`}>لا تملك صلاحية تعديل سير هذا الطلب.</p>}</section>
     <section style={{ ...card, ...sx`margin-bottom:30px` }}><h2 style={sx`margin:0 0 12px;font-size:16px`}>سجل النشاط</h2><OrderActivityTimeline activities={order.activities || []} /></section>
-    {confirming && <ConfirmDialog title="تأكيد إلغاء الطلب" message="سيُلغى الطلب ولا يمكن إتمامه بعد ذلك." confirmLabel="إلغاء الطلب" onConfirm={applyStatus} onCancel={() => setConfirming(false)} />}
+    {confirming && <ConfirmDialog title="تأكيد إلغاء الطلب" message={order.status === "completed" ? `${completedWarning} إلغاء هذا الطلب سيعيد الكميات الملتزم بها إلى المخزون ويلغي الفاتورة النشطة مع حفظ سجلها. لا يمكن إتمام الطلب بعد إلغائه.` : "سيُلغى الطلب ولا يمكن إتمامه بعد ذلك."} confirmLabel="إلغاء الطلب" onConfirm={() => applyStatus("cancelled")} onCancel={() => setConfirming(false)} />}
+    {completedConfirmation && <ConfirmDialog title="تأكيد تعديل الطلب المكتمل" message={completedWarning} confirmLabel="موافق، متابعة التعديل" onConfirm={confirmCompleted} onCancel={() => setCompletedConfirmation(null)} />}
+    {stockConfirmation && <ConfirmDialog title="تأكيد المخزون السالب" message={<>{negativeStockWarning}{stockConfirmation.conflicts.map((conflict, index) => <span style={sx`display:block;margin-top:8px`} key={`${conflict.product_id}-${conflict.variant_id || "product"}-${index}`}>{conflict.product_name}{conflict.variant_description ? ` · ${conflict.variant_description}` : ""}: المتوفر {conflict.current_stock}، المطلوب {conflict.requested_quantity}، المخزون بعد الحفظ {conflict.projected_stock}</span>)}</>} confirmLabel="متابعة وحفظ" onConfirm={() => { const confirmation = stockConfirmation; setStockConfirmation(null); submitOrder(confirmation.payload, true, confirmation.orderId); }} onCancel={() => setStockConfirmation(null)} />}
     {reopenConfirming && <ConfirmDialog title="تأكيد إعادة فتح الطلب" message="ستُستبدل الفاتورة النشطة، وسيبقى سجلها متاحاً للمراجعة." confirmLabel="تأكيد إعادة الفتح" onConfirm={reopen} onCancel={() => setReopenConfirming(false)} />}
     <CompleteOrderDialog isOpen={completing} order={order} busy={busy} onClose={() => setCompleting(false)} onComplete={complete} />
   </>;

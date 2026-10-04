@@ -7,12 +7,13 @@ const RAW_BASE = import.meta.env?.VITE_API_BASE_URL ?? "/api/v1";
 export const API_BASE_URL = String(RAW_BASE).replace(/\/$/, "");
 
 export class ApiError extends Error {
-  constructor(message, { status = 0, code = "network_error", fields = [] } = {}) {
+  constructor(message, { status = 0, code = "network_error", fields = [], stockConflicts = [] } = {}) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.fields = fields;
+    this.stockConflicts = stockConflicts;
   }
 }
 
@@ -60,6 +61,7 @@ async function parseError(response, locale = "ar") {
     status: response.status,
     code: error.code || "http_error",
     fields: error.fields || [],
+    stockConflicts: Array.isArray(error.stock_conflicts) ? error.stock_conflicts : [],
   });
 }
 

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+import pytest
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models import Invoice, Order, OrderItem, Product, ProductOption, ProductOptionValue
+from app.models import Invoice, Order, OrderActivity, OrderItem, Product, ProductOption, ProductOptionValue, ProductVariant
 from tests.conftest import auth, make_product
 
 
@@ -48,6 +50,193 @@ def _edit_payload(first: Product, second: Product | None = None, **changes: obje
         payload["items"].append({"product_id": second.id, "quantity": 3})
     payload.update(changes)
     return payload
+
+
+def _completed_order(client, product, token, items=None, payment_status="paid"):
+    order = _create_order(client, product, items=items or [{"product_id": product.id, "quantity": 2}])
+    response = client.post(f"/api/v1/admin/orders/{order['id']}/complete", headers=auth(token),
+                           json={"payment_method": "cash_on_delivery", "payment_status": payment_status})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+@pytest.mark.parametrize("quantity,stock", [(3, 7), (1, 9)])
+def test_completed_edit_applies_only_delta_without_replaying_stock(client, db, admin_token, monkeypatch, quantity, stock):
+    from app.services import orders as service
+    product = make_product(db, stock=10, price="10.00")
+    order = _completed_order(client, product, admin_token)
+    original = service.price_lines
+    observed = []
+
+    def observe_pricing(*args, **kwargs):
+        observed.append(args[0].get(Product, product.id).stock_quantity)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(service, "price_lines", observe_pricing)
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token),
+                            json=_edit_payload(product, status="completed", items=[{"product_id": product.id, "quantity": quantity}]))
+    assert response.status_code == 200, response.text
+    assert observed == [8]  # Pricing sees actual committed stock once, with no blanket restoration.
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == stock
+    assert response.json()["active_invoice"]["id"] == order["active_invoice"]["id"]
+
+
+def test_admin_conflict_is_structured_atomic_and_explicit_retry_persists_negative(client, db, admin_token):
+    product = make_product(db, stock=3, price="10.00")
+    order = _completed_order(client, product, admin_token)
+    path = f"/api/v1/admin/orders/{order['id']}"
+    payload = _edit_payload(product, status="completed", packaging_type="gift",
+                            items=[{"product_id": product.id, "quantity": 4}])
+    before_events = db.query(OrderActivity).count()
+    response = client.patch(path, headers=auth(admin_token), json=payload)
+    assert response.status_code == 409, response.text
+    error = response.json()["error"]
+    assert error["code"] == "negative_stock_confirmation_required"
+    assert error["stock_conflicts"] == [{"product_id": product.id, "product_name": product.name,
+        "variant_id": None, "variant_description": None, "current_stock": 1,
+        "committed_quantity": 2, "requested_quantity": 4, "projected_stock": -1}]
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == 1
+    assert db.get(Order, order["id"]).total == Decimal("20.00")
+    assert db.get(Invoice, order["active_invoice"]["id"]).grand_total == Decimal("20.00")
+    assert db.query(OrderActivity).count() == before_events
+    response = client.patch(path, headers=auth(admin_token), json={**payload, "allow_negative_stock": True, "packaging_fee": 999})
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == -1
+    invoice = db.get(Invoice, order["active_invoice"]["id"])
+    assert invoice.invoice_number == order["active_invoice"]["invoice_number"]
+    assert (invoice.grand_total, invoice.paid_amount, invoice.remaining_amount) == (Decimal("47.00"), Decimal("47.00"), Decimal("0.00"))
+    event = db.query(OrderActivity).filter_by(event_type="order_negative_stock_override").one()
+    assert event.actor_admin_id is not None
+    assert event.before_data["stock_conflicts"][0]["current_stock"] == 1
+    assert event.after_data["stock_conflicts"][0]["projected_stock"] == -1
+
+
+@pytest.mark.parametrize("quantity,expected", [(2, -3), (1, -2)])
+def test_existing_negative_stock_edit_without_further_consumption_needs_no_override(client, db, admin_token, quantity, expected):
+    product = make_product(db, stock=10)
+    order = _completed_order(client, product, admin_token)
+    db.expire_all()
+    db.get(Product, product.id).stock_quantity = -3
+    db.commit()
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token),
+        json=_edit_payload(product, status="completed", items=[{"product_id": product.id, "quantity": quantity}]))
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == expected
+
+
+def test_admin_variant_and_parent_conflicts_aggregate_different_options(client, db, admin_token):
+    product = make_product(db, stock=5)
+    variants = [ProductVariant(product_id=product.id, title=title, stock_quantity=2, is_active=True) for title in ("Small", "Large")]
+    db.add_all(variants)
+    db.commit()
+    order = _completed_order(client, product, admin_token, [{"product_id": product.id, "variant_id": variants[0].id, "quantity": 1}])
+    payload = _edit_payload(product, status="completed", items=[{"product_id": product.id, "variant_id": v.id, "quantity": 3} for v in variants])
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json=payload)
+    assert response.status_code == 409, response.text
+    conflicts = response.json()["error"]["stock_conflicts"]
+    assert {(c["variant_id"], c["current_stock"], c["requested_quantity"], c["projected_stock"]) for c in conflicts} == {
+        (None, 4, 6, -1), (variants[0].id, 1, 3, -1), (variants[1].id, 2, 3, -1)}
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json={**payload, "allow_negative_stock": True})
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == -1
+    assert [db.get(ProductVariant, v.id).stock_quantity for v in variants] == [-1, -1]
+
+
+def test_admin_simple_option_lines_share_parent_stock_and_conflict_before_clamping(client, db, admin_token):
+    product = make_product(db, stock=4)
+    option = ProductOption(product_id=product.id, name="Size", values=[ProductOptionValue(value="Small"), ProductOptionValue(value="Large")])
+    db.add(option)
+    db.commit()
+    values = [v.id for v in option.values]
+    order = _completed_order(client, product, admin_token, [{"product_id": product.id, "quantity": 1, "selected_option_value_ids": [values[0]]}])
+    payload = _edit_payload(product, status="completed", items=[{"product_id": product.id, "quantity": 3, "selected_option_value_ids": [v]} for v in values])
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json=payload)
+    assert response.status_code == 409, response.text
+    assert response.json()["error"]["stock_conflicts"][0]["requested_quantity"] == 6
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json={**payload, "allow_negative_stock": True})
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == -2
+
+
+def test_completed_remove_add_switch_untracked_and_cancel_once(client, db, admin_token):
+    first = make_product(db, slug="delta-first", stock=10)
+    second = make_product(db, slug="delta-second", stock=6)
+    variant = ProductVariant(product_id=second.id, title="Large", stock_quantity=6, is_active=True)
+    db.add(variant)
+    db.commit()
+    untracked = make_product(db, slug="delta-untracked", stock=0, track_inventory=False)
+    order = _completed_order(client, first, admin_token)
+    path = f"/api/v1/admin/orders/{order['id']}"
+    items = [{"product_id": second.id, "variant_id": variant.id, "quantity": 3}, {"product_id": untracked.id, "quantity": 20}]
+    response = client.patch(path, headers=auth(admin_token), json=_edit_payload(first, status="completed", items=items))
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert [db.get(Product, p.id).stock_quantity for p in (first, second, untracked)] == [10, 3, 0]
+    assert db.get(ProductVariant, variant.id).stock_quantity == 3
+    for status in ("ready", "completed", "new", "completed"):
+        response = client.post(path + ("/complete" if status == "completed" else "/status"), headers=auth(admin_token),
+                               json={"payment_method": "cash_on_delivery"} if status == "completed" else {"status": status})
+        assert response.status_code == 200, response.text
+        db.expire_all()
+        assert db.get(Product, second.id).stock_quantity == 3
+    response = client.post(path + "/status", headers=auth(admin_token), json={"status": "cancelled"})
+    assert response.status_code == 200, response.text
+    repeated = client.post(path + "/status", headers=auth(admin_token), json={"status": "cancelled"})
+    assert repeated.status_code == 200
+    db.expire_all()
+    assert db.get(Product, second.id).stock_quantity == 6
+    assert db.get(ProductVariant, variant.id).stock_quantity == 6
+
+
+def test_anonymous_admin_override_is_rejected(client, db):
+    product = make_product(db)
+    order = _create_order(client, product)
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", json=_edit_payload(product, allow_negative_stock=True))
+    assert response.status_code in (401, 403)
+
+
+def test_same_parent_variant_switch_returns_old_and_consumes_new_once(client, db, admin_token):
+    product = make_product(db, stock=8)
+    variants = [ProductVariant(product_id=product.id, title=title, stock_quantity=5) for title in ("Old", "New")]
+    db.add_all(variants)
+    db.commit()
+    order = _completed_order(client, product, admin_token, [{"product_id": product.id, "variant_id": variants[0].id, "quantity": 2}])
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json=_edit_payload(product,
+        status="completed", items=[{"product_id": product.id, "variant_id": variants[1].id, "quantity": 3}]))
+    assert response.status_code == 200, response.text
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == 5
+    assert [db.get(ProductVariant, v.id).stock_quantity for v in variants] == [5, 2]
+
+
+def test_negative_override_rolls_back_stock_order_invoice_and_activity_on_sync_failure(client, db, admin_token, monkeypatch):
+    from app.services import invoices as service
+    from app.services.errors import DomainError
+    product = make_product(db, stock=3)
+    order = _completed_order(client, product, admin_token)
+    before_events = db.query(OrderActivity).count()
+    original_sync = service.sync_active_from_order
+
+    def fail_after_sync(*args, **kwargs):
+        original_sync(*args, **kwargs)
+        raise DomainError("Injected invoice sync failure", code="test_sync_failure")
+
+    monkeypatch.setattr(service, "sync_active_from_order", fail_after_sync)
+    response = client.patch(f"/api/v1/admin/orders/{order['id']}", headers=auth(admin_token), json=_edit_payload(product,
+        status="completed", allow_negative_stock=True, items=[{"product_id": product.id, "quantity": 5}]))
+    assert response.status_code == 400, response.text
+    assert response.json()["error"]["code"] == "test_sync_failure"
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == 1
+    assert db.get(Order, order["id"]).total == Decimal("200.00")
+    assert db.get(Invoice, order["active_invoice"]["id"]).grand_total == Decimal("200.00")
+    assert db.query(OrderActivity).count() == before_events
 
 
 def test_admin_order_list_filters_search_source_payment_date_and_paginates(

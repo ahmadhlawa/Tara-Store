@@ -471,6 +471,19 @@ def test_out_of_stock_product_cannot_be_ordered(client: TestClient, db: Session)
     assert response.json()["error"]["code"] == "insufficient_stock"
 
 
+@pytest.mark.parametrize("endpoint", ["/api/v1/orders", "/api/v1/cart/price"])
+def test_public_checkout_cannot_honor_admin_negative_stock_override(client, db, endpoint):
+    product = make_product(db, stock=1)
+    response = client.post(endpoint, json=_order_payload(product, allow_negative_stock=True))
+    assert response.status_code == 422, response.text
+    strict = client.post(endpoint, json=_order_payload(product))
+    assert strict.status_code == 400, strict.text
+    assert strict.json()["error"]["code"] == "insufficient_stock"
+    db.expire_all()
+    assert db.get(Product, product.id).stock_quantity == 1
+    assert db.query(Order).count() == 0
+
+
 def test_order_reveals_remaining_stock_only_after_excess_request(client: TestClient, db: Session) -> None:
     product = make_product(db, name="Test Product", stock=3)
     excess = client.post(

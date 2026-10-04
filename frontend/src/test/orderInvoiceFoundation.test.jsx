@@ -61,6 +61,13 @@ describe("order and invoice domain", () => {
     expect(formatMoney("1000000000000000.05", "₪")).toBe("₪ 1,000,000,000,000,000.05");
   });
 
+  it("includes one packaging fee after discount and delivery in edit and completion breakdowns", () => {
+    expect(calculateOrderTotals({ items: [{ unit_price: "10.00", quantity: 2 }], discount: "1.00", delivery_fee: "3.00", packaging_fee: "5.00" })).toEqual({ subtotal: "20.00", total: "27.00" });
+    render(<CompleteOrderDialog isOpen order={{ final_review: { items: [{ unit_price: "10.00", quantity: 2 }], discount: "1.00", delivery_fee: "3.00", packaging_type: "gift", packaging_fee: "5.00", total: "27.00" } }} onClose={vi.fn()} onComplete={vi.fn()} />);
+    expect(screen.getByLabelText("مراجعة الطلب النهائية")).toHaveTextContent("تغليف كهدية");
+    expect(screen.getByLabelText("مراجعة الطلب النهائية")).toHaveTextContent("27.00");
+  });
+
   it("keeps manager-only actions separate from normal admin actions", () => {
     expect(canCreateManualOrder({ role: "super_admin" })).toBe(true);
     expect(canCreateManualOrder({ role: "admin" })).toBe(false);

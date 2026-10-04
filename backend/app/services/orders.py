@@ -36,7 +36,7 @@ from app.models import (
 from app.services import audit as audit_service
 from app.services import invoices as invoices_service
 from app.services import store_settings as settings_service
-from app.services.errors import DomainError, NotFoundError, PermissionDeniedError
+from app.services.errors import ConflictError, DomainError, NotFoundError, PermissionDeniedError
 from app.services.pricing import PricedLine, detailed_stock_error, money, price_cart, price_lines
 
 ORDER_NUMBER_PREFIX = "ORD"
@@ -145,6 +145,11 @@ _ACTIVITY_SAFE_FIELDS = frozenset(
         "context",
         "from",
         "to",
+        "stock_conflicts",
+        "current_stock",
+        "committed_quantity",
+        "requested_quantity",
+        "projected_stock",
     }
 )
 _ACTIVITY_REDACTED = "[redacted]"
@@ -262,6 +267,7 @@ class AdminOrderEditDraft:
     reason: str | None
     items: tuple[AdminOrderItemDraft, ...]
     packaging_type: PackagingType | None = None
+    allow_negative_stock: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -958,7 +964,7 @@ def can_structurally_edit_order(*, order: Order, actor: AdminUser) -> bool:
 
 
 def rebuild_order_items(
-    db: Session, *, order: Order, drafts: Sequence[AdminOrderItemDraft]
+    db: Session, *, order: Order, drafts: Sequence[AdminOrderItemDraft], priced_lines: Sequence[PricedLine] | None = None
 ) -> list[OrderItem]:
     catalog_drafts = [item for item in drafts if item.kind == "catalog"]
     catalog_keys = [
@@ -973,7 +979,7 @@ def rebuild_order_items(
         _item_key(item.product_id, item.variant_id, item.selected_option_value_ids): line
         for item, line in zip(
             catalog_drafts,
-            price_lines(
+            priced_lines if priced_lines is not None else price_lines(
                 db,
                 [
                     (item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids)
@@ -1068,6 +1074,64 @@ def rebuild_order_items(
             )
         )
     return items
+
+
+def _apply_admin_inventory_delta(
+    db: Session, *, old_items: Sequence[OrderItem], drafts: Sequence[AdminOrderItemDraft],
+    allow_negative_stock: bool,
+) -> list[dict[str, Any]]:
+    """Lock catalog stock and compare aggregate commitments, before changing any row."""
+    old: dict[tuple[int, int | None], int] = defaultdict(int)
+    new: dict[tuple[int, int | None], int] = defaultdict(int)
+    for items, quantities in ((old_items, old), (drafts, new)):
+        for item in items:
+            kind = item.item_kind if isinstance(item, OrderItem) else item.kind
+            if kind != "catalog" or item.product_id is None:
+                continue
+            quantities[(item.product_id, None)] += item.quantity
+            if item.variant_id is not None:
+                quantities[(item.product_id, item.variant_id)] += item.quantity
+    keys = sorted(old.keys() | new.keys(), key=lambda key: (key[0], key[1] or 0))
+    product_ids = sorted({key[0] for key in keys})
+    variant_ids = sorted({key[1] for key in keys if key[1] is not None})
+    products = {row.id: row for row in db.execute(
+        select(Product).where(Product.id.in_(product_ids)).order_by(Product.id).with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalars()}
+    variants = {row.id: row for row in db.execute(
+        select(ProductVariant).where(ProductVariant.id.in_(variant_ids)).order_by(ProductVariant.id).with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalars()} if variant_ids else {}
+    movements = []
+    conflicts = []
+    for key in keys:
+        product = products.get(key[0])
+        if product is None or not product.track_inventory:
+            continue
+        variant = variants.get(key[1]) if key[1] is not None else None
+        if key[1] is not None and variant is None:
+            continue
+        stock_row = variant if variant is not None else product
+        consumption = new[key] - old[key]
+        projected = stock_row.stock_quantity - consumption
+        if consumption > 0 and projected < 0:
+            conflicts.append({
+                "product_id": product.id, "product_name": product.name,
+                "variant_id": variant.id if variant is not None else None,
+                "variant_description": variant.title if variant is not None else None,
+                "current_stock": stock_row.stock_quantity, "committed_quantity": old[key],
+                "requested_quantity": new[key], "projected_stock": projected,
+            })
+        if consumption:
+            movements.append((stock_row, projected))
+    if conflicts and not allow_negative_stock:
+        raise ConflictError(
+            "الكمية المطلوبة أكبر من المخزون المتوفر حاليًا، واستمرار التعديل سيجعل المخزون بالسالب. هل تريد المتابعة؟",
+            code="negative_stock_confirmation_required", details={"stock_conflicts": conflicts},
+        )
+    for stock_row, projected in movements:
+        stock_row.stock_quantity = projected
+    return conflicts
 
 
 def edit_incomplete_order(
@@ -1185,23 +1249,24 @@ def edit_incomplete_order(
     if material_change and reason is None:
         raise DomainError("Ø³Ø¨Ø¨ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ Ù…Ø·Ù„ÙˆØ¨.", code="edit_reason_required")
 
-    # Return the existing reservation before validating the replacement against stock;
-    # the same order's previously reserved units remain available to its new draft.
-    _restore_stock(db, order)
-    new_items = rebuild_order_items(db, order=order, drafts=draft.items)
+    # Only the authenticated correction path prices without checking the whole new
+    # quantity. Its aggregate delta validation replaces that check below.
     priced_lines = price_lines(
         db,
         [
             (item.product_id, item.variant_id, item.quantity, item.selected_option_value_ids)
             for item in draft.items
             if item.kind == "catalog" and item.product_id is not None
-        ],
+        ], enforce_stock=False,
     )
+    stock_conflicts = _apply_admin_inventory_delta(
+        db, old_items=old_items, drafts=draft.items, allow_negative_stock=draft.allow_negative_stock,
+    )
+    new_items = rebuild_order_items(db, order=order, drafts=draft.items, priced_lines=priced_lines)
     totals = calculate_order_totals(new_items, draft.discount, draft.delivery_fee, packaging_fee)
     for item, line_total in zip(new_items, totals.line_totals, strict=True):
         item.line_total = line_total
 
-    _apply_stock_delta(priced_lines, sign=-1)
     order.items[:] = new_items
     order.subtotal = totals.subtotal
     order.discount = totals.discount_amount
@@ -1213,6 +1278,14 @@ def edit_incomplete_order(
         setattr(order, field, value)
     old_notes = order.admin_notes
     order.admin_notes = (draft.admin_notes or "").strip() or None
+
+    if stock_conflicts:
+        record_order_activity(
+            db, order_id=order.id, invoice_id=None, actor_admin_id=admin.id,
+            event_type="order_negative_stock_override",
+            before_data={"stock_conflicts": stock_conflicts},
+            after_data={"stock_conflicts": stock_conflicts}, reason=reason,
+        )
 
     for key in set(requested_by_key) - old_keys:
         record_order_activity(

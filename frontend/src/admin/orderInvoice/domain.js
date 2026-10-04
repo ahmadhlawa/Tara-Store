@@ -1,6 +1,6 @@
 export const ORDER_STATUSES = [
   ["new", "طلب جديد"], ["ready", "جاهز"],
-  ["completed", "مكتمل"], ["cancelled", "طلب ملغى"],
+  ["completed", "مكتمل"], ["cancelled", "ملغى"],
 ];
 
 // The first element of every pair is the value the API validates; the second is a
@@ -64,12 +64,12 @@ export function multiplyMoney(unitPrice, quantity) {
   return scaledText(withScale(parts, scale) * BigInt(String(quantity)), scale);
 }
 
-export function calculateOrderTotals({ items = [], discount = "0", delivery_fee = "0", deliveryFee } = {}) {
-  const charges = [discount, deliveryFee ?? delivery_fee];
+export function calculateOrderTotals({ items = [], discount = "0", delivery_fee = "0", deliveryFee, packaging_fee = "0", packagingFee } = {}) {
+  const charges = [discount, deliveryFee ?? delivery_fee, packagingFee ?? packaging_fee];
   const parts = [...items.map((item) => decimalParts(item.unit_price ?? "0")), ...charges.map(decimalParts)];
   const scale = Math.max(2, ...parts.map((part) => part.scale));
   const subtotal = items.reduce((sum, item) => sum + (isWholeQuantity(item.quantity) ? withScale(decimalParts(item.unit_price ?? "0"), scale) * BigInt(String(item.quantity)) : 0n), 0n);
-  const total = subtotal - withScale(decimalParts(discount), scale) + withScale(decimalParts(deliveryFee ?? delivery_fee), scale);
+  const total = subtotal - withScale(decimalParts(discount), scale) + withScale(decimalParts(deliveryFee ?? delivery_fee), scale) + withScale(decimalParts(packagingFee ?? packaging_fee), scale);
   return { subtotal: scaledText(subtotal, scale), total: scaledText(total < 0n ? 0n : total, scale) };
 }
 

@@ -53,12 +53,13 @@ export function OrderItemsEditor({ items, onChange, disabled = false, currencySy
   );
 }
 
-export function OrderTotalsSummary({ items, discount = "0", deliveryFee = "0", currencySymbol = "" }) {
+export function OrderTotalsSummary({ items, discount = "0", deliveryFee = "0", packagingType = "normal", packagingFee = "0", currencySymbol = "" }) {
   const safeItems = items.map((item) => ({ ...item, unit_price: isMoney(item.unit_price) ? item.unit_price : "0" }));
   const safeDiscount = isMoney(discount) ? discount : "0";
   const safeDeliveryFee = isMoney(deliveryFee) ? deliveryFee : "0";
-  const totals = calculateOrderTotals({ items: safeItems, discount: safeDiscount, deliveryFee: safeDeliveryFee });
-  const rows = [["المجموع الفرعي", totals.subtotal], ["الخصم", safeDiscount], ["التوصيل", safeDeliveryFee], ["الإجمالي", totals.total]];
+  const safePackagingFee = isMoney(packagingFee) ? packagingFee : "0";
+  const totals = calculateOrderTotals({ items: safeItems, discount: safeDiscount, deliveryFee: safeDeliveryFee, packagingFee: safePackagingFee });
+  const rows = [["المجموع الفرعي", totals.subtotal], ["الخصم", safeDiscount], ["التوصيل", safeDeliveryFee], [packagingType === "gift" ? "تغليف كهدية" : "تغليف عادي", safePackagingFee], ["الإجمالي", totals.total]];
   return <dl dir="rtl" aria-label="ملخص إجمالي الطلب" style={sx`margin:0;display:grid;grid-template-columns:1fr auto;gap:8px;max-inline-size:340px;margin-inline-start:auto`}>
     {rows.map(([label, value]) => <Fragment key={label}><dt style={sx`font-size:14px;font-weight:${label === "الإجمالي" ? "800" : "500"}`}>{label}</dt><dd style={sx`margin:0;font-size:14px;font-weight:${label === "الإجمالي" ? "800" : "600"};text-align:end`}>{formatMoney(value, currencySymbol)}</dd></Fragment>)}
   </dl>;
@@ -107,7 +108,7 @@ export function CompleteOrderDialog({ isOpen, order, onClose, onComplete, busy =
   return <dialog ref={dialogRef} aria-modal="true" aria-label="إتمام الطلب" onCancel={(event) => { event.preventDefault(); onClose(); }} onKeyDown={(event) => { if (event.key === "Escape") onClose(); }} style={sx`border:0;border-radius:16px;padding:0;max-inline-size:560px;inline-size:calc(100% - 32px);box-shadow:0 30px 70px rgba(26,24,21,.3)`}>
     <form dir="rtl" onSubmit={submit} style={sx`display:flex;flex-direction:column;gap:14px;padding:20px`}>
       <div><h2 style={sx`margin:0;font-size:18px`}>إتمام الطلب وإصدار الفاتورة</h2><p style={sx`margin:5px 0 0;color:#766669;font-size:13px`}>الإجمالي: {formatMoney(review.total ?? "0")}</p></div>
-      <div aria-label="مراجعة الطلب النهائية" style={sx`background:#FAF3EA;border-radius:10px;padding:12px`}><OrderTotalsSummary items={review.items || []} discount={review.discount ?? "0"} deliveryFee={review.delivery_fee ?? "0"} /></div>
+      <div aria-label="مراجعة الطلب النهائية" style={sx`background:#FAF3EA;border-radius:10px;padding:12px`}><OrderTotalsSummary items={review.items || []} discount={review.discount ?? "0"} deliveryFee={review.delivery_fee ?? "0"} packagingType={review.packaging_type} packagingFee={review.packaging_fee ?? "0"} /></div>
       <label style={sx`display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700`}>طريقة الدفع<select ref={firstFieldRef} value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} style={sx`height:42px;border:1px solid #DFD2EC;border-radius:8px;padding-inline:10px;font:inherit`}>{Object.entries(paymentMethodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <label style={sx`display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700`}>حالة الدفع<select value={paymentStatus} onChange={(event) => setPaymentStatus(event.target.value)} style={sx`height:42px;border:1px solid #DFD2EC;border-radius:8px;padding-inline:10px;font:inherit`}>{PAYMENT_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <label style={sx`display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700`}>تفاصيل الدفع (اختياري)<textarea value={paymentDetails} onChange={(event) => setPaymentDetails(event.target.value)} rows="3" style={sx`box-sizing:border-box;border:1px solid #DFD2EC;border-radius:8px;padding:10px;font:inherit;resize:vertical`} /></label>

@@ -14,6 +14,12 @@ from app.schemas.invoices import InvoiceSummary
 PHONE_PATTERN = re.compile(r"^\+?\d{7,15}$")
 
 
+def _reject_public_stock_override(value: Any) -> Any:
+    if isinstance(value, dict) and "allow_negative_stock" in value:
+        raise ValueError("Stock override is only available on authenticated Admin edits")
+    return value
+
+
 class OrderItemIn(APIModel):
     product_id: int
     variant_id: int | None = None
@@ -36,6 +42,8 @@ class OrderCreate(APIModel):
     customer_notes: str | None = Field(default=None, max_length=1000)
     items: list[OrderItemIn] = Field(min_length=1, max_length=100)
 
+    _no_stock_override = model_validator(mode="before")(_reject_public_stock_override)
+
     @field_validator("customer_phone")
     @classmethod
     def _normalize_phone(cls, value: str) -> str:
@@ -52,6 +60,8 @@ class CartPricingRequest(APIModel):
     coupon_code: str | None = Field(default=None, max_length=64)
     delivery_area_id: int | None = None
     packaging_type: PackagingType = PackagingType.NORMAL
+
+    _no_stock_override = model_validator(mode="before")(_reject_public_stock_override)
 
 
 class CartPricingLine(APIModel):
@@ -271,6 +281,7 @@ AdminOrderItemInput = Annotated[
 
 
 class OrderAdminUpdate(APIModel):
+    allow_negative_stock: bool = Field(default=False, strict=True)
     customer_name: str = Field(min_length=3, max_length=150)
     customer_phone: str = Field(min_length=7, max_length=40)
     customer_email: EmailStr | None = None

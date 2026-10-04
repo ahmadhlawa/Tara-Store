@@ -97,6 +97,85 @@ def test_models_and_expected_tables_agree() -> None:
     assert set(metadata_with_models().tables) == EXPECTED_TABLES
 
 
+def test_stock_override_migration_preserves_data_and_other_checks_then_downgrades(tmp_path, monkeypatch):
+    from sqlalchemy.orm import Session
+    from app.models import ProductVariant
+    from tests.conftest import make_product
+    url = _disposable_url(tmp_path, monkeypatch)
+    config = _alembic_config(url)
+    command.upgrade(config, "0031_order_lifecycle")
+    engine = build_engine(url)
+    try:
+        with Session(engine) as db:
+            product = make_product(db, stock=7)
+            db.add(ProductVariant(product_id=product.id, title="Large", stock_quantity=5))
+            db.commit()
+        with engine.begin() as connection:
+            connection.execute(text("INSERT INTO orders (id,order_number,public_token,status,customer_name,customer_phone,address,delivery_fee,subtotal,discount,total,payment_method,created_at,updated_at) VALUES (1,'B4','b4-token','completed','Customer','0591234567','Address',0,10,0,10,'cash_on_delivery','2026-01-01','2026-01-01')"))
+            connection.execute(text("INSERT INTO order_status_history (order_id,old_status,new_status,created_at) VALUES (1,'ready','completed','2026-01-01')"))
+            connection.execute(text("INSERT INTO order_activities (order_id,event_type,created_at) VALUES (1,'order_completed','2026-01-01')"))
+            connection.execute(text("INSERT INTO order_items (order_id,product_id,variant_id,product_name,original_product_name,selected_option_value_ids,unit_price,quantity,line_total) VALUES (1,1,1,'Historical product','Historical product','[]',10,1,10)"))
+            connection.execute(text("INSERT INTO invoices (id,invoice_number,order_id,status,active_invoice_marker,issued_at,order_number,source,payment_method,store_name,customer_name,customer_phone,delivery_address,currency_code,currency_symbol,subtotal,discount,delivery_fee,tax_enabled,tax_rate,prices_include_tax,tax_amount,grand_total,created_at,updated_at) VALUES (1,'INV-B4',1,'active','active','2026-01-01','B4','website','cash_on_delivery','Store','Customer','0591234567','Address','ILS','ILS',10,0,0,0,0,0,0,10,'2026-01-01','2026-01-01')"))
+            connection.execute(text("INSERT INTO invoice_items (invoice_id,product_name,unit_price,quantity,line_total) VALUES (1,'Historical product',10,1,10)"))
+            tables = ("products", "product_variants", "orders", "order_items", "order_status_history", "order_activities", "invoices", "invoice_items", "invoice_sequences")
+            before = {table: connection.execute(text(f"SELECT * FROM {table}")).all() for table in tables}
+        checks_before = {table: {c["name"] for c in inspect(engine).get_check_constraints(table)} for table in ("products", "product_variants", "order_items", "invoice_items", "package_items")}
+        command.upgrade(config, "head")
+        for table, removed in (("products", "ck_products_stock_non_negative"), ("product_variants", "ck_variants_stock_non_negative")):
+            assert {c["name"] for c in inspect(engine).get_check_constraints(table)} == checks_before[table] - {removed}
+        for table in ("order_items", "invoice_items", "package_items"):
+            assert {c["name"] for c in inspect(engine).get_check_constraints(table)} == checks_before[table]
+        with engine.begin() as connection:
+            for table in tables:
+                assert connection.execute(text(f"SELECT * FROM {table}")).all() == before[table]
+            connection.execute(text("UPDATE products SET stock_quantity=-2"))
+            connection.execute(text("UPDATE product_variants SET stock_quantity=-3"))
+        for table in ("products", "product_variants"):
+            with engine.begin() as connection:
+                connection.execute(text(f"UPDATE {table} SET stock_quantity=4"))
+        command.downgrade(config, "0031_order_lifecycle")
+        with engine.connect() as connection:
+            assert connection.execute(text("SELECT stock_quantity FROM product_variants")).scalar_one() == 4
+            assert connection.execute(text("SELECT product_id,variant_id FROM order_items")).one() == (1, 1)
+            for table in tables[2:]:
+                assert connection.execute(text(f"SELECT * FROM {table}")).all() == before[table]
+            assert connection.execute(text("PRAGMA foreign_keys")).scalar_one() == 1
+            assert connection.execute(text("PRAGMA foreign_key_check")).all() == []
+        for table in ("products", "product_variants"):
+            assert {c["name"] for c in inspect(engine).get_check_constraints(table)} == checks_before[table]
+            with pytest.raises(IntegrityError), engine.begin() as connection:
+                connection.execute(text(f"UPDATE {table} SET stock_quantity=-1"))
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize("negative_table", ["products", "product_variants"])
+def test_stock_override_downgrade_preflights_all_tables_without_clamping(tmp_path, monkeypatch, negative_table):
+    from sqlalchemy.orm import Session
+    from app.models import ProductVariant
+    from tests.conftest import make_product
+    url = _disposable_url(tmp_path, monkeypatch)
+    config = _alembic_config(url)
+    command.upgrade(config, "head")
+    engine = build_engine(url)
+    try:
+        with Session(engine) as db:
+            product = make_product(db, stock=1)
+            db.add(ProductVariant(product_id=product.id, title="Large", stock_quantity=1))
+            db.commit()
+        with engine.begin() as connection:
+            connection.execute(text(f"UPDATE {negative_table} SET stock_quantity=-3"))
+        with pytest.raises(RuntimeError, match="negative stock"):
+            command.downgrade(config, "0031_order_lifecycle")
+        with engine.connect() as connection:
+            assert connection.execute(text(f"SELECT stock_quantity FROM {negative_table}")).scalar_one() == -3
+            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0032_admin_stock_override"
+        for table, name in (("products", "ck_products_stock_non_negative"), ("product_variants", "ck_variants_stock_non_negative")):
+            assert name not in {c["name"] for c in inspect(engine).get_check_constraints(table)}
+    finally:
+        engine.dispose()
+
+
 def test_order_lifecycle_migration_changes_only_current_status_and_lock(tmp_path, monkeypatch) -> None:
     url = _disposable_url(tmp_path, monkeypatch)
     config = _alembic_config(url)

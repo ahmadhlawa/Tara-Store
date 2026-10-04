@@ -395,6 +395,7 @@ def edit_order(
     order_id: int, payload: OrderAdminUpdate, db: DbSession, admin: CurrentAdmin
 ):
     draft = orders_service.AdminOrderEditDraft(
+        allow_negative_stock=payload.allow_negative_stock,
         customer_name=payload.customer_name,
         customer_phone=payload.customer_phone,
         customer_email=str(payload.customer_email) if payload.customer_email else None,

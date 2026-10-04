@@ -5,7 +5,7 @@ import { Button, Field, input } from "../ui.jsx";
 
 const keyOf = (ids) => [...ids].map(Number).sort((a, b) => a - b).join("-");
 
-export default function CatalogItemPicker({ products, disabled, onAdd }) {
+export default function CatalogItemPicker({ products, disabled, onAdd, correctionMode = false }) {
   const [productId, setProductId] = useState("");
   const [product, setProduct] = useState(null);
   const [choices, setChoices] = useState({});
@@ -32,9 +32,9 @@ export default function CatalogItemPicker({ products, disabled, onAdd }) {
       : null;
   }, [axes.length, selectedIds.join("-"), variantId, variants]);
   const legacyVariantList = variants.length > 0 && !axes.length;
-  const requiresVariant = variants.length > 0;
+  const requiresVariant = (product?.variants || []).length > 0;
   const inStock = !product?.track_inventory || (variant ? variant.stock_quantity > 0 : product?.stock_quantity > 0);
-  const complete = inStock && (!requiresVariant || !!variant);
+  const complete = product?.is_active !== false && (correctionMode || inStock) && (!requiresVariant || !!variant);
   const pricedChoice = axes.flatMap((axis) => axis.values || []).find((value) => selectedIds.includes(Number(value.id)) && value.price_override != null);
   const unitPrice = variant?.price_override ?? pricedChoice?.price_override ?? product?.price ?? "0.00";
   const description = axes.flatMap((axis) => (axis.values || []).filter((value) => Number(choices[axis.id]) === Number(value.id)).map((value) => `${axis.name}: ${value.value}`)).join("، ") || variant?.title || null;
@@ -50,7 +50,7 @@ export default function CatalogItemPicker({ products, disabled, onAdd }) {
     <Field title="إضافة منتج من الكتالوج"><select aria-label="إضافة منتج من الكتالوج" value={productId} onChange={(event) => setProductId(event.target.value)} disabled={disabled} style={input}><option value="">اختر منتجاً</option>{products.map((row) => <option key={row.id} value={row.id}>{row.name} · {row.sku || "—"}</option>)}</select></Field>
     {loading && <span>جارٍ تحميل الخيارات…</span>}
     {product && axes.map((axis) => <Field key={axis.id} title={`${axis.name}${requiresVariant ? " *" : " (اختياري)"}`}><select aria-label={axis.name} value={choices[axis.id] || ""} onChange={(event) => { setVariantId(""); setChoices((current) => ({ ...current, [axis.id]: event.target.value })); }} style={input}><option value="">اختر {axis.name}</option>{axis.values.map((value) => <option key={value.id} value={value.id}>{value.value}</option>)}</select></Field>)}
-    {product && legacyVariantList && <Field title="الخيار"><select aria-label="الخيار" value={variantId} onChange={(event) => setVariantId(event.target.value)} style={input}><option value="">اختر الخيار</option>{variants.map((row) => <option key={row.id} value={row.id} disabled={product.track_inventory && row.stock_quantity <= 0}>{row.title}{product.track_inventory && row.stock_quantity <= 0 ? " — نفد" : ""}</option>)}</select></Field>}
+    {product && legacyVariantList && <Field title="الخيار"><select aria-label="الخيار" value={variantId} onChange={(event) => setVariantId(event.target.value)} style={input}><option value="">اختر الخيار</option>{variants.map((row) => <option key={row.id} value={row.id} disabled={!correctionMode && product.track_inventory && row.stock_quantity <= 0}>{row.title}{product.track_inventory && row.stock_quantity <= 0 ? " — نفد" : ""}</option>)}</select></Field>}
     {product && complete && <span style={sx`font-size:13px;font-weight:800;align-self:center`}>السعر: {unitPrice}</span>}
     <Button variant="secondary" disabled={disabled || !product || !complete} onClick={add}>إضافة المنتج</Button>
   </div>;

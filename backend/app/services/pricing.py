@@ -95,7 +95,7 @@ def detailed_stock_error(product: Product, variant: ProductVariant | None, stock
     )
 
 
-def price_lines(db: Session, requested: list[tuple], *, reveal_stock: bool = False) -> list[PricedLine]:
+def price_lines(db: Session, requested: list[tuple], *, reveal_stock: bool = False, enforce_stock: bool = True) -> list[PricedLine]:
     """Price `(product_id, variant_id, quantity)` triples against the database."""
     lines: list[PricedLine] = []
     for request in requested:
@@ -160,7 +160,7 @@ def price_lines(db: Session, requested: list[tuple], *, reveal_stock: bool = Fal
             raise DomainError("قيم الخيارات المنفصلة غير صالحة لهذا المنتج.", code="option_value_mismatch")
 
         stock = available_stock(product, variant)
-        if stock is not None and stock < quantity:
+        if enforce_stock and stock is not None and stock < quantity:
             if reveal_stock:
                 raise detailed_stock_error(product, variant, stock)
             raise DomainError(
