@@ -132,14 +132,23 @@ export default function HomePage() {
     .map(category => ({ category, products: showcases.byCategory[category.id] || [] }))
     .filter(({ products }) => products.length)
     .map(({ category, products }) => (
-      <section key={category.id} className="vs-container vs-section">
-        <SectionHead title={category.name} moreHref={`/category/${category.slug}`} />
-        <ProductGrid
-          views={products.map(product => productView(product, money))}
-          variant="grid"
-          eagerCount={0}
-        />
-      </section>
+      <RevealSection key={category.id} className="vs-container vs-section">
+        <div className="vs-home-showcase">
+          <div className="vs-home-showcase__category">
+            <CategoryCard category={category} sizes="(max-width: 899px) calc(100vw - 40px), 320px" />
+          </div>
+          <div className="vs-home-showcase__content">
+            <SectionHead title={category.name} moreHref={`/category/${category.slug}`} />
+            <div className="vs-home-showcase__products">
+              <ProductGrid
+                views={products.map(product => productView(product, money))}
+                variant="plain"
+                eagerCount={0}
+              />
+            </div>
+          </div>
+        </div>
+      </RevealSection>
     ));
 
   // Before the catalog arrives there is no hero and every section drops out, which

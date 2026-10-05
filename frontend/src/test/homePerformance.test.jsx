@@ -24,6 +24,10 @@ it("renders products for an enabled homepage category", async () => {
   await screen.findAllByRole("link", { name: `${settingsFixture.store_name} — الصفحة الرئيسية` });
   await waitFor(() => expect(calls.some(c => c.path.includes("home-sections"))).toBe(true));
   const section = (await screen.findByText(productFixture.name)).closest("section");
+  expect(section.querySelector(".vs-home-showcase")).not.toBeNull();
+  expect(section.querySelector(".vs-home-showcase__category .vs-cat")).not.toBeNull();
+  expect(section.querySelector(".vs-home-showcase__content")).not.toBeNull();
+  expect(section.querySelector(".vs-home-showcase__products > .vs-card")).not.toBeNull();
   expect(within(section).getByRole("heading", { name: categoryFixture.name })).toBeInTheDocument();
   expect(within(section).getByRole("link", { name: "عرض الكل" })).toHaveAttribute("href", `/ar/category/${categoryFixture.slug}`);
   expect(calls.filter(c => c.path.includes("home-showcases"))).toHaveLength(1);
