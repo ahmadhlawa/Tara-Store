@@ -56,20 +56,38 @@ def storefront_media(key: str, db: DbSession, width: Literal["96", "240", "480",
 
 @router.get("/home-showcases", response_model=dict[int, list[ProductPublicOut]])
 def home_showcases(db: DbSession, locale: Locale = "ar"):
-    category_ids = select(Category.id).where(Category.is_active.is_(True), Category.show_on_home.is_(True))
+    hierarchy = select(
+        Category.id.label("category_id"), Category.id.label("root_id"),
+    ).where(
+        Category.parent_id.is_(None),
+        Category.is_active.is_(True),
+        Category.show_on_home.is_(True),
+    ).cte(name="home_category_hierarchy", recursive=True)
+    child = Category.__table__.alias("home_category_child")
+    hierarchy = hierarchy.union_all(
+        select(child.c.id, hierarchy.c.root_id).where(
+            child.c.parent_id == hierarchy.c.category_id,
+            child.c.is_active.is_(True),
+        )
+    )
     # Rank before loading relationships: four rows per category, not the entire catalog.
     ordering = (Product.is_featured.desc(), Product.sort_order.asc(), Product.id.desc())
-    ranked = select(Product.id, func.row_number().over(partition_by=Product.category_id, order_by=ordering).label("rank")).where(
+    ranked = select(
+        Product.id,
+        hierarchy.c.root_id,
+        func.row_number().over(partition_by=hierarchy.c.root_id, order_by=ordering).label("rank"),
+    ).join(hierarchy, hierarchy.c.category_id == Product.category_id).where(
         Product.is_active.is_(True), Product.show_on_home.is_(True),
-        Product.category_id.in_(category_ids),
     ).subquery()
+    selected = select(ranked.c.id, ranked.c.root_id).where(ranked.c.rank <= 4).subquery()
+    root_by_product = dict(db.execute(select(selected.c.id, selected.c.root_id)).all())
     stmt = catalog_service.apply_product_sort(catalog_service.product_list_query(active_only=True), "featured").where(
-        Product.id.in_(select(ranked.c.id).where(ranked.c.rank <= 4))
+        Product.id.in_(select(selected.c.id))
     )
     rows = db.execute(stmt).scalars().unique().all()
     result = {}
     for item in localized_products(db, rows, locale):
-        result.setdefault(item["category_id"], []).append(item)
+        result.setdefault(root_by_product[item["id"]], []).append(item)
     return result
 
 _NOT_FOUND = HTTPException(
