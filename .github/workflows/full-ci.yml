@@ -1,0 +1,39 @@
+name: Full CI
+
+on:
+  pull_request:
+    paths:
+      - "deployment/**"
+      - "scripts/make_release_package.py"
+      - ".gitignore"
+      - "instance/**"
+      - "VERSION"
+      - ".github/workflows/**"
+  push:
+    branches:
+      - master
+    paths:
+      - "deployment/**"
+      - "scripts/make_release_package.py"
+      - ".gitignore"
+      - "instance/**"
+      - "VERSION"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_ci-core.yml
+    with:
+      run_mysql: true
+      run_sqlite: true
+      run_frontend: true
+      run_hygiene: true
+    secrets: inherit

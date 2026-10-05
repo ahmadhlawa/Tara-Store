@@ -1,46 +1,27 @@
-name: MySQL 8 compatibility
-
-# This gate uses an ephemeral MySQL service container
-# inside the GitHub Actions runner: created for the job, thrown away with it. It never
-# reaches a developer machine, a VPS or any production database, and the credentials
-# below exist only for the lifetime of this job.
-#
-# Local SQLite and optional isolated MySQL tooling remain supported.
-# CI never connects to production.
+name: CI Core
 
 on:
-  push:
-    branches: [master, "feat/**"]
-    paths:
-      - "backend/**"
-      - "frontend/**"
-      - "deployment/**"
-      - "scripts/make_release_package.py"
-      - ".gitignore"
-      - "instance/**"
-      - "VERSION"
-      - ".github/workflows/mysql-compatibility.yml"
-  pull_request:
-    paths:
-      - "backend/**"
-      - "frontend/**"
-      - "deployment/**"
-      - "scripts/make_release_package.py"
-      - ".gitignore"
-      - "instance/**"
-      - "VERSION"
-      - ".github/workflows/mysql-compatibility.yml"
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      run_mysql:
+        type: boolean
+        default: false
+      run_sqlite:
+        type: boolean
+        default: false
+      run_frontend:
+        type: boolean
+        default: false
+      run_hygiene:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
-concurrency:
-  group: mysql-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   mysql:
+    if: inputs.run_mysql
     name: Ephemeral MySQL 8 gate
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -155,6 +136,7 @@ jobs:
         run: pytest tests_mysql -v
 
   sqlite:
+    if: inputs.run_sqlite
     name: SQLite backend gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -178,6 +160,7 @@ jobs:
         run: pytest
 
   frontend:
+    if: inputs.run_frontend
     name: Frontend gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -197,6 +180,7 @@ jobs:
           npm run build
 
   hygiene:
+    if: inputs.run_hygiene
     name: Secret and repository hygiene gate
     runs-on: ubuntu-latest
     timeout-minutes: 10

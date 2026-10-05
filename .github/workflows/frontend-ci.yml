@@ -1,0 +1,27 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    paths:
+      - "frontend/**"
+  push:
+    branches:
+      - master
+    paths:
+      - "frontend/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_ci-core.yml
+    with:
+      run_frontend: true
+      run_hygiene: true
+    secrets: inherit
