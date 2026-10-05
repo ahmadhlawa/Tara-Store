@@ -149,7 +149,7 @@ describe("categories navigation", () => {
     expect(screen.getByRole("navigation", { name: "مسار القسم المحدد" })).toHaveTextContent("Candles›شموع الديكور›pattern candle");
   });
 
-  it("renders only configured Home Sections despite enabled categories at any depth", async () => {
+  it("renders category showcases only for enabled top-level categories", async () => {
     const enabled = { ...categoryFixture, id: 30, slug: "candles", name: "Candles", show_on_home: true, image_url: "/candles.jpg" };
     const second = { ...categoryFixture, id: 31, slug: "crochet", name: "Crochet", show_on_home: true, image_url: "/crochet.jpg" };
     const disabled = { ...categoryFixture, id: 32, slug: "resin", name: "Resin", show_on_home: false };
@@ -163,10 +163,10 @@ describe("categories navigation", () => {
     renderApp("/");
 
     await screen.findByRole("heading", { name: "Admin editorial" });
-    expect(document.querySelectorAll(".vs-home-showcase")).toHaveLength(0);
-    expect(screen.queryByRole("heading", { name: "Candles" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Candles" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Crochet" })).not.toBeInTheDocument();
-    expect(calls.filter((call) => call.path.includes("home-showcases"))).toHaveLength(0);
+    expect(screen.queryByRole("heading", { name: "Resin" })).not.toBeInTheDocument();
+    expect(calls.filter((call) => call.path.includes("home-showcases"))).toHaveLength(1);
     expect(calls.some((call) => call.path.includes("category_id="))).toBe(false);
   });
 });

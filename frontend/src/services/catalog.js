@@ -96,6 +96,15 @@ export const catalogService = {
     const rows = await publicApi.categories();
     return rows.filter((row) => row.is_active !== false).map(normalizeCategory);
   },
+  async homeShowcases() {
+    const showcases = await publicApi.homeShowcases();
+    return Object.fromEntries(
+      Object.entries(showcases || {}).map(([categoryId, products]) => [
+        categoryId,
+        (products || []).map(normalizeProduct),
+      ]),
+    );
+  },
   async category(slug) {
     return normalizeCategory(await publicApi.category(slug));
   },
