@@ -354,16 +354,17 @@ export default function CheckoutRoutePage() {
             )}
           </fieldset>
 
-          <fieldset className="vs-panel">
-            <legend className="vs-panel__title">{t("التغليف")}</legend>
-            {Object.entries(packagingTypeLabels).map(([type, label]) => (
-              <label key={type} className="vs-payopt" data-selected={packagingType === type}>
-                <input type="radio" name="checkout-packaging" value={type}
-                  checked={packagingType === type} onChange={() => setPackagingType(type)} />
-                <span><strong>{t(label)}</strong><span className="vs-payopt__desc" dir="ltr">{type === "gift" ? "+5 ₪" : "0 ₪"}</span></span>
-              </label>
-            ))}
-          </fieldset>
+          <label className="vs-gift-packaging" data-selected={packagingType === "gift"}>
+            <input
+              type="checkbox"
+              checked={packagingType === "gift"}
+              onChange={(event) => setPackagingType(event.target.checked ? "gift" : "normal")}
+            />
+            <span>
+              <strong>{t("تغليف كهدية")}</strong>
+              <span className="vs-gift-packaging__price" dir="ltr">+5 ₪</span>
+            </span>
+          </label>
 
           {(quoteError || submitError || Object.keys(errors).length > 0) && (
             <div className="vs-state vs-state--error vs-checkout__error" role="alert">
@@ -413,10 +414,12 @@ export default function CheckoutRoutePage() {
             <span>{t("التوصيل")}{" "}{totals.areaName ? `(${totals.areaName})` : ""}</span>
             <strong>{totals.shipping ? money(totals.shipping) : "—"}</strong>
           </div>
-          <div className="vs-summary__row">
-            <span>{t("رسوم التغليف")} ({t(packagingTypeLabels[priced?.packagingType || packagingType])})</span>
-            <strong>{priced ? money(priced.packagingFee) : "—"}</strong>
-          </div>
+          {packagingType === "gift" && (
+            <div className="vs-summary__row">
+              <span>{t("تغليف كهدية")}</span>
+              <strong>{priced ? money(priced.packagingFee) : "—"}</strong>
+            </div>
+          )}
 
           {/* Priced by the server above; this only explains the rule behind that
               number, and narrows to the chosen area once there is one. */}
@@ -438,7 +441,19 @@ export default function CheckoutRoutePage() {
                 placeholder={t("كود الخصم")}
                 aria-label={t("كود الخصم")}
               />
-              <button type="button" className="vs-btn vs-btn--outline" disabled={applyingCoupon || !coupon.input.trim()} onClick={applyCoupon}>{t("تطبيق")}{" "}</button>
+              <div className="vs-coupon__actions">
+                <button type="button" className="vs-btn vs-btn--outline" disabled={applyingCoupon || !coupon.input.trim()} onClick={applyCoupon}>{t("تطبيق")}{" "}</button>
+                {coupon.applied && (
+                  <button
+                    type="button"
+                    className="vs-btn vs-btn--outline"
+                    disabled={applyingCoupon}
+                    onClick={() => setCoupon({ input: "", applied: "", label: "", message: "", ok: false, discount: 0 })}
+                  >
+                    {t("إزالة الكوبون")}
+                  </button>
+                )}
+              </div>
             </div>
             {coupon.message && (
               <span
@@ -448,8 +463,6 @@ export default function CheckoutRoutePage() {
                 {t(coupon.message)}
               </span>
             )}
-
-            {coupon.applied && <button type="button" className="vs-btn vs-btn--ghost" disabled={applyingCoupon} onClick={() => setCoupon({ input: "", applied: "", label: "", message: "", ok: false, discount: 0 })}>{t("إزالة الكوبون")}</button>}
           </details>
           <p className="vs-summary__note">{t("جميع المبالغ محسوبة من الخادم عند إتمام الطلب.")}</p>
         </aside>
