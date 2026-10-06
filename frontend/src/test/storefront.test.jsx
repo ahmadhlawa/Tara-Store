@@ -195,7 +195,7 @@ describe("public storefront", () => {
     });
     renderApp("/checkout");
 
-    await userEvent.click(await screen.findByRole("checkbox"));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /قرأت سياسة الاستبدال والاسترجاع وأوافق عليها/ }));
     const submit = screen.getByRole("button", { name: /تأكيد وإرسال الطلب/ });
     await userEvent.click(submit);
 
@@ -300,7 +300,7 @@ describe("public storefront", () => {
     await userEvent.type(screen.getByPlaceholderText("الشارع، رقم البناية، أقرب معلم"), "رام الله، شارع الإرسال");
     // Addressed by its own label: the header search field is also a combobox.
     await userEvent.selectOptions(screen.getByLabelText(/منطقة التوصيل/), "1");
-    await userEvent.click(screen.getByRole("checkbox"));
+    await userEvent.click(screen.getByRole("checkbox", { name: /قرأت سياسة الاستبدال والاسترجاع وأوافق عليها/ }));
     await userEvent.click(screen.getByRole("button", { name: /تأكيد وإرسال الطلب/ }));
 
     expect(await screen.findByRole("heading", { name: "تم استلام طلبك بنجاح" })).toBeInTheDocument();
@@ -340,7 +340,7 @@ describe("public storefront", () => {
     await userEvent.type(screen.getByPlaceholderText("05XXXXXXXX"), "0591234567");
     await userEvent.type(screen.getByPlaceholderText("الشارع، رقم البناية، أقرب معلم"), "رام الله، شارع الإرسال");
     await userEvent.selectOptions(screen.getByLabelText(/منطقة التوصيل/), "1");
-    await userEvent.click(screen.getByRole("checkbox"));
+    await userEvent.click(screen.getByRole("checkbox", { name: /قرأت سياسة الاستبدال والاسترجاع وأوافق عليها/ }));
     await userEvent.click(screen.getByRole("button", { name: /تأكيد وإرسال الطلب/ }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent('المنتج "ريزن شفاف" متبقي منه فقط 3 قطع.');

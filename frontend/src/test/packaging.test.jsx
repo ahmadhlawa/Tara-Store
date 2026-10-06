@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cartStorage } from "../storage/cartStorage.js";
+import { orderTokenStorage } from "../storage/authStorage.js";
 import { renderApp, respond, storefrontRoutes, stubApi } from "./utils.jsx";
 
 const quote = (type = "normal") => ({
@@ -10,8 +11,8 @@ const quote = (type = "normal") => ({
   discount: 0,
   delivery_fee: 0,
   packaging_type: type,
-  packaging_fee: type === "gift" ? 5 : 0,
-  total: type === "gift" ? 135 : 130,
+  packaging_fee: type === "gift" ? 7 : 0,
+  total: type === "gift" ? 137 : 130,
 });
 
 const routes = {
@@ -81,7 +82,8 @@ describe("storefront packaging", () => {
       expect(JSON.parse(priceCalls(calls).at(-1).body).packaging_type).toBe("gift"),
     );
     await waitFor(() => expect(within(summary).getByText("تغليف كهدية")).toBeInTheDocument());
-    expect(within(summary).getByText("5 ₪")).toBeInTheDocument();
+    expect(within(summary).getByText("7 ₪")).toBeInTheDocument();
+    expect(summary.querySelector(".vs-summary__total")).toHaveTextContent("137 ₪");
 
     await userEvent.click(gift);
     await waitFor(() =>
@@ -102,9 +104,9 @@ describe("storefront packaging", () => {
       subtotal: 130,
       discount: 0,
       delivery_fee: 0,
-      total: 135,
+      total: 137,
       packaging_type: "gift",
-      packaging_fee: 5,
+      packaging_fee: 7,
     };
 
     const calls = stubApi({
@@ -129,6 +131,20 @@ describe("storefront packaging", () => {
 
     const success = document.querySelector(".vs-done__summary");
     expect(within(success).getByText("تغليف كهدية")).toBeInTheDocument();
-    expect(within(success).getByText("5 ₪")).toBeInTheDocument();
+    expect(within(success).getByText("7 ₪")).toBeInTheDocument();
+    expect(success.querySelector(".vs-summary__total")).toHaveTextContent("137 ₪");
+  });
+
+  it("hides normal packaging on success while preserving the canonical total", async () => {
+    orderTokenStorage.save("ORD-NORMAL", "token-normal");
+    stubApi({ ...routes, "/api/v1/orders/ORD-NORMAL": {
+      order_number: "ORD-NORMAL", status: "new", items: [], subtotal: 130,
+      discount: 0, delivery_fee: 0, packaging_type: "normal", packaging_fee: 0, total: 130,
+    } });
+    renderApp("/ar/order-success/ORD-NORMAL");
+    await screen.findByRole("heading", { name: "تم استلام طلبك بنجاح" });
+    const success = document.querySelector(".vs-done__summary");
+    expect(success).not.toHaveTextContent(/تغليف/);
+    expect(success.querySelector(".vs-summary__total")).toHaveTextContent("130 ₪");
   });
 });
