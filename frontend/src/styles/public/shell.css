@@ -906,7 +906,8 @@ img.vs-logo__img {
     grid-column: 2;
     position: absolute;
     left: 50%;
-    transform: translateX(-50%);
+    top: 50%;
+    transform: translate(-50%, -50%);
   }
   .vs-logo__wordmark {
     width: clamp(104px, 32vw, 132px);
