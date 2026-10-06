@@ -3,8 +3,7 @@ import { useEffect, useState } from "react";
 import { useStore } from "../../../app/StoreProvider.jsx";
 import { useMoney } from "../../../hooks/useStorefront.js";
 import { checkoutService } from "../../../services/checkout.js";
-import { packagingTypeLabels } from "../../../store.js";
-import { Link } from "../../../i18n/routing.jsx";
+import { Link, useNavigate } from "../../../i18n/routing.jsx";
 import { Drawer } from "../overlays/Overlay.jsx";
 import Media from "../shell/Media.jsx";
 import FreeDeliveryNotice from "./FreeDeliveryNotice.jsx";
@@ -15,8 +14,9 @@ import { CartIcon, TrashIcon } from "../shell/icons.jsx";
 export default function CartDrawer({ open, onClose }) {
   const { locale, t } = useLocale();
   const { lines, count, subtotal, subtotalText, empty } = useCartLines();
-  const { cart, coupon, checkoutForm, packagingType, setPackagingType } = useStore();
+  const { cart, coupon, checkoutForm } = useStore();
   const money = useMoney();
+  const navigate = useNavigate();
   const [priced, setPriced] = useState(null);
   const [priceError, setPriceError] = useState(null);
 
@@ -28,14 +28,14 @@ export default function CartDrawer({ open, onClose }) {
     checkoutService.price(cart, {
       couponCode: coupon.applied || null,
       deliveryAreaId: checkoutForm.areaId,
-      packagingType,
+      packagingType: "normal",
     }).then((result) => {
       if (!cancelled) setPriced(result);
     }).catch((error) => {
       if (!cancelled) setPriceError(error.message);
     });
     return () => { cancelled = true; };
-  }, [open, cart, coupon.applied, checkoutForm.areaId, packagingType, locale]);
+  }, [open, cart, coupon.applied, checkoutForm.areaId, locale]);
 
   return (
     <Drawer
@@ -62,20 +62,19 @@ export default function CartDrawer({ open, onClose }) {
               </div>
             )}
             <div className="vs-cartdrawer__totals">
-              <span>{t("رسوم التغليف")} ({t(packagingTypeLabels[priced?.packagingType || packagingType])})</span>
-              <strong>{priced ? money(priced.packagingFee) : "—"}</strong>
-            </div>
-            <div className="vs-cartdrawer__totals">
               <span>{t("الإجمالي")}</span><strong>{priced ? money(priced.total) : "—"}</strong>
             </div>
             {priceError && <p className="vs-field__error" role="alert">{priceError}</p>}
             <p className="vs-cartdrawer__hint">{t("تُحتسب رسوم التوصيل حسب المنطقة في صفحة إتمام الطلب.")}{" "}</p>
             <FreeDeliveryNotice subtotal={priced?.subtotal ?? subtotal} />
-            <Link
-              to="/checkout"
+            <button
+              type="button"
               className="vs-btn vs-btn--primary vs-btn--lg vs-btn--block"
-              onClick={onClose}
-            >{t("إتمام الطلب")}{" "}</Link>
+              onClick={() => {
+                onClose();
+                navigate("/checkout");
+              }}
+            >{t("إتمام الطلب")}{" "}</button>
           </>
         )
       }
@@ -127,16 +126,6 @@ export default function CartDrawer({ open, onClose }) {
             </li>
           ))}
         </ul>
-        <fieldset className="vs-panel">
-          <legend className="vs-panel__title">{t("التغليف")}</legend>
-          {Object.entries(packagingTypeLabels).map(([type, label]) => (
-            <label key={type} className="vs-payopt" data-selected={packagingType === type}>
-              <input type="radio" name="cart-packaging" value={type}
-                checked={packagingType === type} onChange={() => setPackagingType(type)} />
-              <span><strong>{t(label)}</strong><span className="vs-payopt__desc" dir="ltr">{type === "gift" ? "+5 ₪" : "0 ₪"}</span></span>
-            </label>
-          ))}
-        </fieldset>
         </>
       )}
     </Drawer>
