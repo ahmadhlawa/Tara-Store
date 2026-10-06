@@ -138,7 +138,11 @@ def apply_sanitization(connection, metadata) -> None:
         connection.execute(update(invoices).values(replacement_invoice_id=None))
     for name in REMOVE_TABLES:
         connection.execute(delete(tables[name]))
-    connection.execute(update(tables["coupons"]).values(used_count=0))
+    coupons = tables["coupons"]
+    coupon_values = {"used_count": 0}
+    if "updated_at" in coupons.c:
+        coupon_values["updated_at"] = coupons.c.updated_at
+    connection.execute(update(coupons).values(**coupon_values))
 
 
 @contextmanager
@@ -231,7 +235,10 @@ def _validate_source_base(source_base_url: str) -> str:
 
 def download_file(url: str, destination: Path) -> None:
     opener = urllib.request.build_opener(_NoRedirect())
-    with opener.open(url, timeout=30) as response, destination.open("wb") as output:
+    request = urllib.request.Request(
+        url, headers={"User-Agent": "Mozilla/5.0 (compatible; TaraLocalMirror/1.0)"},
+    )
+    with opener.open(request, timeout=30) as response, destination.open("wb") as output:
         shutil.copyfileobj(response, output)
 
 
