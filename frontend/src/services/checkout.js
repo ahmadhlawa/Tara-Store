@@ -37,9 +37,8 @@ export function buildOrderWhatsAppMessage(order, locale) {
     translate("المجموع الفرعي: {0}", [displayMoney(order.subtotal)]),
     translate("الخصم: {0}", [displayMoney(order.discount)]),
     translate("التوصيل{0}: {1}", [order.delivery_area_name ? ` (${order.delivery_area_name})` : "", displayMoney(order.delivery_fee)]),
-    ...(order.packaging_type ? [
-      `${translate("التغليف")}: ${translate(packagingTypeLabels[order.packaging_type] || order.packaging_type)}`,
-      translate("رسوم التغليف: {0}", [displayMoney(order.packaging_fee)]),
+    ...(order.packaging_type === "gift" ? [
+      `${translate(packagingTypeLabels.gift)}: ${displayMoney(order.packaging_fee)}`,
     ] : []),
     translate("الإجمالي: {0}", [displayMoney(order.total)]),
     ...(order.customer_notes ? ["", translate("ملاحظات: {0}", [order.customer_notes])] : []),
