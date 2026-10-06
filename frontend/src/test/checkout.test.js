@@ -109,6 +109,12 @@ describe("checkout confirmation", () => {
     expect(message).not.toContain("999");
   });
 
+  it("omits normal packaging from WhatsApp without changing canonical totals", () => {
+    const message = buildOrderWhatsAppMessage({ packaging_type: "normal", packaging_fee: 0, total: 130, items: [] }, "ar");
+    expect(message).not.toMatch(/تغليف/);
+    expect(message).toContain("الإجمالي: 130");
+  });
+
   it("builds the Arabic WhatsApp text entirely from the canonical order response", () => {
     const message = buildOrderWhatsAppMessage({
       order_number: "ORD-20260803-0042",

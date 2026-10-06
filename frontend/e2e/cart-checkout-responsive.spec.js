@@ -21,7 +21,7 @@ for (const locale of ["ar", "en"]) {
     await expect(page.locator(".vs-drawer")).toBeVisible();
     await expect(drawer.locator(".vs-cartline")).toHaveCount(2);
     await expect(drawer.getByRole("link", { name: /عرض العربة|View cart/i })).toHaveCount(0);
-    const checkout = drawer.locator('a[href$="/checkout"]');
+    const checkout = drawer.getByRole("button", { name: /إتمام الطلب|Checkout/ });
     const box = await checkout.boundingBox();
     expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize().height);
     await checkout.click();
@@ -46,7 +46,8 @@ for (const locale of ["ar", "en"]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.locator('input[type="text"]').last().fill("Checkout Review");
     await page.locator('input[type="tel"]').fill("0591234567");
-    await page.locator(".vs-checkout select").selectOption("1");
+    await page.getByRole("combobox", { name: /رمز الدولة|Country code/ }).selectOption("+970");
+    await page.getByLabel(/منطقة التوصيل|Delivery area/).selectOption("1");
     await page.locator(".vs-checkout textarea").first().fill("Local checkout review address");
     await page.locator('.vs-check--terms input').check();
     await expect(page.locator('.vs-checkout button[type="submit"]')).toBeEnabled();
