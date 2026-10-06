@@ -93,9 +93,9 @@ export default function OrderSuccessRoutePage() {
             <span>{t("طريقة الدفع")}</span>
             <strong>{t("الدفع عند الاستلام")}</strong>
           </div>
-          {order.packaging_type && (
+          {order.packaging_type === "gift" && (
             <div className="vs-summary__row">
-              <span>{t("رسوم التغليف")} ({t(packagingTypeLabels[order.packaging_type] || order.packaging_type)})</span>
+              <span>{t(packagingTypeLabels.gift)}</span>
               <strong>{money(order.packaging_fee)}</strong>
             </div>
           )}
