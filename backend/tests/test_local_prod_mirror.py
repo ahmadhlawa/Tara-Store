@@ -1,6 +1,19 @@
 from datetime import datetime
+from io import BytesIO
+from unittest.mock import Mock
+
 import pytest
-from sqlalchemy import Column, Integer, MetaData, String, Table, create_engine, insert, select
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    create_engine,
+    insert,
+    select,
+)
 
 from app.db.base import metadata_with_models
 from scripts import prepare_local_prod_mirror as mirror
@@ -62,8 +75,11 @@ def test_sanitize_deletes_only_sensitive_rows_and_resets_coupon():
     tables = {name: Table(name, metadata, Column("id", Integer, primary_key=True))
               for name in mirror.REMOVE_TABLES}
     tables["invoices"].append_column(Column("replacement_invoice_id", Integer, nullable=True))
+    fixed_updated_at = datetime(2025, 1, 2, 3, 4, 5)
+    automatic_updated_at = datetime(2026, 2, 3, 4, 5, 6)
     coupons = Table("coupons", metadata, Column("id", Integer, primary_key=True),
-                    Column("code", String), Column("used_count", Integer))
+                    Column("code", String), Column("used_count", Integer),
+                    Column("updated_at", DateTime, onupdate=lambda: automatic_updated_at))
     category = Table("categories", metadata, Column("id", Integer, primary_key=True),
                      Column("parent_id", Integer), Column("name", String),
                      Column("show_on_home", Integer))
@@ -79,7 +95,9 @@ def test_sanitize_deletes_only_sensitive_rows_and_resets_coupon():
             conn.execute(insert(tables[name]).values(id=1, **(
                 {"replacement_invoice_id": 1} if name == "invoices" else {}
             )))
-        conn.execute(insert(coupons).values(id=1, code="SAFE-TEST", used_count=9))
+        conn.execute(insert(coupons).values(
+            id=1, code="SAFE-TEST", used_count=9, updated_at=fixed_updated_at,
+        ))
         conn.execute(insert(category).values([
             {"id": 1, "parent_id": None, "name": "Parent", "show_on_home": 1},
             {"id": 2, "parent_id": 1, "name": "Child", "show_on_home": 0},
@@ -99,6 +117,7 @@ def test_sanitize_deletes_only_sensitive_rows_and_resets_coupon():
         retained_product = conn.execute(select(product)).mappings().one()
         retained_asset = conn.execute(select(assets)).mappings().one()
     assert coupon["used_count"] == 0 and coupon["code"] == "SAFE-TEST"
+    assert coupon["updated_at"] == fixed_updated_at
     assert [(row["parent_id"], row["name"], row["show_on_home"]) for row in retained] == [
         (None, "Parent", 1), (1, "Child", 0),
     ]
@@ -135,6 +154,27 @@ def test_url_mapping_rewrites_only_known_media_asset_references(db):
     assert category["image_url"] == new
     assert category["banner_image_url"] == "https://elsewhere.test/x"
     assert slide["image_url"] == new
+
+
+def test_download_file_sends_explicit_user_agent_without_redirects(tmp_path, monkeypatch):
+    opener = Mock()
+    opener.open.return_value = BytesIO(b"image bytes")
+    build_opener = Mock(return_value=opener)
+    monkeypatch.setattr(mirror.urllib.request, "build_opener", build_opener)
+    url = "https://media.example.test/assets/a.jpg"
+    destination = tmp_path / "a.jpg"
+
+    mirror.download_file(url, destination)
+
+    build_opener.assert_called_once()
+    assert isinstance(build_opener.call_args.args[0], mirror._NoRedirect)
+    opener.open.assert_called_once()
+    request = opener.open.call_args.args[0]
+    assert isinstance(request, mirror.urllib.request.Request)
+    assert request.full_url == url
+    assert request.get_header("User-agent") == "Mozilla/5.0 (compatible; TaraLocalMirror/1.0)"
+    assert opener.open.call_args.kwargs == {"timeout": 30}
+    assert destination.read_bytes() == b"image bytes"
 
 
 def test_failed_media_download_does_not_rewrite_database(db, tmp_path, monkeypatch):
