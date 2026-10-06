@@ -71,8 +71,8 @@ export default function CartDrawer({ open, onClose }) {
               type="button"
               className="vs-btn vs-btn--primary vs-btn--lg vs-btn--block"
               onClick={() => {
-                onClose();
                 navigate("/checkout");
+                onClose();
               }}
             >{t("إتمام الطلب")}{" "}</button>
           </>
