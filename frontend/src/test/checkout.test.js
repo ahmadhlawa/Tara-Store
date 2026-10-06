@@ -103,8 +103,8 @@ describe("checkout confirmation", () => {
     const message = buildOrderWhatsAppMessage({
       packaging_type: "gift", packaging_fee: 7, total: 137, items: [],
     }, locale);
-    expect(message).toContain(locale === "en" ? "Gift packaging" : "تغليف كهدية");
-    expect(message).toContain(locale === "en" ? "Packaging fee: 7" : "رسوم التغليف: 7");
+    expect(message).toContain(locale === "en" ? "Gift packaging: 7" : "تغليف كهدية: 7");
+    expect(message).not.toContain(locale === "en" ? "Packaging fee" : "رسوم التغليف");
     expect(message).toContain("137");
     expect(message).not.toContain("999");
   });
