@@ -8,7 +8,7 @@ import Media from "../components/public/shell/Media.jsx";
 import { buildOrderWhatsAppMessage, checkoutService } from "../services/checkout.js";
 import { trackCheckoutReached } from "../services/analytics.js";
 import { orderTokenStorage } from "../storage/authStorage.js";
-import { packagingTypeLabels, paymentMethods } from "../store.js";
+import { paymentMethods } from "../store.js";
 import { useMoney } from "../hooks/useStorefront.js";
 import { whatsappHref } from "../utils/format.js";
 import { CUSTOMER_COUNTRY_CODES, normalizeCustomerPhone } from "../utils/phone.js";
