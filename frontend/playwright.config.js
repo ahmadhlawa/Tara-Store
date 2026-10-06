@@ -8,8 +8,8 @@ import { defineConfig, devices } from "@playwright/test";
  * disposable validation database, and starting a second copy here would quietly split
  * that state in two.
  *
- * The browser is the machine's installed Chromium channel rather than a Playwright
- * download, so the acceptance suite adds no browser binaries to the repository.
+ * General acceptance projects use installed Edge. The focused storefront project
+ * uses cached WebKit; this configuration never downloads browser binaries.
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -28,8 +28,14 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "webkit-storefront",
+      use: { ...devices["iPhone 13"] },
+      testMatch: /storefront-webkit\.spec\.js/,
+    },
+    {
       name: "desktop",
       use: { ...devices["Desktop Chrome"], channel: "msedge", viewport: { width: 1440, height: 900 } },
+      testIgnore: /storefront-webkit\.spec\.js/,
     },
     {
       name: "tablet",

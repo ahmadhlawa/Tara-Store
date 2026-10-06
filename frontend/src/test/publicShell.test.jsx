@@ -23,8 +23,7 @@ describe("public shell", () => {
     await screen.findByRole("heading", { name: "كل المنتجات", level: 1 });
     const user = userEvent.setup();
     await user.click(cartButton());
-    const checkout = within(screen.getByRole("dialog", { name: "عربة التسوّق" })).getByRole("link", { name: "إتمام الطلب" });
-    expect(checkout).toHaveAttribute("href", "/ar/checkout");
+    const checkout = within(screen.getByRole("dialog", { name: "عربة التسوّق" })).getByRole("button", { name: "إتمام الطلب" });
     if (input === "touch") await user.pointer([{ keys: "[TouchA>]", target: checkout }, { keys: "[/TouchA]", target: checkout }]);
     else if (input === "keyboard") { checkout.focus(); await user.keyboard("{Enter}"); }
     else await user.click(checkout);

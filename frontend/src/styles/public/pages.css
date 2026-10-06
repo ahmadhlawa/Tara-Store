@@ -523,14 +523,67 @@
 }
 
 .vs-coupon {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   margin-block-start: 4px;
+  align-items: start;
 }
 
 .vs-coupon .vs-input {
-  flex: 1;
   min-width: 0;
+}
+
+.vs-coupon__actions {
+  display: grid;
+  gap: 8px;
+  min-width: 112px;
+}
+
+.vs-coupon__actions .vs-btn {
+  width: 100%;
+}
+
+.vs-gift-packaging {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--vs-border);
+  border-radius: var(--vs-r-md);
+  background: var(--vs-surface);
+  cursor: pointer;
+  transition: border-color var(--vs-t) var(--vs-ease), background var(--vs-t) var(--vs-ease);
+}
+
+.vs-gift-packaging[data-selected="true"] {
+  border-color: var(--vs-primary);
+  background: var(--vs-primary-soft);
+}
+
+.vs-gift-packaging input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--vs-primary);
+  cursor: pointer;
+}
+
+.vs-gift-packaging > span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vs-gift-packaging strong {
+  font-size: 14px;
+}
+
+.vs-gift-packaging__price {
+  color: var(--vs-primary);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .vs-coupon__msg {
@@ -769,6 +822,14 @@
 @media (max-width: 599px) {
   .vs-checkout__fields {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vs-coupon {
+    grid-template-columns: minmax(0, 1fr) 92px;
+  }
+
+  .vs-coupon__actions {
+    min-width: 92px;
   }
 }
 
