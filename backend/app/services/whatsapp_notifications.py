@@ -83,6 +83,11 @@ def _template_payload(notification: OrderNotification) -> dict:
     }
 
 
+class _NoRedirect(urllib_request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 def _post_json(url: str, payload: dict) -> None:
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     http_request = urllib_request.Request(
@@ -94,7 +99,9 @@ def _post_json(url: str, payload: dict) -> None:
             "Content-Type": "application/json",
         },
     )
-    with urllib_request.urlopen(
+    # Do not follow redirects while carrying the Meta access token.
+    opener = urllib_request.build_opener(_NoRedirect())
+    with opener.open(
         http_request, timeout=settings.WHATSAPP_NOTIFICATION_TIMEOUT_SECONDS
     ) as response:
         response.read()
