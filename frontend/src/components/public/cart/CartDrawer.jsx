@@ -6,14 +6,13 @@ import { checkoutService } from "../../../services/checkout.js";
 import { Link, useNavigate } from "../../../i18n/routing.jsx";
 import { Drawer } from "../overlays/Overlay.jsx";
 import Media from "../shell/Media.jsx";
-import FreeDeliveryNotice from "./FreeDeliveryNotice.jsx";
 import QuantityStepper from "./QuantityStepper.jsx";
 import { useCartLines } from "./useCartLines.js";
 import { CartIcon, TrashIcon } from "../shell/icons.jsx";
 
 export default function CartDrawer({ open, onClose }) {
   const { locale, t } = useLocale();
-  const { lines, count, subtotal, subtotalText, empty } = useCartLines();
+  const { lines, count, subtotalText, empty } = useCartLines();
   const { cart, coupon, checkoutForm } = useStore();
   const money = useMoney();
   const navigate = useNavigate();
@@ -66,7 +65,6 @@ export default function CartDrawer({ open, onClose }) {
             </div>
             {priceError && <p className="vs-field__error" role="alert">{priceError}</p>}
             <p className="vs-cartdrawer__hint">{t("تُحتسب رسوم التوصيل حسب المنطقة في صفحة إتمام الطلب.")}{" "}</p>
-            <FreeDeliveryNotice subtotal={priced?.subtotal ?? subtotal} />
             <button
               type="button"
               className="vs-btn vs-btn--primary vs-btn--lg vs-btn--block"

@@ -49,6 +49,21 @@ const notice = async () => {
 describe("free delivery notice", () => {
   beforeEach(() => cartStorage.clear());
 
+  it("omits the thresholds from the cart drawer and keeps them at checkout", async () => {
+    seedCart(100);
+    stubApi(routes);
+    renderApp("/shop");
+
+    await userEvent.click(await screen.findByRole("button", { name: "عربة التسوّق" }));
+    const drawer = within(await screen.findByRole("dialog"));
+    expect(drawer.queryByText("التوصيل المجاني")).not.toBeInTheDocument();
+
+    await userEvent.click(drawer.getByRole("button", { name: "إتمام الطلب" }));
+    const panel = within(await notice());
+    await waitFor(() => expect(panel.getByText(/الضفة، القدس/)).toHaveTextContent("أضف 120 ₪"));
+    expect(panel.getByText(/الداخل/)).toHaveTextContent("أضف 300 ₪");
+  });
+
   it("groups the areas by threshold and says what is left to reach each one", async () => {
     seedCart(100);
     stubApi(routes);
