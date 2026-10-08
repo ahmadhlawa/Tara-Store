@@ -78,6 +78,17 @@ class Settings(BaseSettings):
     RATE_LIMIT_WINDOW_SECONDS: int = Field(default=60, ge=1)
     TRUSTED_PROXY_IPS: Annotated[list[str], NoDecode] = ["127.0.0.1", "::1"]
 
+    # Optional, owner-facing WhatsApp notification for newly committed website orders.
+    # Disabled by default so development/tests can never contact Meta accidentally.
+    WHATSAPP_NOTIFICATIONS_ENABLED: bool = False
+    WHATSAPP_GRAPH_API_VERSION: str = ""
+    WHATSAPP_ACCESS_TOKEN: str = ""
+    WHATSAPP_PHONE_NUMBER_ID: str = ""
+    WHATSAPP_NOTIFICATION_RECIPIENT: str = ""
+    WHATSAPP_ORDER_TEMPLATE: str = ""
+    WHATSAPP_ORDER_TEMPLATE_LANGUAGE: str = "ar"
+    WHATSAPP_NOTIFICATION_TIMEOUT_SECONDS: int = Field(default=8, ge=1, le=30)
+
     STORAGE_PROVIDER: str = "local"
     LOCAL_MEDIA_ROOT: str = "./data/uploads"
     LOCAL_MEDIA_BASE_URL: str = "/media"
@@ -139,6 +150,43 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _validate_production_safety(self) -> "Settings":
         self.APP_ENV = self.APP_ENV.strip().lower()
+        if self.WHATSAPP_NOTIFICATIONS_ENABLED:
+            required = {
+                "WHATSAPP_GRAPH_API_VERSION": self.WHATSAPP_GRAPH_API_VERSION,
+                "WHATSAPP_ACCESS_TOKEN": self.WHATSAPP_ACCESS_TOKEN,
+                "WHATSAPP_PHONE_NUMBER_ID": self.WHATSAPP_PHONE_NUMBER_ID,
+                "WHATSAPP_NOTIFICATION_RECIPIENT": self.WHATSAPP_NOTIFICATION_RECIPIENT,
+                "WHATSAPP_ORDER_TEMPLATE": self.WHATSAPP_ORDER_TEMPLATE,
+                "WHATSAPP_ORDER_TEMPLATE_LANGUAGE": self.WHATSAPP_ORDER_TEMPLATE_LANGUAGE,
+                "PUBLIC_BASE_URL": self.PUBLIC_BASE_URL,
+            }
+            missing = [name for name, value in required.items() if not str(value).strip()]
+            if missing:
+                raise ValueError(
+                    "WhatsApp notifications require: " + ", ".join(sorted(missing))
+                )
+            version = self.WHATSAPP_GRAPH_API_VERSION.strip()
+            version_number = version[1:] if version.startswith("v") else ""
+            if not version_number or not version_number.replace(".", "", 1).isdigit():
+                raise ValueError("WHATSAPP_GRAPH_API_VERSION must look like vNN.N")
+            if not self.WHATSAPP_PHONE_NUMBER_ID.strip().isdigit():
+                raise ValueError("WHATSAPP_PHONE_NUMBER_ID must contain digits only")
+            recipient = "".join(
+                character for character in self.WHATSAPP_NOTIFICATION_RECIPIENT
+                if character.isdigit()
+            )
+            if not 8 <= len(recipient) <= 15:
+                raise ValueError(
+                    "WHATSAPP_NOTIFICATION_RECIPIENT must be an international phone number"
+                )
+            template_name = self.WHATSAPP_ORDER_TEMPLATE.strip()
+            if (
+                template_name != template_name.lower()
+                or not template_name.replace("_", "").isalnum()
+            ):
+                raise ValueError(
+                    "WHATSAPP_ORDER_TEMPLATE must use lowercase letters, digits, and underscores"
+                )
         if self.APP_ENV != "production":
             return self
         if not self.PUBLIC_BASE_URL or not self.PUBLIC_BASE_URL.startswith("https://"):
