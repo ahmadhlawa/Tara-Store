@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from types import SimpleNamespace
 
 from app.api.v1.endpoints import public_checkout
@@ -145,7 +144,7 @@ def test_disabled_notifications_never_call_meta(client, db, monkeypatch):
 
 
 def test_provider_failure_is_contained_and_secrets_are_not_logged(
-    client, db, monkeypatch, caplog,
+    client, db, monkeypatch,
 ):
     _enable_whatsapp(monkeypatch)
     product = make_product(db)
@@ -153,20 +152,27 @@ def test_provider_failure_is_contained_and_secrets_are_not_logged(
     def fail(_url: str, _payload: dict) -> None:
         raise RuntimeError("simulated provider failure")
 
-    monkeypatch.setattr(whatsapp_notifications, "_post_json", fail)
+    logged: list[tuple[str, tuple[object, ...]]] = []
 
-    with caplog.at_level(logging.ERROR, logger=whatsapp_notifications.__name__):
-        response = client.post(
-            "/api/v1/orders",
-            json=_order_payload(product, reference="wa-provider-failure"),
-        )
+    def capture_error(message: str, *args: object, **_kwargs: object) -> None:
+        logged.append((message, args))
+
+    monkeypatch.setattr(whatsapp_notifications, "_post_json", fail)
+    monkeypatch.setattr(whatsapp_notifications.logger, "error", capture_error)
+
+    response = client.post(
+        "/api/v1/orders",
+        json=_order_payload(product, reference="wa-provider-failure"),
+    )
 
     assert response.status_code == 201, response.text
     assert db.query(Order).count() == 1
-    combined = "\n".join(record.getMessage() for record in caplog.records)
-    assert "WhatsApp order notification failed" in combined
-    assert settings.WHATSAPP_ACCESS_TOKEN not in combined
-    assert settings.WHATSAPP_NOTIFICATION_RECIPIENT not in combined
+    assert len(logged) == 1
+    message, args = logged[0]
+    assert "WhatsApp order notification failed" in message
+    rendered_inputs = " ".join([message, *(str(arg) for arg in args)])
+    assert settings.WHATSAPP_ACCESS_TOKEN not in rendered_inputs
+    assert settings.WHATSAPP_NOTIFICATION_RECIPIENT not in rendered_inputs
 
 
 def test_build_order_notification_is_an_immutable_snapshot(monkeypatch):
