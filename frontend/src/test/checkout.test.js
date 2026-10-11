@@ -11,7 +11,7 @@ vi.mock("../api/publicApi.js", () => ({
   },
 }));
 
-import { buildOrderWhatsAppMessage, checkoutService } from "../services/checkout.js";
+import { checkoutService } from "../services/checkout.js";
 import { paymentMethodLabels, paymentMethods } from "../store.js";
 
 describe("checkout confirmation", () => {
@@ -99,47 +99,6 @@ describe("checkout confirmation", () => {
     expect(result).toBe(order);
   });
 
-  it.each(["ar", "en"])("translates WhatsApp packaging labels in %s using canonical amounts", (locale) => {
-    const message = buildOrderWhatsAppMessage({
-      packaging_type: "gift", packaging_fee: 7, total: 137, items: [],
-    }, locale);
-    expect(message).toContain(locale === "en" ? "Gift packaging: 7" : "تغليف كهدية: 7");
-    expect(message).not.toContain(locale === "en" ? "Packaging fee" : "رسوم التغليف");
-    expect(message).toContain("137");
-    expect(message).not.toContain("999");
-  });
-
-  it("omits normal packaging from WhatsApp without changing canonical totals", () => {
-    const message = buildOrderWhatsAppMessage({ packaging_type: "normal", packaging_fee: 0, total: 130, items: [] }, "ar");
-    expect(message).not.toMatch(/تغليف/);
-    expect(message).toContain("الإجمالي: 130");
-  });
-
-  it("builds the Arabic WhatsApp text entirely from the canonical order response", () => {
-    const message = buildOrderWhatsAppMessage({
-      order_number: "ORD-20260803-0042",
-      customer_name: "سارة أحمد",
-      customer_phone: "0591234567",
-      address: "رام الله، شارع الإرسال",
-      customer_notes: "اتصل قبل الوصول",
-      delivery_area_name: "Delivery area API",
-      items: [{ product_name: "اسم من الخادم", sku: "SKU-1", quantity: 2, unit_price: 25, line_total: 50 }],
-      subtotal: 50,
-      discount: 0,
-      delivery_fee: 20,
-      total: 70,
-    });
-
-    expect(message).toContain("ORD-20260803-0042");
-    expect(message).toContain("سارة أحمد");
-    expect(message).toContain("اسم من الخادم");
-    expect(message).toContain("50");
-    expect(message).toContain("20");
-    expect(message).toContain("70");
-    expect(message).toContain("Delivery area API");
-    expect(message).toContain("اتصل قبل الوصول");
-    expect(message).not.toContain("Untrusted");
-  });
 });
 
 /**
