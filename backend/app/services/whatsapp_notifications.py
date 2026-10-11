@@ -27,10 +27,7 @@ class OrderNotification:
     order_number: str
     customer_name: str
     customer_phone: str
-    delivery_area: str
-    item_count: int
     total: str
-    admin_url: str
 
 
 def notifications_enabled() -> bool:
@@ -48,31 +45,24 @@ def build_order_notification(order: Order) -> OrderNotification:
         order_number=order.order_number,
         customer_name=order.customer_name,
         customer_phone=order.customer_phone,
-        delivery_area=order.delivery_area_name or "غير محددة",
-        item_count=sum(item.quantity for item in order.items),
         total=f"{order.total:.2f}",
-        admin_url=f"{settings.PUBLIC_BASE_URL.rstrip('/')}/admin/orders/{order.id}",
     )
 
 
 def _template_payload(notification: OrderNotification) -> dict:
     """Meta template body parameters, in the documented template order."""
     values = (
-        notification.order_number,
         notification.customer_name,
-        notification.customer_phone,
-        notification.delivery_area,
-        str(notification.item_count),
+        notification.order_number,
         notification.total,
-        notification.admin_url,
     )
     return {
         "messaging_product": "whatsapp",
-        "to": _recipient_digits(settings.WHATSAPP_NOTIFICATION_RECIPIENT),
+        "to": _recipient_digits(notification.customer_phone),
         "type": "template",
         "template": {
-            "name": settings.WHATSAPP_ORDER_TEMPLATE.strip(),
-            "language": {"code": settings.WHATSAPP_ORDER_TEMPLATE_LANGUAGE.strip()},
+            "name": settings.WHATSAPP_CUSTOMER_ORDER_TEMPLATE.strip(),
+            "language": {"code": settings.WHATSAPP_CUSTOMER_ORDER_TEMPLATE_LANGUAGE.strip()},
             "components": [
                 {
                     "type": "body",
