@@ -15,9 +15,8 @@ def _enable_whatsapp(monkeypatch) -> None:
         "WHATSAPP_GRAPH_API_VERSION": "v99.0",
         "WHATSAPP_ACCESS_TOKEN": "test-secret-access-token",
         "WHATSAPP_PHONE_NUMBER_ID": "123456789",
-        "WHATSAPP_NOTIFICATION_RECIPIENT": "+970 59 123 4567",
-        "WHATSAPP_ORDER_TEMPLATE": "new_order_notification",
-        "WHATSAPP_ORDER_TEMPLATE_LANGUAGE": "ar",
+        "WHATSAPP_CUSTOMER_ORDER_TEMPLATE": "tara_order_received",
+        "WHATSAPP_CUSTOMER_ORDER_TEMPLATE_LANGUAGE": "ar",
         "WHATSAPP_NOTIFICATION_TIMEOUT_SECONDS": 8,
         "PUBLIC_BASE_URL": "https://store.example",
     }
@@ -86,7 +85,7 @@ def test_whatsapp_template_contains_committed_order_summary(
     assert payload["messaging_product"] == "whatsapp"
     assert payload["to"] == "970591234567"
     assert payload["type"] == "template"
-    assert payload["template"]["name"] == "new_order_notification"
+    assert payload["template"]["name"] == "tara_order_received"
     assert payload["template"]["language"] == {"code": "ar"}
 
     values = [
@@ -95,13 +94,35 @@ def test_whatsapp_template_contains_committed_order_summary(
     ]
     created = response.json()
     assert values == [
-        created["order_number"],
         "سارة أحمد",
-        "970591234567",
-        "غير محددة",
-        "2",
+        created["order_number"],
         "140.00",
-        f"https://store.example/admin/orders/{created['id']}",
+    ]
+
+
+def test_each_order_targets_its_customer_phone(client, db, monkeypatch):
+    _enable_whatsapp(monkeypatch)
+    product = make_product(db)
+    sent: list[dict] = []
+    monkeypatch.setattr(
+        whatsapp_notifications,
+        "_post_json",
+        lambda _url, payload: sent.append(payload),
+    )
+
+    first = client.post(
+        "/api/v1/orders",
+        json=_order_payload(product, reference="wa-customer-one"),
+    )
+    second_payload = _order_payload(product, reference="wa-customer-two")
+    second_payload["customer_phone"] = "0521234567"
+    second = client.post("/api/v1/orders", json=second_payload)
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert [payload["to"] for payload in sent] == [
+        "970591234567",
+        "972521234567",
     ]
 
 
@@ -172,7 +193,7 @@ def test_provider_failure_is_contained_and_secrets_are_not_logged(
     assert "WhatsApp order notification failed" in message
     rendered_inputs = " ".join([message, *(str(arg) for arg in args)])
     assert settings.WHATSAPP_ACCESS_TOKEN not in rendered_inputs
-    assert settings.WHATSAPP_NOTIFICATION_RECIPIENT not in rendered_inputs
+    assert "970591234567" not in rendered_inputs
 
 
 def test_build_order_notification_is_an_immutable_snapshot(monkeypatch):
@@ -190,6 +211,5 @@ def test_build_order_notification_is_an_immutable_snapshot(monkeypatch):
     notification = whatsapp_notifications.build_order_notification(order)
 
     assert notification.order_id == 41
-    assert notification.item_count == 4
+    assert notification.customer_phone == "970591234567"
     assert notification.total == "150.00"
-    assert notification.admin_url == "https://store.example/admin/orders/41"
