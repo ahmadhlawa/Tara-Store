@@ -94,8 +94,13 @@ def test_whatsapp_template_contains_committed_order_summary(
     ]
     created = response.json()
     assert values == [
-        "سارة أحمد",
         created["order_number"],
+        "970591234567",
+        "رام الله، شارع الإرسال، بناية ٥",
+        "• Test product × 2 — 140.00 ₪",
+        "140.00",
+        "0.00",
+        "0.00",
         "140.00",
     ]
 
@@ -201,15 +206,38 @@ def test_build_order_notification_is_an_immutable_snapshot(monkeypatch):
     order = SimpleNamespace(
         id=41,
         order_number="ORD-TEST-41",
-        customer_name="Customer",
         customer_phone="970591234567",
-        delivery_area_name="نابلس",
-        total=150,
-        items=[SimpleNamespace(quantity=1), SimpleNamespace(quantity=3)],
+        address="نابلس، شارع فيصل",
+        subtotal=150,
+        discount=10,
+        delivery_fee=20,
+        total=160,
+        items=[
+            SimpleNamespace(
+                product_name="شمعة",
+                variant_description="لافندر",
+                quantity=1,
+                line_total=50,
+            ),
+            SimpleNamespace(
+                product_name="وسادة",
+                variant_description=None,
+                quantity=2,
+                line_total=100,
+            ),
+        ],
     )
 
     notification = whatsapp_notifications.build_order_notification(order)
 
     assert notification.order_id == 41
     assert notification.customer_phone == "970591234567"
-    assert notification.total == "150.00"
+    assert notification.address == "نابلس، شارع فيصل"
+    assert notification.items_summary == (
+        "• شمعة · لافندر × 1 — 50.00 ₪\n"
+        "• وسادة × 2 — 100.00 ₪"
+    )
+    assert notification.subtotal == "150.00"
+    assert notification.discount == "10.00"
+    assert notification.delivery_fee == "20.00"
+    assert notification.total == "160.00"
