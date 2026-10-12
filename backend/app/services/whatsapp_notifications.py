@@ -25,8 +25,12 @@ logger = logging.getLogger(__name__)
 class OrderNotification:
     order_id: int
     order_number: str
-    customer_name: str
     customer_phone: str
+    address: str
+    items_summary: str
+    subtotal: str
+    discount: str
+    delivery_fee: str
     total: str
 
 
@@ -38,13 +42,29 @@ def _recipient_digits(value: str) -> str:
     return "".join(character for character in value if character.isdigit())
 
 
+def _format_items(order: Order) -> str:
+    lines = []
+    for item in order.items:
+        name = item.product_name
+        if item.variant_description:
+            name = f"{name} · {item.variant_description}"
+        lines.append(
+            f"• {name} × {item.quantity} — {item.line_total:.2f} ₪"
+        )
+    return "\n".join(lines)
+
+
 def build_order_notification(order: Order) -> OrderNotification:
     """Copy only committed, stable values needed by the background task."""
     return OrderNotification(
         order_id=order.id,
         order_number=order.order_number,
-        customer_name=order.customer_name,
         customer_phone=order.customer_phone,
+        address=order.address,
+        items_summary=_format_items(order),
+        subtotal=f"{order.subtotal:.2f}",
+        discount=f"{order.discount:.2f}",
+        delivery_fee=f"{order.delivery_fee:.2f}",
         total=f"{order.total:.2f}",
     )
 
@@ -52,8 +72,13 @@ def build_order_notification(order: Order) -> OrderNotification:
 def _template_payload(notification: OrderNotification) -> dict:
     """Meta template body parameters, in the documented template order."""
     values = (
-        notification.customer_name,
         notification.order_number,
+        notification.customer_phone,
+        notification.address,
+        notification.items_summary,
+        notification.subtotal,
+        notification.discount,
+        notification.delivery_fee,
         notification.total,
     )
     return {
