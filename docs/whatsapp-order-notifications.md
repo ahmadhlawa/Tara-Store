@@ -37,33 +37,29 @@ WhatsApp.
 
 ## Meta template
 
-Use an approved customer-facing Utility template with three body parameters in this
-exact order:
+Use an approved customer-facing Utility template with eight body parameters in
+this exact order:
 
-1. customer name
-2. order number
-3. order total
+1. order number
+2. customer phone
+3. delivery address
+4. multiline order items summary
+5. subtotal
+6. discount
+7. delivery fee
+8. total
 
-Recommended template name:
+Template name:
 
 ```text
 tara_order_received
 ```
 
-Recommended Arabic body:
-
-```text
-مرحباً {{1}}
-
-استلمنا طلبك من TARA Gallery بنجاح.
-
-رقم الطلب: {{2}}
-الإجمالي: {{3}} ₪
-
-سنتواصل معك هنا لتأكيد تفاصيل الطلب.
-
-شكراً لاختيارك TARA Gallery.
-```
+The approved Arabic body is expected to place those variables as `{{1}}` through
+`{{8}}`. The products variable is a single multiline text value so any number of
+order lines can be represented without changing the template. Each line includes
+the snapshotted product name, optional variant, quantity, and line total. Gift
+packaging is appended as an extra summary line only when selected.
 
 Do not put Admin URLs, internal notes, or other operator-only values in this
 customer template.
