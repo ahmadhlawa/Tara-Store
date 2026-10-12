@@ -97,7 +97,7 @@ def test_whatsapp_template_contains_committed_order_summary(
         created["order_number"],
         "970591234567",
         "رام الله، شارع الإرسال، بناية ٥",
-        "• Test product × 2 — 140.00 ₪",
+        "• منتج اختبار × 2 — 140.00 ₪",
         "140.00",
         "0.00",
         "0.00",
@@ -211,7 +211,9 @@ def test_build_order_notification_is_an_immutable_snapshot(monkeypatch):
         subtotal=150,
         discount=10,
         delivery_fee=20,
-        total=160,
+        packaging_type="gift",
+        packaging_fee=5,
+        total=165,
         items=[
             SimpleNamespace(
                 product_name="شمعة",
@@ -235,9 +237,10 @@ def test_build_order_notification_is_an_immutable_snapshot(monkeypatch):
     assert notification.address == "نابلس، شارع فيصل"
     assert notification.items_summary == (
         "• شمعة · لافندر × 1 — 50.00 ₪\n"
-        "• وسادة × 2 — 100.00 ₪"
+        "• وسادة × 2 — 100.00 ₪\n"
+        "• تغليف كهدية — 5.00 ₪"
     )
     assert notification.subtotal == "150.00"
     assert notification.discount == "10.00"
     assert notification.delivery_fee == "20.00"
-    assert notification.total == "160.00"
+    assert notification.total == "165.00"
