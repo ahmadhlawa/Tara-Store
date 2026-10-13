@@ -92,6 +92,7 @@ def test_whatsapp_template_contains_committed_order_summary(
         parameter["text"]
         for parameter in payload["template"]["components"][0]["parameters"]
     ]
+    assert all("\n" not in value and "\t" not in value for value in values)
     created = response.json()
     assert values == [
         created["order_number"],
@@ -236,10 +237,10 @@ def test_build_order_notification_is_an_immutable_snapshot(monkeypatch):
     assert notification.customer_phone == "970591234567"
     assert notification.address == "نابلس، شارع فيصل"
     assert notification.items_summary == (
-        "• شمعة · لافندر × 1 — 50.00 ₪\n"
-        "• وسادة × 2 — 100.00 ₪\n"
-        "• تغليف كهدية — 5.00 ₪"
-    )
+    "• شمعة · لافندر × 1 — 50.00 ₪"
+    " | • وسادة × 2 — 100.00 ₪"
+    " | • تغليف كهدية — 5.00 ₪"
+)
     assert notification.subtotal == "150.00"
     assert notification.discount == "10.00"
     assert notification.delivery_fee == "20.00"

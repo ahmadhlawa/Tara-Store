@@ -53,7 +53,7 @@ def _format_items(order: Order) -> str:
         )
     if order.packaging_type == "gift" and order.packaging_fee > 0:
         lines.append(f"• تغليف كهدية — {order.packaging_fee:.2f} ₪")
-    return "\n".join(lines)
+    return " | ".join(lines)
 
 
 def build_order_notification(order: Order) -> OrderNotification:
