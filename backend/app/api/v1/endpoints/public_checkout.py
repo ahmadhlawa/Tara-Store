@@ -5,7 +5,7 @@ from __future__ import annotations
 import secrets
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -31,6 +31,7 @@ from app.schemas.orders import (
 from app.services import orders as orders_service
 from app.services import analytics as analytics_service
 from app.services import pricing
+from app.services import whatsapp_notifications
 
 router = APIRouter(tags=["public-checkout"])
 
@@ -106,7 +107,14 @@ def price_cart(payload: CartPricingRequest, db: DbSession, locale: Locale = "ar"
 
 
 @router.post("/orders", response_model=OrderCreatedOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(order_create_rate_limit)])
-def create_order(payload: OrderCreate, db: DbSession, response: Response, request: Request, locale: Locale = "ar") -> OrderCreatedOut:
+def create_order(
+    payload: OrderCreate,
+    db: DbSession,
+    response: Response,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    locale: Locale = "ar",
+) -> OrderCreatedOut:
     draft = orders_service.OrderDraft(
         client_reference=payload.client_reference,
         customer_name=payload.customer_name,
@@ -147,6 +155,10 @@ def create_order(payload: OrderCreate, db: DbSession, response: Response, reques
             # never change the committed commerce result or expose diagnostics.
             pass
     db.refresh(order)
+    if created:
+        # Notification delivery is deliberately post-commit and best-effort.  The
+        # background task receives an immutable snapshot and cannot roll commerce back.
+        whatsapp_notifications.add_order_created_task(background_tasks, order)
     response.headers["Cache-Control"] = "no-store"
     return _public_order(db, order, OrderCreatedOut, locale)
 

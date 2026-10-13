@@ -671,6 +671,14 @@
   color: var(--vs-danger);
 }
 
+.vs-field__hint {
+  display: block;
+  margin-block-start: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--vs-ink-4);
+}
+
 .vs-form__note {
   font-size: 12px;
   color: var(--vs-ink-4);

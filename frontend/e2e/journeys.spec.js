@@ -4,11 +4,8 @@ import { EMPLOYEE, MANAGER, apiToken, expectClean, login, watchPage } from "./he
 const PRODUCT = "vfx-resin-clear-1l";
 
 /**
- * Never let an acceptance run reach WhatsApp, and record the hand-off deterministically.
- *
- * Replacing `window.open` rather than watching for a popup: a blocked or immediately
- * closed popup is not reliably observable, and this is the exact call the checkout page
- * makes, so recording it is both stricter and stable.
+ * Record any browser-level WhatsApp hand-off. Checkout notifications are now sent by
+ * the backend to the customer's number, so the storefront must not open WhatsApp.
  */
 async function stubWhatsApp(page) {
   await page.addInitScript(() => {
@@ -44,6 +41,7 @@ test.describe("journey C — website order lifecycle", () => {
 
     await page.getByLabel("الاسم الكامل").fill(customerName);
     await page.getByLabel("رقم الهاتف").fill("0591234567");
+    await expect(page.getByText(/تحديثات طلبك عبر واتساب/)).toBeVisible();
     await page.getByLabel("العنوان بالتفصيل").fill("رام الله - شارع الإرسال ١٢");
     await page.getByLabel("منطقة التوصيل").selectOption({ index: 1 });
 
@@ -60,11 +58,9 @@ test.describe("journey C — website order lifecycle", () => {
     const order = await response.json();
     expect(order.payment_method).toBe("cash_on_delivery");
 
-    // The hand-off happens only after the order exists, and it carries the server's
-    // order number rather than anything the browser made up.
-    const opened = await whatsappOpens(page);
-    expect(opened, "no WhatsApp hand-off was attempted").toHaveLength(1);
-    expect(decodeURIComponent(opened[0])).toContain(order.order_number);
+    // WhatsApp notification delivery is server-side; the browser must not open a
+    // wa.me / WhatsApp hand-off after checkout.
+    expect(await whatsappOpens(page)).toHaveLength(0);
 
     await page.waitForURL(new RegExp(`/order-success/${order.order_number}$`));
 

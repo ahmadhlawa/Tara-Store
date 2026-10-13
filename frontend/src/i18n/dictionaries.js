@@ -91,6 +91,7 @@ export const en = {
   "يجب الموافقة على الشروط قبل إتمام الطلب": "Please accept the terms before checkout", "تعذّر إتمام الطلب. حاول مرة أخرى.": "Could not place your order. Please try again.",
   "لا توجد منتجات لإتمام الطلب": "No products to check out", "أضف منتجات إلى العربة ثم عد إلى هنا.": "Add products to your cart, then return here.",
   "بيانات العميل": "Customer details", "الاسم الكامل": "Full name", "مثال: محمد أحمد": "Example: Alex Smith", "رقم الهاتف": "Phone number", "رمز الدولة": "Country code", "اختر رمز الدولة": "Select country code",
+  "بإتمام الطلب، سيتم إرسال تحديثات طلبك عبر واتساب على هذا الرقم.": "By placing your order, order updates will be sent to this number via WhatsApp.",
   "منطقة التوصيل": "Delivery area", "اختر المنطقة…": "Choose an area…", "العنوان بالتفصيل": "Full address",
   "الشارع، رقم البناية، أقرب معلم": "Street, building number, nearby landmark", "ملاحظات على الطلب (اختياري)": "Order notes (optional)",
   "أي تفاصيل تساعدنا في التوصيل": "Any details that help us deliver", "طريقة الدفع": "Payment method",

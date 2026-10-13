@@ -5,12 +5,11 @@ import { useStore } from "../app/StoreProvider.jsx";
 import { useCartLines } from "../components/public/cart/useCartLines.js";
 import FreeDeliveryNotice from "../components/public/cart/FreeDeliveryNotice.jsx";
 import Media from "../components/public/shell/Media.jsx";
-import { buildOrderWhatsAppMessage, checkoutService } from "../services/checkout.js";
+import { checkoutService } from "../services/checkout.js";
 import { trackCheckoutReached } from "../services/analytics.js";
 import { orderTokenStorage } from "../storage/authStorage.js";
 import { paymentMethods } from "../store.js";
 import { useMoney } from "../hooks/useStorefront.js";
-import { whatsappHref } from "../utils/format.js";
 import { CUSTOMER_COUNTRY_CODES, normalizeCustomerPhone } from "../utils/phone.js";
 
 const RETURN_POLICY_NOTICE = [
@@ -164,13 +163,6 @@ export default function CheckoutRoutePage() {
         packagingType,
       }, clientReference.current);
       orderTokenStorage.save(order.order_number, order.public_token);
-      if (store.settings.whatsapp) {
-        window.open(
-          whatsappHref(store.settings.whatsapp, buildOrderWhatsAppMessage(order)),
-          "_blank",
-          "noopener",
-        );
-      }
       store.clearCart();
       store.setCoupon({ input: "", applied: "", label: "", message: "", ok: false, discount: 0 });
       navigate(`/order-success/${order.order_number}`, { replace: true });
@@ -261,6 +253,9 @@ export default function CheckoutRoutePage() {
                     {t(errors.phone)}
                   </span>
                 )}
+                <span className="vs-field__hint">
+                  {t("بإتمام الطلب، سيتم إرسال تحديثات طلبك عبر واتساب على هذا الرقم.")}
+                </span>
               </div>
 
               <label className="vs-field">{t("منطقة التوصيل")}{" "}<select
