@@ -71,6 +71,10 @@ def build_order_notification(order: Order) -> OrderNotification:
     )
 
 
+def _template_text(value: object) -> str:
+    return " ".join(str(value).split())
+
+
 def _template_payload(notification: OrderNotification) -> dict:
     """Meta template body parameters, in the documented template order."""
     values = (
@@ -93,7 +97,10 @@ def _template_payload(notification: OrderNotification) -> dict:
             "components": [
                 {
                     "type": "body",
-                    "parameters": [{"type": "text", "text": value} for value in values],
+                    "parameters": [
+                        {"type": "text", "text": _template_text(value)}
+                        for value in values
+                    ],
                 }
             ],
         },

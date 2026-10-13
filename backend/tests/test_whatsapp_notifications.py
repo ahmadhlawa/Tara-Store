@@ -106,6 +106,41 @@ def test_whatsapp_template_contains_committed_order_summary(
     ]
 
 
+def test_whatsapp_template_parameters_collapse_unsafe_whitespace(monkeypatch):
+    _enable_whatsapp(monkeypatch)
+    notification = whatsapp_notifications.OrderNotification(
+        order_id=41,
+        order_number="\n\t     ORD-TEST-41     \t\n",
+        customer_phone="\n\t     970591234567     \t\n",
+        address="  رام\nالله\tشارع     الإرسال  ",
+        items_summary="  • شمعة\nلافندر\t×     1 | • وسادة     × 2  ",
+        subtotal="\n\t     150.00     \t\n",
+        discount="\n\t     10.00     \t\n",
+        delivery_fee="\n\t     20.00     \t\n",
+        total="\n\t     160.00     \t\n",
+    )
+
+    payload = whatsapp_notifications._template_payload(notification)
+    values = [
+        parameter["text"]
+        for parameter in payload["template"]["components"][0]["parameters"]
+    ]
+    assert all(
+        "\n" not in value and "\t" not in value and "     " not in value
+        for value in values
+    )
+    assert values == [
+        "ORD-TEST-41",
+        "970591234567",
+        "رام الله شارع الإرسال",
+        "• شمعة لافندر × 1 | • وسادة × 2",
+        "150.00",
+        "10.00",
+        "20.00",
+        "160.00",
+    ]
+
+
 def test_each_order_targets_its_customer_phone(client, db, monkeypatch):
     _enable_whatsapp(monkeypatch)
     product = make_product(db)

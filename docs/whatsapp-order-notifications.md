@@ -43,7 +43,7 @@ this exact order:
 1. order number
 2. customer phone
 3. delivery address
-4. multiline order items summary
+4. single-line order items summary
 5. subtotal
 6. discount
 7. delivery fee
@@ -56,10 +56,12 @@ tara_order_received
 ```
 
 The approved Arabic body is expected to place those variables as `{{1}}` through
-`{{8}}`. The products variable is a single multiline text value so any number of
-order lines can be represented without changing the template. Each line includes
-the snapshotted product name, optional variant, quantity, and line total. Gift
-packaging is appended as an extra summary line only when selected.
+`{{8}}`. Products are sent as one Meta-safe text parameter with items separated
+with ` | `, so any number of order items can be represented without changing the
+template. Each item includes the snapshotted product name, optional variant,
+quantity, and line total. Gift packaging is appended as an extra summary item
+only when selected. Every body parameter has all whitespace collapsed to single
+spaces, removing newlines, tabs, and repeated spaces.
 
 Do not put Admin URLs, internal notes, or other operator-only values in this
 customer template.
